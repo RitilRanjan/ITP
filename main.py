@@ -310,6 +310,7 @@ def main():
             print("  (Rules: QR1, QR2, PC1, PC2)")
             print("\nNested Environments:")
             print("  mission <formula>                   - Enter child environment to prove formula")
+            print("  contra <f1> <f2> <f3> <f4>          - Enter child environment for proof by contradiction")
             print("  exit                                - Leave child environment or exit program")
             print("\nState and History Management:")
             print("  help / guide                        - Show this help message")
@@ -443,6 +444,78 @@ def main():
             
             env = Environment(parent=env, goal_formula_name=f1_name)
             print(f"Entered child environment for goal '{f1_name}'.")
+
+        elif cmd == "contra":
+            cmd_args = args_str.split()
+            if len(cmd_args) < 4:
+                print("Error: Usage: contra <f1> <f2> <f3> <f4>")
+                continue
+            f1_name, f2_name, f3_name, f4_name = cmd_args[0], cmd_args[1], cmd_args[2], cmd_args[3]
+            
+            # 1. Verify f1 and f3 exist in active environment's formulae
+            if f1_name not in env.formulae:
+                print(f"Error: Formula '{f1_name}' not found.")
+                continue
+            if f3_name not in env.formulae:
+                print(f"Error: Formula '{f3_name}' not found.")
+                continue
+                
+            # 2. Verify f1 is not already proven
+            if f1_name in env.theorems:
+                print(f"Error: Goal '{f1_name}' is already proven.")
+                continue
+            # Also check if structurally identical theorem exists
+            f1_node = env.formulae[f1_name]
+            already_proven = False
+            for k, v in env.theorems.items():
+                if v.is_structurally_equal(f1_node):
+                    already_proven = True
+                    break
+            if already_proven:
+                print(f"Error: Goal '{f1_name}' (or a structurally identical formula) is already proven.")
+                continue
+                
+            # 3. Verify name uniqueness for f2 and f4
+            if f2_name == f4_name:
+                print(f"Error: Name '{f2_name}' is already in use by another environment object.")
+                continue
+                
+            # Validate f2 name
+            if not validate_new_name(env, f2_name, "formula"):
+                continue
+            if f2_name in env.formulae or f2_name in env.theorems:
+                print(f"Error: Name '{f2_name}' is already in use by another environment object.")
+                continue
+                
+            # Validate f4 name
+            if not validate_new_name(env, f4_name, "formula"):
+                continue
+            if f4_name in env.formulae or f4_name in env.theorems:
+                print(f"Error: Name '{f4_name}' is already in use by another environment object.")
+                continue
+                
+            # 4. Construct AST nodes
+            f3_node = env.formulae[f3_name]
+            f1_str = reconstruct_string(f1_node)
+            f3_str = reconstruct_string(f3_node)
+            try:
+                neg_f1_node = parse_fol_formula(f"¬ ( {f1_str} )", env)
+            except Exception:
+                neg_f1_node = parse_prop_formula(f"¬ ( {f1_str} )", env)
+                
+            try:
+                goal_node = parse_fol_formula(f"¬ ( {f3_str} ) ∧ ( {f3_str} )", env)
+            except Exception:
+                goal_node = parse_prop_formula(f"¬ ( {f3_str} ) ∧ ( {f3_str} )", env)
+            
+            # 5. Instantiation of child environment
+            child_env = Environment(parent=env, goal_formula_name=f4_name, target_proven_formula_name=f1_name)
+            child_env.formulae[f2_name] = neg_f1_node
+            child_env.theorems[f2_name] = clone_ast(neg_f1_node)
+            child_env.formulae[f4_name] = goal_node
+            
+            env = child_env
+            print(f"Entered child environment for contradiction proof. Goal: '{f4_name}' (¬{f3_name} ∧ {f3_name}). Assumption '{f2_name}': ¬{f1_name}.")
             
         elif cmd == "cv":
             if not args_str:
@@ -1165,7 +1238,7 @@ def main():
                     print(f"Error: Input '{input_name}' not found as a term or formula.")
 
         else:
-            print(f"Unknown command '{cmd}'. Supported commands: cv, cV, ct, cf, cp, st, sf, sb, sa, sp, def_f, def_r, iota, fold, ua, ir, dt, show, exit, mission, help, guide, save, load, save_h, load_h, auto")
+            print(f"Unknown command '{cmd}'. Supported commands: cv, cV, ct, cf, cp, st, sf, sb, sa, sp, def_f, def_r, iota, fold, ua, ir, dt, show, exit, mission, contra, help, guide, save, load, save_h, load_h, auto")
         # Record command in history if it succeeded and was entered by the user
         if not is_from_queue and not has_error:
             if cmd not in {"exit", "load_h", "save", "save_h", "help", "guide"}:
@@ -1179,8 +1252,14 @@ def main():
             goal_node = env.theorems[goal_name]
             parent = env.parent
             
-            # Register the goal formula in the parent environment as a proven theorem
-            parent.theorems[goal_name] = clone_ast(goal_node)
+            # If this is a contra child environment, register the target formula f1 in the parent
+            if getattr(env, "target_proven_formula_name", None):
+                target_name = env.target_proven_formula_name
+                parent.theorems[target_name] = clone_ast(parent.formulae[target_name])
+                print(f"Target formula '{target_name}' has been successfully proven in parent environment via contradiction!")
+            else:
+                # Normal mission command: register the goal itself
+                parent.theorems[goal_name] = clone_ast(goal_node)
             
             # Destroy the child environment and restore the parent
             env = parent

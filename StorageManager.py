@@ -28,6 +28,7 @@ def save_environment_state(env: Environment, filepath: str) -> None:
         for idx, e in enumerate(chain):
             f.write(f"[Environment {idx}]\n")
             f.write(f"Goal: {e.goal_formula_name}\n")
+            f.write(f"Target Proven: {e.target_proven_formula_name}\n")
             
             # For the ground environment, filter out pre-defined defaults.
             # Variables x, y, S, +, =, ∈, p, q.
@@ -124,6 +125,7 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         if line_stripped.startswith("[Environment ") and line_stripped.endswith("]"):
             curr_config = {
                 "goal": None,
+                "target_proven_formula_name": None,
                 "variables": [],
                 "dummy_variables": [],
                 "meta_variables": [],
@@ -145,6 +147,10 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         if line_stripped.startswith("Goal:"):
             goal_val = line_stripped.split(":", 1)[1].strip()
             curr_config["goal"] = None if goal_val == "None" or not goal_val else goal_val
+            curr_section = None
+        elif line_stripped.startswith("Target Proven:"):
+            target_val = line_stripped.split(":", 1)[1].strip()
+            curr_config["target_proven_formula_name"] = None if target_val == "None" or not target_val else target_val
             curr_section = None
         elif line_stripped.startswith("Variables:"):
             val = line_stripped.split(":", 1)[1].strip()
@@ -201,8 +207,14 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
     for idx, config in enumerate(env_configs):
         if idx == 0:
             env = get_default_env_func()
+            # Restore ground level target_proven_formula_name if any
+            env.target_proven_formula_name = config.get("target_proven_formula_name")
         else:
-            env = Environment(parent=active_env, goal_formula_name=config["goal"])
+            env = Environment(
+                parent=active_env,
+                goal_formula_name=config["goal"],
+                target_proven_formula_name=config.get("target_proven_formula_name")
+            )
             
         # Populate objects in order of dependencies
         # 1. Variables

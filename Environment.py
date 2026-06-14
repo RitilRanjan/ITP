@@ -18,9 +18,10 @@ class ASTEncoder(json.JSONEncoder):
 
 class Environment:
     """Stores the state of the theorem prover."""
-    def __init__(self, parent=None, goal_formula_name=None):
+    def __init__(self, parent=None, goal_formula_name=None, target_proven_formula_name=None):
         self.parent = parent
         self.goal_formula_name = goal_formula_name
+        self.target_proven_formula_name = target_proven_formula_name
         
         self.local_variables = {}
         self.local_dummy_variables = {}
