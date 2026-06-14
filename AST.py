@@ -18,6 +18,9 @@ class Node:
     prefix_formatting: List['Node'] = field(default_factory=list, init=False)
     postfix_formatting: List['Node'] = field(default_factory=list, init=False)
 
+    def is_structurally_equal(self, other: 'Node') -> bool:
+        return is_structurally_equal(self, other)
+
 @dataclass
 class TermNode(Node):
     """Base class for term nodes."""

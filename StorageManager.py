@@ -28,6 +28,8 @@ def save_environment_state(env: Environment, filepath: str) -> None:
         for idx, e in enumerate(chain):
             f.write(f"[Environment {idx}]\n")
             f.write(f"Goal: {e.goal_formula_name}\n")
+            f.write(f"Original Goal: {e.original_goal_formula_name}\n")
+            f.write(f"And Right: {e.and_right_formula_name}\n")
             f.write(f"Target Proven: {e.target_proven_formula_name}\n")
             
             # For the ground environment, filter out pre-defined defaults.
@@ -125,6 +127,8 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         if line_stripped.startswith("[Environment ") and line_stripped.endswith("]"):
             curr_config = {
                 "goal": None,
+                "original_goal": None,
+                "and_right": None,
                 "target_proven_formula_name": None,
                 "variables": [],
                 "dummy_variables": [],
@@ -147,6 +151,14 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         if line_stripped.startswith("Goal:"):
             goal_val = line_stripped.split(":", 1)[1].strip()
             curr_config["goal"] = None if goal_val == "None" or not goal_val else goal_val
+            curr_section = None
+        elif line_stripped.startswith("Original Goal:"):
+            og_val = line_stripped.split(":", 1)[1].strip()
+            curr_config["original_goal"] = None if og_val == "None" or not og_val else og_val
+            curr_section = None
+        elif line_stripped.startswith("And Right:"):
+            ar_val = line_stripped.split(":", 1)[1].strip()
+            curr_config["and_right"] = None if ar_val == "None" or not ar_val else ar_val
             curr_section = None
         elif line_stripped.startswith("Target Proven:"):
             target_val = line_stripped.split(":", 1)[1].strip()
@@ -215,6 +227,11 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
                 goal_formula_name=config["goal"],
                 target_proven_formula_name=config.get("target_proven_formula_name")
             )
+            # Restore original goal and and_right if present
+            if config.get("original_goal") is not None:
+                env.original_goal_formula_name = config["original_goal"]
+            if config.get("and_right") is not None:
+                env.and_right_formula_name = config["and_right"]
             
         # Populate objects in order of dependencies
         # 1. Variables

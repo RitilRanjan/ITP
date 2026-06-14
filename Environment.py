@@ -21,7 +21,11 @@ class Environment:
     def __init__(self, parent=None, goal_formula_name=None, target_proven_formula_name=None):
         self.parent = parent
         self.goal_formula_name = goal_formula_name
+        # Tracks the original mission goal name before any left/right/and reduction
+        self.original_goal_formula_name = goal_formula_name
         self.target_proven_formula_name = target_proven_formula_name
+        # Tracks the right-hand sub-goal name when goal was split by 'and' command
+        self.and_right_formula_name = None
         
         self.local_variables = {}
         self.local_dummy_variables = {}

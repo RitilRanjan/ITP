@@ -101,3 +101,75 @@ def test_find_substituted():
     res2 = find_substituted(f1, f3)
     assert res2 is not None
     assert res2.name == "S"
+
+def test_replace_structurally():
+    env = get_test_env()
+    from SubstitutionManager import replace_structurally
+    from Frontend import reconstruct_string
+    
+    t1 = parse_term("x + y + x", env)
+    
+    x_node = parse_term("x", env)
+    sz_node = parse_term("S z", env)
+    
+    t2 = replace_structurally(t1, x_node, sz_node, occurrence_idx=2)
+    assert reconstruct_string(t2) == "x + y + S z"
+    
+    t3 = replace_structurally(t1, x_node, sz_node)
+    assert reconstruct_string(t3) == "S z + y + S z"
+    
+    f1 = parse_fol_formula("x = y ∨ x = y", env)
+    xy_node = parse_fol_formula("x = y", env)
+    sz_node2 = parse_fol_formula("S z = y", env)
+    
+    f2 = replace_structurally(f1, xy_node, sz_node2, occurrence_idx=1)
+    assert reconstruct_string(f2).replace(" ", "") == "S z = y ∨ x = y".replace(" ", "")
+
+
+def test_remove_double_neg():
+    env = get_test_env()
+    from SubstitutionManager import remove_double_neg
+    from Frontend import reconstruct_string
+
+    # Build ¬¬(x=y) ∨ ¬¬(x=y)
+    f1 = parse_fol_formula("x = y", env)
+    nn1 = Connective(name="¬", arity=1, arguments=[Connective(name="¬", arity=1, arguments=[f1])])
+    import copy
+    nn2 = copy.deepcopy(nn1)
+    formula = Connective(name="∨", arity=2, arguments=[nn1, nn2])
+
+    # Remove all double negations
+    result_all = remove_double_neg(formula)
+    r_str = reconstruct_string(result_all).replace(" ", "")
+    assert "¬¬" not in r_str, f"Expected no double negations, got: {r_str}"
+
+    # Remove only the first occurrence
+    result_1 = remove_double_neg(formula, occurrence_idx=1)
+    r1_str = reconstruct_string(result_1).replace(" ", "")
+    # Second ¬¬ should still be present
+    assert r1_str.count("¬¬") == 1, f"Expected exactly one ¬¬ remaining, got: {r1_str}"
+
+    # Remove only the second occurrence
+    result_2 = remove_double_neg(formula, occurrence_idx=2)
+    r2_str = reconstruct_string(result_2).replace(" ", "")
+    # First ¬¬ should still be present
+    assert r2_str.count("¬¬") == 1, f"Expected exactly one ¬¬ remaining, got: {r2_str}"
+
+
+def test_add_double_neg():
+    env = get_test_env()
+    from SubstitutionManager import add_double_neg
+    from Frontend import reconstruct_string, parse_fol_formula
+
+    f1 = parse_fol_formula("x = y", env)
+
+    # Wrap at the first (and only) occurrence of the top formula
+    result = add_double_neg(f1, occurrence_idx=1)
+    r_str = reconstruct_string(result).replace(" ", "")
+    assert r_str.startswith("¬¬"), f"Expected ¬¬ prefix, got: {r_str}"
+
+    # No occurrence_idx: wraps the root (and descends into children)
+    # For a bare atomic formula, this just wraps it
+    result_all = add_double_neg(f1)
+    r_all = reconstruct_string(result_all).replace(" ", "")
+    assert "¬¬" in r_all, f"Expected ¬¬ in result, got: {r_all}"

@@ -146,3 +146,88 @@ def test_contradiction_serialization():
     finally:
         if os.path.exists(filepath):
             os.remove(filepath)
+
+
+def test_intro_universal():
+    from SubstitutionManager import substitute_free, clone_ast
+    from AST import Variable
+    
+    parent = get_default_env()
+    # Goal: ∀ x ( x = x )
+    goal_node = parse_fol_formula("∀ x ( x = x )", parent)
+    parent.local_formulae["g1"] = goal_node
+    
+    child = Environment(parent=parent, goal_formula_name="g1")
+    
+    # Universal intro: intro f1 v
+    # v must be fresh
+    f1_name = "f1"
+    v_name = "v"
+    
+    # Check that v is fresh
+    assert validate_new_name(child, v_name, "variable")
+    assert validate_new_name(child, f1_name, "formula")
+    
+    # Extract quantifier parts
+    current_goal_node = child.formulae["g1"]
+    bound_var_name = current_goal_node.variable.name
+    body_node = current_goal_node.formula
+    
+    v_var_node = Variable(name=v_name)
+    new_body_node = substitute_free(clone_ast(body_node), bound_var_name, v_var_node)
+    
+    # Register formula
+    child.formulae[f1_name] = new_body_node
+    child.local_variables[v_name] = Variable(name=v_name)
+    child.goal_formula_name = f1_name
+    
+    assert child.goal_formula_name == "f1"
+    assert is_structurally_equal(child.formulae["f1"], parse_fol_formula("v = v", child))
+
+
+def test_intro_existential():
+    from SubstitutionManager import substitute_free, clone_ast
+    from Frontend import parse_term
+    
+    parent = get_default_env()
+    # Goal: ∃ x ( x = y )
+    goal_node = parse_fol_formula("∃ x ( x = y )", parent)
+    parent.local_formulae["g1"] = goal_node
+    
+    # Create term t1 = successor of y: S y
+    t1_node = parse_term("S y", parent)
+    parent.terms["t1"] = t1_node
+    
+    child = Environment(parent=parent, goal_formula_name="g1")
+    
+    # Existential intro: intro f1 t1
+    f1_name = "f1"
+    t1_name = "t1"
+    
+    # Verify t1 exists
+    assert t1_name in child.terms
+    
+    # Extract quantifier parts
+    current_goal_node = child.formulae["g1"]
+    bound_var_name = current_goal_node.variable.name
+    body_node = current_goal_node.formula
+    
+    substituted_node = substitute_free(clone_ast(body_node), bound_var_name, clone_ast(child.terms[t1_name]))
+    
+    # Register f1
+    child.formulae[f1_name] = substituted_node
+    child.goal_formula_name = f1_name
+    
+    assert child.goal_formula_name == "f1"
+    expected_node = parse_fol_formula("S y = y", child)
+    assert is_structurally_equal(child.formulae["f1"], expected_node)
+    
+    # Test existing name mismatch check
+    mismatched_node = parse_fol_formula("y = y", child)
+    child.formulae["f2"] = mismatched_node
+    assert not child.formulae["f2"].is_structurally_equal(substituted_node)
+    
+    # Test existing name matching check
+    matching_node = parse_fol_formula("S y = y", child)
+    child.formulae["f3"] = matching_node
+    assert child.formulae["f3"].is_structurally_equal(substituted_node)

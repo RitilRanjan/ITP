@@ -418,3 +418,262 @@ def find_substituted(formula1: FormulaNode, formula2: FormulaNode, target_variab
             return clone_ast(match_result["term"])
             
     return None
+
+def replace_structurally(
+    node: Node, 
+    target: Node, 
+    replacement: Node, 
+    occurrence_idx: Optional[int] = None,
+    current_count: Optional[List[int]] = None
+) -> Node:
+    """
+    Replaces occurrences of 'target' with 'replacement' inside 'node'.
+    If occurrence_idx is specified, only that specific (1-based) occurrence is replaced.
+    Traversal is pre-order (left-to-right textually).
+    """
+    if current_count is None:
+        current_count = [0]
+        
+    if node.is_structurally_equal(target):
+        current_count[0] += 1
+        if occurrence_idx is None or occurrence_idx == current_count[0]:
+            cloned_repl = clone_ast(replacement)
+            cloned_repl.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+            cloned_repl.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+            return cloned_repl
+            
+    if isinstance(node, Variable):
+        c = Variable(name=node.name)
+    elif isinstance(node, DummyVariable):
+        c = DummyVariable(name=node.name)
+    elif isinstance(node, PropositionalVariable):
+        c = PropositionalVariable(name=node.name)
+    elif isinstance(node, MetaVariable):
+        c = MetaVariable(name=node.name)
+    elif isinstance(node, Bracket):
+        c = Bracket(name=node.name)
+    elif isinstance(node, Whitespace):
+        c = Whitespace(name=node.name)
+    elif isinstance(node, Function):
+        c = Function(
+            name=node.name,
+            arity=node.arity,
+            func_type=node.func_type,
+            arguments=[replace_structurally(arg, target, replacement, occurrence_idx, current_count) for arg in node.arguments]
+        )
+    elif isinstance(node, Relation):
+        c = Relation(
+            name=node.name,
+            arity=node.arity,
+            rel_type=node.rel_type,
+            arguments=[replace_structurally(arg, target, replacement, occurrence_idx, current_count) for arg in node.arguments]
+        )
+    elif isinstance(node, Connective):
+        c = Connective(
+            name=node.name,
+            arity=node.arity,
+            arguments=[replace_structurally(arg, target, replacement, occurrence_idx, current_count) for arg in node.arguments]
+        )
+    elif isinstance(node, Quantifier):
+        c = Quantifier(
+            name=node.name,
+            variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
+            formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
+        )
+    else:
+        raise ValueError(f"Unknown AST node type: {type(node)}")
+        
+    c.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+    c.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+    return c
+
+
+def _is_double_neg(node: Node) -> bool:
+    """Return True iff node is ¬(¬Ψ) for some formula Ψ."""
+    return (
+        isinstance(node, Connective) and node.name == "¬" and len(node.arguments) == 1
+        and isinstance(node.arguments[0], Connective) and node.arguments[0].name == "¬"
+        and len(node.arguments[0].arguments) == 1
+    )
+
+
+def remove_double_neg(
+    node: Node,
+    occurrence_idx: Optional[int] = None,
+    current_count: Optional[List[int]] = None
+) -> Node:
+    """
+    Remove double negations (¬¬Ψ → Ψ) inside *node*.
+    If occurrence_idx is given (1-based), only that occurrence is simplified.
+    Traversal is pre-order (left-to-right).
+    Returns a new node; the original is not mutated.
+    """
+    if current_count is None:
+        current_count = [0]
+
+    if _is_double_neg(node):
+        current_count[0] += 1
+        if occurrence_idx is None or occurrence_idx == current_count[0]:
+            # Strip two layers of ¬ and keep inner formula's formatting
+            inner = node.arguments[0].arguments[0]  # type: ignore
+            cloned = clone_ast(inner)
+            # Preserve outer bracket/whitespace context
+            cloned.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+            cloned.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+            return cloned
+
+    # Recurse structurally
+    if isinstance(node, Variable):
+        c: Node = Variable(name=node.name)
+    elif isinstance(node, DummyVariable):
+        c = DummyVariable(name=node.name)
+    elif isinstance(node, PropositionalVariable):
+        c = PropositionalVariable(name=node.name)
+    elif isinstance(node, MetaVariable):
+        c = MetaVariable(name=node.name)
+    elif isinstance(node, Bracket):
+        c = Bracket(name=node.name)
+    elif isinstance(node, Whitespace):
+        c = Whitespace(name=node.name)
+    elif isinstance(node, Function):
+        c = Function(
+            name=node.name,
+            arity=node.arity,
+            func_type=node.func_type,
+            arguments=[remove_double_neg(arg, occurrence_idx, current_count) for arg in node.arguments]
+        )
+    elif isinstance(node, Relation):
+        c = Relation(
+            name=node.name,
+            arity=node.arity,
+            rel_type=node.rel_type,
+            arguments=[remove_double_neg(arg, occurrence_idx, current_count) for arg in node.arguments]  # type: ignore
+        )
+    elif isinstance(node, Connective):
+        c = Connective(
+            name=node.name,
+            arity=node.arity,
+            arguments=[remove_double_neg(arg, occurrence_idx, current_count) for arg in node.arguments]  # type: ignore
+        )
+    elif isinstance(node, Quantifier):
+        c = Quantifier(
+            name=node.name,
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    else:
+        raise ValueError(f"Unknown AST node type: {type(node)}")
+
+    c.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+    c.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+    return c
+
+
+def add_double_neg(
+    node: Node,
+    occurrence_idx: Optional[int] = None,
+    current_count: Optional[List[int]] = None
+) -> Node:
+    """
+    Wrap a formula subnode with ¬¬ at the given (1-based) occurrence.
+    If occurrence_idx is None, wraps ALL formula subnodes.
+    Non-formula nodes (Variable, Function, Bracket, Whitespace …) are
+    cloned unchanged; only FormulaNode instances are counted as candidates.
+    Traversal is pre-order (left-to-right).
+    Returns a new node; the original is not mutated.
+    """
+    if current_count is None:
+        current_count = [0]
+
+    # Only formula nodes are candidates for wrapping
+    if isinstance(node, FormulaNode):
+        current_count[0] += 1
+        if occurrence_idx is None or occurrence_idx == current_count[0]:
+            inner = _rebuild_node(node, occurrence_idx, current_count, recurse_fn=add_double_neg)
+            wrapped = Connective(name="¬", arity=1, arguments=[
+                Connective(name="¬", arity=1, arguments=[inner])
+            ])
+            wrapped.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+            wrapped.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+            return wrapped
+        # Didn't match this node – still recurse into children
+        return _rebuild_node(node, occurrence_idx, current_count, recurse_fn=add_double_neg)
+
+    # Non-formula: just clone
+    return _rebuild_non_formula(node)
+
+
+def _rebuild_non_formula(node: Node) -> Node:
+    """Clone a non-formula node (Variable, Function, Bracket, Whitespace …)."""
+    if isinstance(node, Variable):
+        c: Node = Variable(name=node.name)
+    elif isinstance(node, DummyVariable):
+        c = DummyVariable(name=node.name)
+    elif isinstance(node, Bracket):
+        c = Bracket(name=node.name)
+    elif isinstance(node, Whitespace):
+        c = Whitespace(name=node.name)
+    elif isinstance(node, Function):
+        c = Function(
+            name=node.name,
+            arity=node.arity,
+            func_type=node.func_type,
+            arguments=[_rebuild_non_formula(a) for a in node.arguments]
+        )
+    else:
+        c = clone_ast(node)
+    c.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+    c.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+    return c
+
+
+def _rebuild_node(
+    node: Node,
+    occurrence_idx: Optional[int],
+    current_count: List[int],
+    recurse_fn
+) -> Node:
+    """Rebuild node by recursing into children with recurse_fn."""
+    if isinstance(node, Variable):
+        c: Node = Variable(name=node.name)
+    elif isinstance(node, DummyVariable):
+        c = DummyVariable(name=node.name)
+    elif isinstance(node, PropositionalVariable):
+        c = PropositionalVariable(name=node.name)
+    elif isinstance(node, MetaVariable):
+        c = MetaVariable(name=node.name)
+    elif isinstance(node, Bracket):
+        c = Bracket(name=node.name)
+    elif isinstance(node, Whitespace):
+        c = Whitespace(name=node.name)
+    elif isinstance(node, Function):
+        c = Function(
+            name=node.name,
+            arity=node.arity,
+            func_type=node.func_type,
+            arguments=[recurse_fn(arg, occurrence_idx, current_count) for arg in node.arguments]
+        )
+    elif isinstance(node, Relation):
+        c = Relation(
+            name=node.name,
+            arity=node.arity,
+            rel_type=node.rel_type,
+            arguments=[recurse_fn(arg, occurrence_idx, current_count) for arg in node.arguments]  # type: ignore
+        )
+    elif isinstance(node, Connective):
+        c = Connective(
+            name=node.name,
+            arity=node.arity,
+            arguments=[recurse_fn(arg, occurrence_idx, current_count) for arg in node.arguments]  # type: ignore
+        )
+    elif isinstance(node, Quantifier):
+        c = Quantifier(
+            name=node.name,
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    else:
+        raise ValueError(f"Unknown AST node type: {type(node)}")
+    c.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+    c.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+    return c
