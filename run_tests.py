@@ -29,6 +29,7 @@ import test_Iota
 import test_DefinitionExpander
 import test_Missions
 import test_Storage
+import test_AutoProver
 
 def run_all():
     failed = False
@@ -180,6 +181,18 @@ def run_all():
     print("\nRunning Storage tests...")
     test_funcs_store = [getattr(test_Storage, name) for name in dir(test_Storage) if name.startswith("test_")]
     for func in test_funcs_store:
+        try:
+            func()
+            print(f"  [PASS] {func.__name__}")
+        except Exception as e:
+            print(f"  [FAIL] {func.__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            failed = True
+            
+    print("\nRunning Auto Prover tests...")
+    test_funcs_auto = [getattr(test_AutoProver, name) for name in dir(test_AutoProver) if name.startswith("test_")]
+    for func in test_funcs_auto:
         try:
             func()
             print(f"  [PASS] {func.__name__}")

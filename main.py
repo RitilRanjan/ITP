@@ -18,6 +18,7 @@ from SubstitutionManager import (
 from StorageManager import (
     save_environment_state, load_environment_state, save_history, load_history
 )
+from AutoProver import auto_prove
 
 # Global flag to track if the current command resulted in an error or warning
 has_error = False
@@ -304,6 +305,7 @@ def main():
             print("  ua <axiom> <formula>                - Prove formula using logical/ZFC axiom (e.g. ua E1 f1)")
             print("  ir <rule> <conclusion> [premises]   - Prove conclusion using rule and premises (e.g. ir PC1 f2 f1)")
             print("  dt <theorem>                        - Delete a proven theorem from environment")
+            print("  auto <formula>                      - Attempt to prove formula automatically using axioms & rules")
             print("  (Axioms: E1, E2, E3, Q1, Q2, extension, pairing, union, power_set, regularity, infinity, choice, specification, replacement)")
             print("  (Rules: QR1, QR2, PC1, PC2)")
             print("\nNested Environments:")
@@ -397,6 +399,25 @@ def main():
             except Exception as e:
                 print(f"Error: {e}")
             
+        elif cmd == "auto":
+            cmd_args = args_str.split()
+            if len(cmd_args) < 1:
+                print("Error: Usage: auto <formula>")
+                continue
+            f1_name = cmd_args[0]
+            if f1_name not in env.formulae:
+                print(f"Error: Formula '{f1_name}' not found.")
+                continue
+            
+            try:
+                success = auto_prove(f1_name, env)
+                if success:
+                    print(f"Formula '{f1_name}' has been successfully proven automatically!")
+                else:
+                    print(f"Failed to prove formula '{f1_name}' automatically.")
+            except Exception as e:
+                print(f"Error during auto proof: {e}")
+
         elif cmd == "mission":
             cmd_args = args_str.split()
             if len(cmd_args) < 1:
@@ -1144,7 +1165,7 @@ def main():
                     print(f"Error: Input '{input_name}' not found as a term or formula.")
 
         else:
-            print(f"Unknown command '{cmd}'. Supported commands: cv, cV, ct, cf, cp, st, sf, sb, sa, sp, def_f, def_r, iota, fold, ua, ir, dt, show, exit, mission, help, guide, save, load, save_h, load_h")
+            print(f"Unknown command '{cmd}'. Supported commands: cv, cV, ct, cf, cp, st, sf, sb, sa, sp, def_f, def_r, iota, fold, ua, ir, dt, show, exit, mission, help, guide, save, load, save_h, load_h, auto")
         # Record command in history if it succeeded and was entered by the user
         if not is_from_queue and not has_error:
             if cmd not in {"exit", "load_h", "save", "save_h", "help", "guide"}:
