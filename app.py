@@ -297,12 +297,14 @@ with tab_programs:
             # Use session state to hold the partial input so suggestions can update it
             if "current_cmd" not in st.session_state:
                 st.session_state.current_cmd = ""
+            if "keyup_key" not in st.session_state:
+                st.session_state.keyup_key = 0
                 
             # If the user clicks a suggestion, it updates st.session_state.current_cmd
             
             col_input, col_btn = st.columns([5, 1])
             with col_input:
-                partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key="live_input", debounce=100)
+                partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key=f"live_input_{st.session_state.keyup_key}", debounce=100)
             with col_btn:
                 # Add some vertical margin so button aligns with input
                 st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
@@ -331,6 +333,7 @@ with tab_programs:
                                         tokens[-1] = sug
                                         new_cmd = " ".join(tokens) + " "
                                         st.session_state.current_cmd = new_cmd
+                                        st.session_state.keyup_key += 1
                                         st.rerun()
                 else:
                     st.write("*(No suggestions)*")
@@ -342,10 +345,21 @@ with tab_programs:
             # Clear input after run
             if submit_clicked:
                 st.session_state.current_cmd = ""
+                st.session_state.keyup_key += 1
                 
-            # Disable native browser autocomplete
+            # Disable native browser autocomplete and add button CSS
             st.components.v1.html(
-                "<script>window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));</script>",
+                """<script>
+                window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));
+                if (!window.parent.document.getElementById('custom-button-css')) {
+                    window.parent.document.head.insertAdjacentHTML("beforeend", `<style id='custom-button-css'>
+                    .stButton > button { transition: all 0.1s ease !important; }
+                    .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
+                    .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
+                    </style>`);
+                }
+                </script>
+                """,
                 height=0, width=0
             )
         else:
