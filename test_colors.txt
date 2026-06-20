@@ -1,0 +1,8 @@
+N
+cf f1 ∀x (x=y)
+show
+save
+test_save.txt
+save_h
+test_history.txt
+exit

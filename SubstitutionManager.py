@@ -1,9 +1,16 @@
-from typing import Set, List, Dict, Optional, Any
+from typing import Set, List, Dict, Optional, Any, Union
 from AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, Function, FunctionType,
     PropositionalVariable, Relation, RelationType, Connective, Quantifier, MetaVariable,
-    Bracket, Whitespace
+    Bracket, Whitespace, SetBuilder
 )
+
+def matches_occurrence(occurrence_idx: Union[int, List[int], None], current_count: int) -> bool:
+    if occurrence_idx is None:
+        return True
+    if isinstance(occurrence_idx, int):
+        return occurrence_idx == current_count
+    return current_count in occurrence_idx
 
 def clone_ast(node: Node) -> Node:
     """Creates a deep copy of the AST node, preserving formatting fields."""
@@ -44,6 +51,12 @@ def clone_ast(node: Node) -> Node:
             name=node.name,
             variable=clone_ast(node.variable),
             formula=clone_ast(node.formula)
+        )
+    elif isinstance(node, SetBuilder):
+        c = SetBuilder(
+            variable=clone_ast(node.variable), # type: ignore
+            base_set=clone_ast(node.base_set), # type: ignore
+            formula=clone_ast(node.formula) # type: ignore
         )
     else:
         raise ValueError(f"Unknown AST node type: {type(node)}")
@@ -94,6 +107,27 @@ def collect_all_occurrences(
         })
         
         v_name = q_var.name
+        if v_name not in bound_scopes:
+            bound_scopes[v_name] = []
+        bound_scopes[v_name].append(node)
+        
+        collect_all_occurrences(node.formula, bound_scopes, new_enclosing, occurrences)
+        
+        bound_scopes[v_name].pop()
+        
+    elif isinstance(node, SetBuilder):
+        collect_all_occurrences(node.base_set, bound_scopes, enclosing_quantifiers, occurrences)
+        
+        new_enclosing = enclosing_quantifiers + [node]
+        sb_var = node.variable
+        occurrences.append({
+            "node": sb_var,
+            "is_free": False,
+            "binding_quantifier": node,
+            "enclosing_quantifiers": list(enclosing_quantifiers)
+        })
+        
+        v_name = sb_var.name
         if v_name not in bound_scopes:
             bound_scopes[v_name] = []
         bound_scopes[v_name].append(node)
@@ -156,15 +190,15 @@ def is_substitutable_free(variable: Any, term: TermNode, formula: FormulaNode, o
                 return False
         return True
 
-def is_valid_renaming(quantifier_node: Quantifier, target_name: str, formula: FormulaNode) -> bool:
-    """Checks if renaming bound variable in quantifier_node scope to target_name changes meaning."""
-    free_in_scope = get_free(quantifier_node.formula)
+def is_valid_renaming(binder_node: Node, target_name: str, formula: FormulaNode) -> bool:
+    """Checks if renaming bound variable in binder_node scope to target_name changes meaning."""
+    free_in_scope = get_free(binder_node.formula)
     if target_name in free_in_scope:
         return False
         
-    occs_in_scope = collect_all_occurrences(quantifier_node.formula)
+    occs_in_scope = collect_all_occurrences(binder_node.formula)
     for o in occs_in_scope:
-        if o["node"].name == quantifier_node.variable.name and o["binding_quantifier"] is quantifier_node:
+        if o["node"].name == binder_node.variable.name and o["binding_quantifier"] is binder_node:
             for eq in o["enclosing_quantifiers"]:
                 if eq.variable.name == target_name:
                     return False
@@ -211,6 +245,22 @@ def in_place_replace(node: Node, replacements_map: Dict[int, Node]):
             node.variable = replacements_map[id(node.variable)]
         else:
             in_place_replace(node.variable, replacements_map)
+            
+        if id(node.formula) in replacements_map:
+            node.formula = replacements_map[id(node.formula)]
+        else:
+            in_place_replace(node.formula, replacements_map)
+            
+    elif isinstance(node, SetBuilder):
+        if id(node.variable) in replacements_map:
+            node.variable = replacements_map[id(node.variable)]
+        else:
+            in_place_replace(node.variable, replacements_map)
+            
+        if id(node.base_set) in replacements_map:
+            node.base_set = replacements_map[id(node.base_set)]
+        else:
+            in_place_replace(node.base_set, replacements_map)
             
         if id(node.formula) in replacements_map:
             node.formula = replacements_map[id(node.formula)]
@@ -423,7 +473,7 @@ def replace_structurally(
     node: Node, 
     target: Node, 
     replacement: Node, 
-    occurrence_idx: Optional[int] = None,
+    occurrence_idx: Union[int, List[int], None] = None,
     current_count: Optional[List[int]] = None
 ) -> Node:
     """
@@ -436,7 +486,7 @@ def replace_structurally(
         
     if node.is_structurally_equal(target):
         current_count[0] += 1
-        if occurrence_idx is None or occurrence_idx == current_count[0]:
+        if matches_occurrence(occurrence_idx, current_count[0]):
             cloned_repl = clone_ast(replacement)
             cloned_repl.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
             cloned_repl.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
@@ -480,6 +530,12 @@ def replace_structurally(
             variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
             formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
         )
+    elif isinstance(node, SetBuilder):
+        c = SetBuilder(
+            variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
+            base_set=replace_structurally(node.base_set, target, replacement, occurrence_idx, current_count), # type: ignore
+            formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
+        )
     else:
         raise ValueError(f"Unknown AST node type: {type(node)}")
         
@@ -499,7 +555,7 @@ def _is_double_neg(node: Node) -> bool:
 
 def remove_double_neg(
     node: Node,
-    occurrence_idx: Optional[int] = None,
+    occurrence_idx: Union[int, List[int], None] = None,
     current_count: Optional[List[int]] = None
 ) -> Node:
     """
@@ -513,7 +569,7 @@ def remove_double_neg(
 
     if _is_double_neg(node):
         current_count[0] += 1
-        if occurrence_idx is None or occurrence_idx == current_count[0]:
+        if matches_occurrence(occurrence_idx, current_count[0]):
             # Strip two layers of ¬ and keep inner formula's formatting
             inner = node.arguments[0].arguments[0]  # type: ignore
             cloned = clone_ast(inner)
@@ -561,6 +617,12 @@ def remove_double_neg(
             variable=clone_ast(node.variable),  # type: ignore
             formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
         )
+    elif isinstance(node, SetBuilder):
+        c = SetBuilder(
+            variable=clone_ast(node.variable),  # type: ignore
+            base_set=clone_ast(node.base_set),  # type: ignore
+            formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
     else:
         raise ValueError(f"Unknown AST node type: {type(node)}")
 
@@ -571,7 +633,7 @@ def remove_double_neg(
 
 def add_double_neg(
     node: Node,
-    occurrence_idx: Optional[int] = None,
+    occurrence_idx: Union[int, List[int], None] = None,
     current_count: Optional[List[int]] = None
 ) -> Node:
     """
@@ -588,7 +650,7 @@ def add_double_neg(
     # Only formula nodes are candidates for wrapping
     if isinstance(node, FormulaNode):
         current_count[0] += 1
-        if occurrence_idx is None or occurrence_idx == current_count[0]:
+        if matches_occurrence(occurrence_idx, current_count[0]):
             inner = _rebuild_node(node, occurrence_idx, current_count, recurse_fn=add_double_neg)
             wrapped = Connective(name="¬", arity=1, arguments=[
                 Connective(name="¬", arity=1, arguments=[inner])
@@ -598,6 +660,16 @@ def add_double_neg(
             return wrapped
         # Didn't match this node – still recurse into children
         return _rebuild_node(node, occurrence_idx, current_count, recurse_fn=add_double_neg)
+
+    if isinstance(node, SetBuilder):
+        c = SetBuilder(
+            variable=clone_ast(node.variable), # type: ignore
+            base_set=clone_ast(node.base_set), # type: ignore
+            formula=add_double_neg(node.formula, occurrence_idx, current_count) # type: ignore
+        )
+        c.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+        c.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+        return c
 
     # Non-formula: just clone
     return _rebuild_non_formula(node)
@@ -670,6 +742,12 @@ def _rebuild_node(
         c = Quantifier(
             name=node.name,
             variable=clone_ast(node.variable),  # type: ignore
+            formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    elif isinstance(node, SetBuilder):
+        c = SetBuilder(
+            variable=clone_ast(node.variable),  # type: ignore
+            base_set=clone_ast(node.base_set),  # type: ignore
             formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
         )
     else:

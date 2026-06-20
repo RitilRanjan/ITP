@@ -1,0 +1,45 @@
+y
+cv x
+cv y
+cv z
+cf sub_def ∀ z ( z ∈ x ⇒ z ∈ y )
+def_r 2 x sub y sub_def
+cv A
+cv B
+cv C
+cv R
+
+cf Reflexive ∀ A ( A sub A )
+cf Transitive ∀ A ( ∀ B ( ∀ C ( A sub B ∧ B sub C ⇒ A sub C ) ) )
+cf Antisymmetric ∀ A ( ∀ B ( A sub B ∧ B sub A ⇒ A = B ) )
+
+# 1. Reflexive
+cf goal1 ∀ A ( ∀ B ( A sub B ⇔ ∀ z ( z ∈ A ⇒ z ∈ B ) ) ) ⇒ ∀ A ( A sub A )
+mission goal1
+imply Reflexive Ax1
+advanced_search Reflexive 30.0 50000 +proof
+show
+
+# 2. Transitive
+cf goal2 ∀ A ( ∀ B ( A sub B ⇔ ∀ z ( z ∈ A ⇒ z ∈ B ) ) ) ⇒ ∀ A ( ∀ B ( ∀ C ( A sub B ∧ B sub C ⇒ A sub C ) ) )
+mission goal2
+imply Transitive Ax2
+advanced_search Transitive 30.0 50000 +proof
+show
+
+# 3. Antisymmetric
+cf goal3 ∀ A ( ∀ B ( A sub B ⇔ ∀ z ( z ∈ A ⇒ z ∈ B ) ) ) ⇒ ( ∀ A ( ∀ B ( ∀ z ( z ∈ A ⇔ z ∈ B ) ⇒ A = B ) ) ⇒ ∀ A ( ∀ B ( A sub B ∧ B sub A ⇒ A = B ) ) )
+mission goal3
+imply g3_1 Ax3
+imply Antisymmetric Extensionality
+advanced_search Antisymmetric 30.0 50000 +paramodulation +proof
+show
+
+# 4. Russell's Paradox
+cf False x ∈ x ∧ ¬ ( x ∈ x )
+cf goal4 ∀ x ( x ∈ R ⇔ ¬ ( x ∈ x ) ) ⇒ ( x ∈ x ∧ ¬ ( x ∈ x ) )
+mission goal4
+imply False Russell_Def
+advanced_search False 30.0 50000 +proof
+show
+exit

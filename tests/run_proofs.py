@@ -395,8 +395,12 @@ commands = [
     "exit"
 ]
 
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+main_path = os.path.join(script_dir, '..', 'main.py')
+
 proc = subprocess.Popen(
-    ['./.venv/bin/python', 'main.py'],
+    [sys.executable, main_path],
     stdin=subprocess.PIPE,
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,

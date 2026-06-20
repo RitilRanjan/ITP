@@ -9,6 +9,12 @@ def prove_sequent(left: List[FormulaNode], right: List[FormulaNode]) -> bool:
     if any(is_structurally_equal(l, r) for l in left for r in right):
         return True
 
+    # 1.5. Check Logical Constant Axioms (⊤ and ⊥)
+    if any(isinstance(l, Connective) and l.name == "⊥" for l in left):
+        return True
+    if any(isinstance(r, Connective) and r.name == "⊤" for r in right):
+        return True
+
     # 2. Find a non-atomic formula to decompose in left
     for idx, f in enumerate(left):
         if isinstance(f, Connective):

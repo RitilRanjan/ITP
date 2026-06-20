@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List, Tuple, Dict, Any, Optional
 from AST import (
     Variable, DummyVariable, MetaVariable, PropositionalVariable,
@@ -6,7 +7,7 @@ from AST import (
 )
 from Frontend import (
     parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string,
-    UnrecognizedSymbolError, ParserError
+    UnrecognizedSymbolError, ParserError, strip_ansi
 )
 from Environment import Environment
 
@@ -21,10 +22,50 @@ def get_env_chain(env: Environment) -> List[Environment]:
     return chain
 
 def save_environment_state(env: Environment, filepath: str) -> None:
-    """Serializes the entire environment stack into a human-readable text format."""
+    """Serializes the entire environment stack into a human-readable Markdown format."""
     chain = get_env_chain(env)
     
+    # Enforce .md extension
+    if not filepath.endswith(".md"):
+        filepath += ".md"
+    
     with open(filepath, "w", encoding="utf-8") as f:
+        f.write("# Environment State\n\n")
+        f.write("This file contains the saved state of the theorem prover.\n\n")
+        
+        # 1. Write the pretty HTML summary
+        for idx, e in enumerate(chain):
+            if e.parent is None:
+                header = "Ground Environment"
+            else:
+                orig = getattr(e, "original_goal_formula_name", e.goal_formula_name)
+                ar = getattr(e, "and_right_formula_name", None)
+                if orig != e.goal_formula_name and ar:
+                    header = f"Child Environment (Original: {orig} &rarr; &Psi;: {e.goal_formula_name}, &Phi;: {ar})"
+                elif orig != e.goal_formula_name:
+                    header = f"Child Environment (Original: {orig} &rarr; Current: {e.goal_formula_name})"
+                else:
+                    header = f"Child Environment (Goal: {e.goal_formula_name})"
+                    
+            f.write(f"## {header}\n\n")
+            
+            # Formulate lists
+            f.write(f"- **Variables**: {', '.join(e.local_variables.keys()) or 'None'}\n")
+            f.write(f"- **Theorems**: {len(e.local_theorems)}\n\n")
+            
+            # Print proven theorems beautifully
+            if e.local_theorems:
+                f.write("### Proven Theorems\n")
+                for k in e.local_theorems:
+                    v = e.local_formulae[k]
+                    f.write(f"- **{k}**: {reconstruct_string(v, color_mode='html')}\n")
+                f.write("\n")
+                
+            f.write("---\n\n")
+            
+        # 2. Write the machine-readable ITP block
+        f.write("## Data Payload\n")
+        f.write("```itp\n")
         for idx, e in enumerate(chain):
             f.write(f"[Environment {idx}]\n")
             f.write(f"Goal: {e.goal_formula_name}\n")
@@ -32,8 +73,6 @@ def save_environment_state(env: Environment, filepath: str) -> None:
             f.write(f"And Right: {e.and_right_formula_name}\n")
             f.write(f"Target Proven: {e.target_proven_formula_name}\n")
             
-            # For the ground environment, filter out pre-defined defaults.
-            # Variables x, y, S, +, =, ∈, p, q.
             is_ground = (idx == 0)
             
             # Variables
@@ -65,61 +104,67 @@ def save_environment_state(env: Environment, filepath: str) -> None:
             for name, (arity, definition) in e.local_user_functions.items():
                 func_node = e.local_terms.get(name)
                 func_type = func_node.func_type.name if func_node else "USER_DEFINED"
-                def_str = reconstruct_string(definition)
+                def_str = reconstruct_string(definition, color_mode="none")
                 f.write(f"  {name} | {arity} | {func_type} | {def_str}\n")
                 
             # User Relations
             f.write("User Relations:\n")
             for name, (arity, definition) in e.local_user_relations.items():
-                def_str = reconstruct_string(definition)
+                def_str = reconstruct_string(definition, color_mode="none")
                 f.write(f"  {name} | {arity} | {def_str}\n")
                 
-            # Terms (excluding function declarations and pre-defined symbols)
+            # Terms
             f.write("Terms:\n")
             for name, term_node in e.local_terms.items():
-                # Skip pre-defined function symbols in ground env
-                if is_ground and name in {"S", "+"}:
-                    continue
-                # Skip function declarations
-                if isinstance(term_node, Function) and name == term_node.name:
-                    continue
-                def_str = reconstruct_string(term_node)
+                if is_ground and name in {"S", "+"}: continue
+                if isinstance(term_node, Function) and name == term_node.name: continue
+                def_str = reconstruct_string(term_node, color_mode="none")
                 f.write(f"  {name} | {def_str}\n")
                 
-            # Formulae (excluding relation declarations and pre-defined symbols)
+            # Formulae
             f.write("Formulae:\n")
             for name, formula_node in e.local_formulae.items():
-                # Skip pre-defined relation symbols in ground env
-                if is_ground and name in {"=", "∈"}:
-                    continue
-                # Skip relation declarations
-                if isinstance(formula_node, Relation) and name == formula_node.name:
-                    continue
-                def_str = reconstruct_string(formula_node)
+                if is_ground and name in {"=", "∈"}: continue
+                if isinstance(formula_node, Relation) and name == formula_node.name: continue
+                def_str = reconstruct_string(formula_node, color_mode="none")
                 f.write(f"  {name} | {def_str}\n")
                 
             # Theorems
             f.write("Theorems:\n")
-            for name, theorem_node in e.local_theorems.items():
-                def_str = reconstruct_string(theorem_node)
+            for name in e.local_theorems:
+                theorem_node = e.local_formulae[name]
+                def_str = reconstruct_string(theorem_node, color_mode="none")
                 f.write(f"  {name} | {def_str}\n")
                 
             f.write("\n")
+        f.write("```\n")
 
 def load_environment_state(filepath: str, get_default_env_func) -> Environment:
     """Loads and reconstructs the environment stack from a saved file."""
+    if not filepath.endswith(".md") and not os.path.exists(filepath):
+        filepath += ".md"
+        
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"State file '{filepath}' not found.")
         
     with open(filepath, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        full_content = f.read()
+        
+    # Extract the payload inside ```itp ... ```
+    match = re.search(r"```itp\n(.*?)```", full_content, re.DOTALL)
+    if match:
+        payload = match.group(1)
+        lines = payload.splitlines()
+    else:
+        # Fallback to reading the whole file in case it's an old save
+        lines = full_content.splitlines()
         
     env_configs = []
     curr_config = None
     curr_section = None
     
     for line in lines:
-        line_stripped = line.strip()
+        line_stripped = strip_ansi(line).strip()
         if not line_stripped:
             continue
             
@@ -188,9 +233,9 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
             curr_section = "terms"
         elif line_stripped == "Formulae:":
             curr_section = "formulae"
-        elif line_stripped == "Theorems:":
+        elif line_stripped.startswith("Theorems:"):
             curr_section = "theorems"
-        elif line.startswith("  ") or line.startswith("\t"):
+        elif strip_ansi(line).startswith("  ") or strip_ansi(line).startswith("\t"):
             # Indented list items
             if curr_section == "user_functions":
                 parts = [p.strip() for p in line_stripped.split("|")]
@@ -251,7 +296,6 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         for name, arity, type_str, def_str in config["user_functions"]:
             definition = parse_term(def_str, env)
             env.user_functions[name] = (arity, definition)
-            # Register function declaration node in terms
             decl_node = Function(
                 name=name,
                 arity=arity,
@@ -264,7 +308,6 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         for name, arity, def_str in config["user_relations"]:
             definition = parse_fol_formula(def_str, env)
             env.user_relations[name] = (arity, definition)
-            # Register relation declaration node in formulae
             decl_node = Relation(
                 name=name,
                 arity=arity,
@@ -288,32 +331,44 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
             
         # 9. Theorems
         for name, def_str in config["theorems"]:
-            try:
-                theorem_node = parse_fol_formula(def_str, env)
-            except (UnrecognizedSymbolError, ParserError):
-                theorem_node = parse_prop_formula(def_str, env)
-            env.local_theorems[name] = theorem_node
-            
+            if name not in env.local_formulae:
+                try:
+                    theorem_node = parse_fol_formula(def_str, env)
+                except (UnrecognizedSymbolError, ParserError):
+                    theorem_node = parse_prop_formula(def_str, env)
+                env.local_formulae[name] = theorem_node
+            env.local_theorems.add(name)
         active_env = env
         
     return active_env
 
 def save_history(commands: List[str], filepath: str) -> None:
-    """Saves a list of commands in sequence to a history file."""
+    if not filepath.endswith(".md"):
+        filepath += ".md"
     with open(filepath, "w", encoding="utf-8") as f:
+        f.write("# Command History\n\n")
+        f.write("```\n")
         for cmd in commands:
             f.write(cmd + "\n")
+        f.write("```\n")
 
 def load_history(filepath: str) -> List[str]:
-    """Loads and returns all executable commands from a history file."""
+    if not filepath.endswith(".md") and not os.path.exists(filepath):
+        filepath += ".md"
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"History file '{filepath}' not found.")
     with open(filepath, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    # strip whitespace and skip empty lines or comments
+        content = f.read()
+    
+    match = re.search(r"```\n(.*?)```", content, re.DOTALL)
+    if match:
+        lines = match.group(1).splitlines()
+    else:
+        lines = content.splitlines()
+        
     commands = []
     for line in lines:
-        cleaned = line.strip()
+        cleaned = strip_ansi(line).strip()
         if cleaned and not cleaned.startswith("#"):
             commands.append(cleaned)
     return commands

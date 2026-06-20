@@ -1,0 +1,4 @@
+y
+def_r 1 P x
+mission ∃x(P(x) ⇒ ∀yP(y))
+backward_search ∃x(P(x) ⇒ ∀yP(y)) +proof

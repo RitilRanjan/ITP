@@ -1,0 +1,8 @@
+N
+cv x
+cf P1 ∃y(x=y)
+mission P1 P1_m
+cv z
+cp p
+show
+exit

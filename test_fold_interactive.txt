@@ -1,0 +1,8 @@
+N
+cf test_f ∃!x x=y
+fold all test_f
+y
+z
+show
+exit
+exit

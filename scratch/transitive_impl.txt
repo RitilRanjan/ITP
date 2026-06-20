@@ -1,0 +1,7 @@
+y
+cp f1 p ⇒ q
+cp f2 q ⇒ r
+cp f3 p ⇒ r
+cp f4 p ⇒ q ⇒ (q ⇒ r ⇒ (p ⇒ r))
+mission f4
+backward_search f4 +proof

@@ -132,7 +132,7 @@ def test_environment_remove_theorem():
     assert "f1" not in env.theorems
 
 def test_main_repl_logic_simulation():
-    from main import AXIOMS, RULES
+    from Registry import AXIOMS, RULES
     env = get_test_env()
     
     f1 = parse_fol_formula("x = x", env)

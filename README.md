@@ -23,6 +23,10 @@
     - [Axioms (ua)](#101-axioms-ua)
     - [Inference rules (ir)](#102-inference-rules-ir)
     - [Auto-prover (auto)](#103-auto-prover-auto)
+    - [Forward Search (search)](#104-semi-automated-search-search)
+    - [Backward Search (resolution) (backward_search)](#105-backward-search-resolution-backward_search)
+    - [Advanced Backward Search (advanced_search)](#106-advanced-backward-search-advanced_search)
+    - [Foundational Proof Logging](#107-foundational-proof-logging-proofshtml)
 11. [Mission environments — proving goals interactively](#11-mission-environments--proving-goals-interactively)
     - [Opening a mission](#111-opening-a-mission)
     - [Mission tactics](#112-mission-tactics)
@@ -573,6 +577,80 @@ auto f1
 
 ---
 
+### 10.4 Semi-Automated Search (`search`)
+
+```
+search <formula_name> [time_limit_sec] [space_limit_nodes]
+```
+
+Runs a theoretically **complete** forward graph search to prove the target formula. The algorithm uses a dovetailed Breadth-First Search (BFS) / Forward Saturation strategy, generating terms, formulas, and applying primitive rules/axioms until the formula is proved.
+
+*   `time_limit_sec` — (optional) maximum search time in seconds (default: `10.0`).
+*   `space_limit_nodes` — (optional) maximum search space, quantified as the total number of unique terms, formulas, and proven theorems generated and stored in memory (default: `10000`).
+
+The search will automatically abort if either the time limit or the space limit is exceeded.
+
+**Example:**
+```
+cf f1 x = x
+search f1 5.0 5000
+```
+→ Succeeds quickly in proving `f1` using the `E1` axiom at depth 0.
+
+---
+
+### 10.5 Backward Search (Resolution) (`backward_search`)
+
+```
+backward_search <formula_name> [time_limit_sec] [space_limit_nodes]
+```
+
+Runs a refutation-based theorem prover using Robinson's resolution and unification. It works backwards from the goal by negating it, converting it to Conjunctive Normal Form (CNF) along with all existing theorems, and deriving the empty clause.
+
+*   `time_limit_sec` — (optional) maximum search time in seconds (default: `10.0`).
+*   `space_limit_nodes` — (optional) maximum search space limit in clauses (default: `10000`).
+
+**Example:**
+```
+cf f1 x = x
+backward_search f1
+```
+→ Succeeds quickly if `E1` (reflexivity) is available to unify against `¬(x=x)`.
+
+---
+
+### 10.6 Advanced Backward Search (`advanced_search`)
+
+```
+advanced_search <formula_name> [time_limit_sec] [space_limit_nodes] [+sos] [+unit] [+subsumption] [+paramodulation] [+ordering]
+```
+
+Runs a highly optimized refutation-based theorem prover. It extends basic backward search with a priority queue and a suite of togglable heuristics:
+
+*   `+sos` (Set of Support) — Partitions clauses into axioms and goals. Resolves only when one parent clause descends from the negated goal, strictly focusing the search direction.
+*   `+unit` (Unit Preference) — Continually selects the shortest active clauses to resolve first, using a Min-Heap priority queue.
+*   `+subsumption` (True Subsumption) — Performs forward and backward subsumption to prune logically redundant clauses.
+*   `+paramodulation` (Paramodulation) — Handles equality (`=`) predicates natively by performing unifiable term substitutions, avoiding bulk ZFC equality axioms.
+*   `+ordering` (Term Ordering) — Restricts paramodulation to strictly rewrite larger terms to smaller terms (using Knuth-Bendix/weight-based ordering). **Highly recommended to prevent infinite loops when paramodulation is active.** Note: SOS and Term Ordering combined can lead to incompleteness on certain equality proofs (e.g. Abelian group), so they are best used separately or in tandem with specific strategies.
+
+**Example:**
+```
+advanced_search my_goal 10.0 50000 +unit +subsumption +paramodulation +ordering
+```
+
+---
+
+### 10.7 Foundational Proof Logging (`proofs.html`)
+
+When starting the REPL, you are prompted to enable **Foundational Proof Logging**. If enabled, the ITP will record mathematically rigorous, step-by-step proofs for all automated successes into an HTML file (`proofs.html`).
+
+*   **Deskolemized Formulae**: Backward search traces use Skolemization internally, but the proof logger elegantly deskolemizes the trace clauses back into readable First-Order Logic featuring explicit `∀` and `∃` quantifiers.
+*   **Color Highlighting**: The output utilizes a beautiful depth-based color highlighting scheme to trace nested parentheses and operations cleanly.
+*   **Tethered Integration**: The HTML logger is directly integrated with `auto`, `backward_search`, and `advanced_search`.
+
+---
+
+
 ### `dt` — Delete a proven theorem
 
 ```
@@ -1006,6 +1084,7 @@ Use this frequently to keep track of what you have.
 | `ir rule concl [p1..]` | Prove conclusion by inference rule |
 | `dt theorem` | Delete a proven theorem |
 | `auto formula` | Auto-prove formula |
+| `search f [time] [space]` | Prove formula via forward graph search |
 
 ### Mission Management
 | Command | Description |
@@ -1184,3 +1263,14 @@ intro2 f1 t1 f2
 ---
 
 *For any questions about the mathematical foundations, refer to a standard textbook on First-Order Logic and Set Theory.*
+
+---
+
+## 18. Project Structure and Guidelines
+
+To keep the repository clean and manageable:
+
+- **Root Directory (`/`)**: Contains only the core production source code files of the Interactive Theorem Prover (e.g., `main.py`, `AST.py`, `BackwardSearch.py`, `ZFC_Rules.py`, etc.).
+- **`tests/`**: Contains all unit tests (`test_*.py`), execution/debugging scripts (`run_tests.py`, `run_proofs.py`), and any other non-production testing scripts.
+
+When writing new tests or debugging scripts, **always** place them in the `tests/` folder. Ensure any test runners modify `sys.path` to include the root directory so they can successfully locate and import the production modules.

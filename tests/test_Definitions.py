@@ -170,3 +170,20 @@ def test_serialization():
     assert "user_functions" in data
     assert "user_relations" in data
     assert "F" in data["user_functions"]
+
+def test_parse_exists_unique():
+    env = get_test_env()
+    # Define relation Ψ of arity 1
+    decl_node = Relation(
+        name="Ψ",
+        arity=1,
+        rel_type=RelationType.USER_DEFINED,
+        arguments=[DummyVariable(name="_1")]
+    )
+    env.formulae["Ψ"] = decl_node
+    env.user_relations["Ψ"] = (1, decl_node)
+    
+    # Now parse "∃!x Ψ(x)"
+    f = parse_fol_formula("∃!x Ψ(x)", env)
+    assert reconstruct_string(f) == "∃!x Ψ(x)"
+

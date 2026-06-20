@@ -215,3 +215,11 @@ def rule_PC2(premises: List[FormulaNode], conclusion: FormulaNode) -> bool:
     combined = build_implication_formula(premises, conclusion)
     prop_formula = abstract_to_propositional(combined)
     return is_tautology_sequent(prop_formula)
+
+def rule_PC3(premises: List[FormulaNode], conclusion: FormulaNode) -> bool:
+    """PC3: PC2 but with recursive tautology checking for matching quantifiers."""
+    from PropAbstraction import abstract_formulas_modulo_pc3
+    combined = build_implication_formula(premises, conclusion)
+    prop_formulas = abstract_formulas_modulo_pc3([combined])
+    prop_formula = prop_formulas[0]
+    return is_tautology_sequent(prop_formula)

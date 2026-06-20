@@ -1,13 +1,59 @@
-from typing import List, Dict, Set, Optional, Type, Any
+from typing import List, Dict, Set, Optional, Type, Any, Union
 from AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, Function, FunctionType,
-    Relation, RelationType, Connective, Quantifier, Bracket, Whitespace
+    Relation, RelationType, Connective, Quantifier, Bracket, Whitespace, SetBuilder
 )
 from SubstitutionManager import (
     clone_ast, substitute_term, substitute_free, collect_all_occurrences,
-    is_substitutable_free, get_free, in_place_replace
+    is_substitutable_free, get_free, in_place_replace, get_term_vars
 )
 from Environment import Environment
+
+class VariableCaptureError(Exception):
+    def __init__(self, message, capturing_vars, expanded_ast):
+        super().__init__(message)
+        self.capturing_vars = capturing_vars
+        self.expanded_ast = expanded_ast
+
+def find_smallest_enclosing_formula(root: Node, target: Node) -> Optional[FormulaNode]:
+    def dfs(n):
+        if n is target: return True
+        
+        if hasattr(n, "arguments"):
+            for arg in n.arguments:
+                res = dfs(arg)
+                if res is True: return n if isinstance(n, FormulaNode) else True
+                if isinstance(res, FormulaNode): return res
+                
+        if hasattr(n, "formula"):
+            res = dfs(n.formula)
+            if res is True: return n if isinstance(n, FormulaNode) else True
+            if isinstance(res, FormulaNode): return res
+            
+        if hasattr(n, "base_set") and n.base_set is not None:
+            res = dfs(n.base_set)
+            if res is True: return n if isinstance(n, FormulaNode) else True
+            if isinstance(res, FormulaNode): return res
+            
+        if hasattr(n, "children"):
+            for c in n.children:
+                res = dfs(c)
+                if res is True: return n if isinstance(n, FormulaNode) else True
+                if isinstance(res, FormulaNode): return res
+                
+        if hasattr(n, "left"):
+            res = dfs(n.left)
+            if res is True: return n if isinstance(n, FormulaNode) else True
+            if isinstance(res, FormulaNode): return res
+        if hasattr(n, "right"):
+            res = dfs(n.right)
+            if res is True: return n if isinstance(n, FormulaNode) else True
+            if isinstance(res, FormulaNode): return res
+            
+        return False
+        
+    res = dfs(root)
+    return res if isinstance(res, FormulaNode) else None
 
 def collect_occurrences(node: Node, target_type: Type, name: str, occurrences: List[Node]):
     """Collects all occurrences of matching nodes in-order (left-to-right)."""
@@ -87,7 +133,27 @@ def get_enclosing_bound_vars(root: Node, target_node: Node, current_bound: Optio
             return res
     return None
 
-def expand_user_defined_function_in_term(env: Environment, term: TermNode, func_name: str, occurrence_idx: int) -> TermNode:
+def get_internal_captures(dummy_name: str, arg: Node, definition: Node) -> Set[str]:
+    occs = collect_all_occurrences(definition)
+    dummy_occs = [o for o in occs if isinstance(o["node"], DummyVariable) and o["node"].name == dummy_name]
+    arg_vars = get_term_vars(arg)
+    captures = set()
+    for occ in dummy_occs:
+        enclosing_bound = {q.variable.name for q in occ["enclosing_quantifiers"]}
+        captures.update(arg_vars.intersection(enclosing_bound))
+    return captures
+
+def expand_user_defined_function_in_term(env: Environment, term: TermNode, func_name: str, occurrence_idx: Union[int, list, None] = None) -> TermNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        term_clone = clone_ast(term)
+        occurrences = []
+        collect_occurrences(term_clone, Function, func_name, occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = term_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_user_defined_function_in_term(env, res, func_name, occ)
+        return res
+
     if func_name not in env.user_functions:
         raise ValueError(f"Function '{func_name}' is not defined.")
     
@@ -102,14 +168,38 @@ def expand_user_defined_function_in_term(env: Environment, term: TermNode, func_
     arity, definition = env.user_functions[func_name]
     
     expanded = clone_ast(definition)
+    internal_captures = set()
     for i, arg in enumerate(target_node.arguments):
         dummy_name = f"_{i+1}"
+        internal_captures.update(get_internal_captures(dummy_name, arg, definition))
         expanded = substitute_term(expanded, dummy_name, clone_ast(arg))
+        
+    # External captures check
+    enclosing_bound = get_enclosing_bound_vars(term_clone, target_node)
+    if enclosing_bound is None: enclosing_bound = set()
+    
+    definition_free = get_term_vars(definition)
+    actual_free_in_def = {v for v in definition_free if not v.startswith("_")}
+    external_captures = actual_free_in_def.intersection(enclosing_bound)
+    
+    all_captures = internal_captures | external_captures
+    if all_captures:
+        raise VariableCaptureError("Variable capture detected during unfolding", all_captures, expanded)
         
     res = in_place_replace_node(term_clone, target_node, expanded)
     return res
 
-def expand_user_defined_function_in_formula(env: Environment, formula: FormulaNode, func_name: str, occurrence_idx: int) -> FormulaNode:
+def expand_user_defined_function_in_formula(env: Environment, formula: FormulaNode, func_name: str, occurrence_idx: Union[int, list, None] = None) -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Function, func_name, occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_user_defined_function_in_formula(env, res, func_name, occ)
+        return res
+
     if func_name not in env.user_functions:
         raise ValueError(f"Function '{func_name}' is not defined.")
         
@@ -124,14 +214,39 @@ def expand_user_defined_function_in_formula(env: Environment, formula: FormulaNo
     arity, definition = env.user_functions[func_name]
     
     expanded = clone_ast(definition)
+    internal_captures = set()
     for i, arg in enumerate(target_node.arguments):
         dummy_name = f"_{i+1}"
+        internal_captures.update(get_internal_captures(dummy_name, arg, definition))
         expanded = substitute_term(expanded, dummy_name, clone_ast(arg))
+        
+    # External captures check
+    enclosing_bound = get_enclosing_bound_vars(formula_clone, target_node)
+    if enclosing_bound is None: enclosing_bound = set()
+    
+    from SubstitutionManager import get_free
+    definition_free = get_free(definition)
+    actual_free_in_def = {v for v in definition_free if not v.startswith("_")}
+    external_captures = actual_free_in_def.intersection(enclosing_bound)
+    
+    all_captures = internal_captures | external_captures
+    if all_captures:
+        raise VariableCaptureError("Variable capture detected during unfolding", all_captures, expanded)
         
     res = in_place_replace_node(formula_clone, target_node, expanded)
     return res
 
-def expand_user_defined_relation_in_formula(env: Environment, formula: FormulaNode, rel_name: str, occurrence_idx: int) -> FormulaNode:
+def expand_user_defined_relation_in_formula(env: Environment, formula: FormulaNode, rel_name: str, occurrence_idx: Union[int, list, None] = None) -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Relation, rel_name, occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_user_defined_relation_in_formula(env, res, rel_name, occ)
+        return res
+
     if rel_name not in env.user_relations:
         raise ValueError(f"Relation '{rel_name}' is not defined.")
         
@@ -146,14 +261,37 @@ def expand_user_defined_relation_in_formula(env: Environment, formula: FormulaNo
     arity, definition = env.user_relations[rel_name]
     
     expanded = clone_ast(definition)
+    internal_captures = set()
     for i, arg in enumerate(target_node.arguments):
         dummy_name = f"_{i+1}"
+        internal_captures.update(get_internal_captures(dummy_name, arg, definition))
         expanded = substitute_dummy_in_formula(expanded, dummy_name, clone_ast(arg))
+        
+    # External captures check
+    enclosing_bound = get_enclosing_bound_vars(formula_clone, target_node)
+    if enclosing_bound is None: enclosing_bound = set()
+    definition_free = get_free(definition)
+    actual_free_in_def = {v for v in definition_free if not v.startswith("_")}
+    external_captures = actual_free_in_def.intersection(enclosing_bound)
+    
+    all_captures = internal_captures | external_captures
+    if all_captures:
+        raise VariableCaptureError("Variable capture detected during unfolding", all_captures, expanded)
         
     res = in_place_replace_node(formula_clone, target_node, expanded)
     return res
 
-def expand_existential_in_formula(formula: FormulaNode, occurrence_idx: int) -> FormulaNode:
+def expand_existential_in_formula(formula: FormulaNode, occurrence_idx: Union[int, list, None] = None) -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Quantifier, "∃", occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_existential_in_formula(res, occ)
+        return res
+
     formula_clone = clone_ast(formula)
     occurrences = []
     collect_occurrences(formula_clone, Quantifier, "∃", occurrences)
@@ -163,15 +301,61 @@ def expand_existential_in_formula(formula: FormulaNode, occurrence_idx: int) -> 
         
     target_node = occurrences[occurrence_idx - 1]
     
-    # ∃ x Ψ -> ¬ ∀ x ¬ Ψ
-    inner_neg = Connective("¬", 1, [clone_ast(target_node.formula)])
+    # ∃ x Ψ -> ¬ ∀ x ¬ (Ψ)
+    inner_body = clone_ast(target_node.formula)
+    inner_body.prefix_formatting = [Bracket(name='(')] + inner_body.prefix_formatting
+    inner_body.postfix_formatting = inner_body.postfix_formatting + [Bracket(name=')')]
+    
+    inner_neg = Connective("¬", 1, [inner_body])
     forall = Quantifier("∀", target_node.variable, inner_neg)
     outer_neg = Connective("¬", 1, [forall])
     
     res = in_place_replace_node(formula_clone, target_node, outer_neg)
     return res
 
-def expand_unique_existential_in_formula(formula: FormulaNode, occurrence_idx: int, y: str) -> FormulaNode:
+def expand_universal_in_formula(formula: FormulaNode, occurrence_idx: Union[int, list, None] = None) -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Quantifier, "∀", occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_universal_in_formula(res, occ)
+        return res
+
+    formula_clone = clone_ast(formula)
+    occurrences = []
+    collect_occurrences(formula_clone, Quantifier, "∀", occurrences)
+    
+    if not (1 <= occurrence_idx <= len(occurrences)):
+        raise ValueError(f"Occurrence index {occurrence_idx} out of range (found {len(occurrences)} occurrences of '∀').")
+        
+    target_node = occurrences[occurrence_idx - 1]
+    
+    # ∀ x Ψ -> ¬ ∃ x ¬ (Ψ)
+    inner_body = clone_ast(target_node.formula)
+    inner_body.prefix_formatting = [Bracket(name='(')] + inner_body.prefix_formatting
+    inner_body.postfix_formatting = inner_body.postfix_formatting + [Bracket(name=')')]
+    
+    inner_neg = Connective("¬", 1, [inner_body])
+    exists = Quantifier("∃", target_node.variable, inner_neg)
+    outer_neg = Connective("¬", 1, [exists])
+    
+    res = in_place_replace_node(formula_clone, target_node, outer_neg)
+    return res
+
+def expand_unique_existential_in_formula(formula: FormulaNode, occurrence_idx: Union[int, list, None] = None, y: str = "") -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Quantifier, "∃!", occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_unique_existential_in_formula(res, occ, y)
+        return res
+
     formula_clone = clone_ast(formula)
     occurrences = []
     collect_occurrences(formula_clone, Quantifier, "∃!", occurrences)
@@ -211,7 +395,121 @@ def expand_unique_existential_in_formula(formula: FormulaNode, occurrence_idx: i
     res = in_place_replace_node(formula_clone, target_node, exists)
     return res
 
-def expand_iota_function_in_formula(env: Environment, formula: FormulaNode, func_name: str, occurrence_idx: int, u: str, v: str) -> FormulaNode:
+def expand_epsilon_function_in_formula(env: Environment, formula: FormulaNode, func_name: str, occurrence_idx: Union[int, list, None] = None, u: str = "") -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Function, func_name, occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_epsilon_function_in_formula(env, res, func_name, occ, u)
+        return res
+
+    if func_name not in env.user_functions:
+        raise ValueError(f"Function '{func_name}' is not defined.")
+        
+    arity, definition = env.user_functions[func_name]
+    
+    decl_node = env.terms[func_name]
+    if not (isinstance(decl_node, Function) and decl_node.func_type == FunctionType.EPSILON_DEFINED):
+        raise ValueError(f"'{func_name}' is not an epsilon function.")
+        
+    formula_clone = clone_ast(formula)
+    occurrences = []
+    collect_occurrences(formula_clone, Function, func_name, occurrences)
+    
+    if not (1 <= occurrence_idx <= len(occurrences)):
+        raise ValueError(f"Occurrence index {occurrence_idx} out of range (found {len(occurrences)} occurrences of '{func_name}').")
+        
+    target_node = occurrences[occurrence_idx - 1]
+    
+    # Retrieve bound variable name x
+    free_vars = get_free(definition)
+    if len(free_vars) != 1:
+        raise ValueError("Could not uniquely determine the bound variable from the epsilon function definition.")
+    bound_var_name = list(free_vars)[0]
+    
+    # Instantiate arguments in definition
+    Ψ_instantiated = clone_ast(definition)
+    internal_captures = set()
+    for i, arg in enumerate(target_node.arguments):
+        dummy_name = f"_{i+1}"
+        internal_captures.update(get_internal_captures(dummy_name, arg, definition))
+        Ψ_instantiated = substitute_dummy_in_formula(Ψ_instantiated, dummy_name, clone_ast(arg))
+        
+    # Semantic checks
+    from main import validate_new_name
+    if not validate_new_name(env, u, "variable"):
+        raise ValueError(f"Invalid standard variable name '{u}'.")
+        
+    # Free variables in Ψ_instantiated (except the bound variable)
+    free_in_Ψ = get_free(Ψ_instantiated)
+    if u in free_in_Ψ - {bound_var_name}:
+        raise ValueError(f"Introduced variable '{u}' already occurs free in the body formula.")
+        
+    # Free variables in parent formula Φ
+    free_in_Φ = get_free(formula)
+    if u in free_in_Φ:
+        raise ValueError(f"Introduced variable '{u}' already occurs free in the parent formula.")
+        
+    # Bound quantifiers check (enclosing bound variables of target_node in formula)
+    target_enclosing_bound = get_enclosing_bound_vars(formula_clone, target_node)
+    if target_enclosing_bound is None:
+        target_enclosing_bound = set()
+    if u in target_enclosing_bound:
+        raise ValueError(f"Introduced variable '{u}' is bound by an enclosing quantifier at the target position.")
+        
+    definition_free = get_free(definition)
+    actual_free_in_def = {v for v in definition_free if not v.startswith("_")} - {bound_var_name}
+    external_captures = actual_free_in_def.intersection(target_enclosing_bound)
+    
+    all_captures = internal_captures | external_captures
+    if all_captures:
+        raise VariableCaptureError("Variable capture detected during unfolding", all_captures, Ψ_instantiated)
+        
+    # Substitutability of u inside Ψ_instantiated
+    if not is_substitutable_free(bound_var_name, Variable(u), Ψ_instantiated):
+        raise ValueError(f"Variable '{u}' is not substitutable inside Ψ due to variable capture.")
+        
+    # Construct expanded parts
+    # Ψ(u)
+    Ψ_u = substitute_free(clone_ast(Ψ_instantiated), bound_var_name, Variable(u))
+    
+    # Φ(u) (target occurrences in clone)
+    occurrences_clone = []
+    collect_occurrences(formula_clone, Function, func_name, occurrences_clone)
+    target_node_clone = occurrences_clone[occurrence_idx - 1]
+    
+    enclosing_formula = find_smallest_enclosing_formula(formula_clone, target_node_clone)
+    if enclosing_formula is None:
+        raise ValueError("Could not find an enclosing formula scope for the expansion.")
+        
+    in_place_replace_node(formula_clone, target_node_clone, Variable(u))
+    Φ_u = clone_ast(enclosing_formula)
+    
+    # Ψ(u) ∧ Φ(u)
+    conj = Connective("∧", 2, [Ψ_u, Φ_u])
+    conj.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    conj.postfix_formatting = [Whitespace(" "), Bracket(")")]
+    
+    # ∃ u ( Ψ(u) ∧ Φ(u) )
+    expanded = Quantifier("∃", Variable(u), conj)
+    
+    res = in_place_replace_node(formula_clone, enclosing_formula, expanded)
+    return res
+
+def expand_iota_function_in_formula(env: Environment, formula: FormulaNode, func_name: str, occurrence_idx: Union[int, list, None] = None, u: str = "", v: str = "") -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, Function, func_name, occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_iota_function_in_formula(env, res, func_name, occ, u, v)
+        return res
+
     if func_name not in env.user_functions:
         raise ValueError(f"Function '{func_name}' is not defined.")
         
@@ -238,8 +536,10 @@ def expand_iota_function_in_formula(env: Environment, formula: FormulaNode, func
     
     # Instantiate arguments in definition
     Ψ_instantiated = clone_ast(definition)
+    internal_captures = set()
     for i, arg in enumerate(target_node.arguments):
         dummy_name = f"_{i+1}"
+        internal_captures.update(get_internal_captures(dummy_name, arg, definition))
         Ψ_instantiated = substitute_dummy_in_formula(Ψ_instantiated, dummy_name, clone_ast(arg))
         
     # Semantic checks
@@ -273,6 +573,14 @@ def expand_iota_function_in_formula(env: Environment, formula: FormulaNode, func
     if v in target_enclosing_bound:
         raise ValueError(f"Introduced variable '{v}' is bound by an enclosing quantifier at the target position.")
         
+    definition_free = get_free(definition)
+    actual_free_in_def = {v for v in definition_free if not v.startswith("_")} - {bound_var_name}
+    external_captures = actual_free_in_def.intersection(target_enclosing_bound)
+    
+    all_captures = internal_captures | external_captures
+    if all_captures:
+        raise VariableCaptureError("Variable capture detected during unfolding", all_captures, Ψ_instantiated)
+        
     # Substitutability of v inside Ψ_instantiated
     if not is_substitutable_free(bound_var_name, Variable(v), Ψ_instantiated):
         raise ValueError(f"Variable '{v}' is not substitutable inside Ψ due to variable capture.")
@@ -294,15 +602,112 @@ def expand_iota_function_in_formula(env: Environment, formula: FormulaNode, func
     forall.prefix_formatting = [Bracket("("), Whitespace(" ")]
     forall.postfix_formatting = [Whitespace(" "), Bracket(")")]
     
-    # Φ(u) (target occurrences in clone)
     occurrences_clone = []
     collect_occurrences(formula_clone, Function, func_name, occurrences_clone)
     target_node_clone = occurrences_clone[occurrence_idx - 1]
-    Φ_u = in_place_replace_node(formula_clone, target_node_clone, Variable(u))
+    
+    enclosing_formula = find_smallest_enclosing_formula(formula_clone, target_node_clone)
+    if enclosing_formula is None:
+        raise ValueError("Could not find an enclosing formula scope for the expansion.")
+        
+    in_place_replace_node(formula_clone, target_node_clone, Variable(u))
+    Φ_u = clone_ast(enclosing_formula)
     
     # ( ∀ v ( Ψ(v) ⇔ u = v ) ) ∧ Φ(u)
     conj = Connective("∧", 2, [forall, Φ_u])
+    conj.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    conj.postfix_formatting = [Whitespace(" "), Bracket(")")]
     
     # ∃ u ( ... )
     expanded = Quantifier("∃", Variable(u), conj)
-    return expanded
+    
+    res = in_place_replace_node(formula_clone, enclosing_formula, expanded)
+    return res
+
+def expand_set_builder_in_formula(env: Environment, formula: FormulaNode, occurrence_idx: Union[int, list, None] = None, u: str = "") -> FormulaNode:
+    if occurrence_idx is None or isinstance(occurrence_idx, list):
+        formula_clone = clone_ast(formula)
+        occurrences = []
+        collect_occurrences(formula_clone, SetBuilder, "{", occurrences)
+        occs = list(range(1, len(occurrences) + 1)) if occurrence_idx is None else occurrence_idx
+        res = formula_clone
+        for occ in sorted(occs, reverse=True):
+            res = expand_set_builder_in_formula(env, res, occ, u)
+        return res
+
+    formula_clone = clone_ast(formula)
+    occurrences = []
+    collect_occurrences(formula_clone, SetBuilder, "{", occurrences)
+    
+    if not (1 <= occurrence_idx <= len(occurrences)):
+        raise ValueError(f"Occurrence index {occurrence_idx} out of range (found {len(occurrences)} occurrences of set builder).")
+        
+    target_node = occurrences[occurrence_idx - 1]
+    x = target_node.variable.name
+    
+    # Semantic checks
+    from main import validate_new_name
+    if not validate_new_name(env, u, "variable"):
+        raise ValueError(f"Invalid standard variable name '{u}'.")
+        
+    free_in_target = get_free(target_node) # type: ignore
+    if u in free_in_target:
+        raise ValueError(f"Introduced variable '{u}' already occurs free in the set builder term.")
+        
+    free_in_Φ = get_free(formula)
+    if u in free_in_Φ:
+        raise ValueError(f"Introduced variable '{u}' already occurs free in the parent formula.")
+        
+    target_enclosing_bound = get_enclosing_bound_vars(formula_clone, target_node)
+    if target_enclosing_bound is None:
+        target_enclosing_bound = set()
+    if u in target_enclosing_bound:
+        raise ValueError(f"Introduced variable '{u}' is bound by an enclosing quantifier at the target position.")
+        
+    if not is_substitutable_free(x, Variable(u), target_node.formula):
+        raise ValueError(f"Variable '{u}' is not substitutable inside the set builder formula due to variable capture.")
+        
+    # Construct expanded parts
+    # x ∈ A
+    x_in_A = Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[Variable(x), clone_ast(target_node.base_set)])
+    
+    # x ∈ A ∧ Ψ(x)
+    rhs = Connective("∧", 2, [x_in_A, clone_ast(target_node.formula)])
+    rhs.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    rhs.postfix_formatting = [Whitespace(" "), Bracket(")")]
+    
+    # x ∈ u
+    x_in_u = Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[Variable(x), Variable(u)])
+    
+    # x ∈ u ⇔ (x ∈ A ∧ Ψ(x))
+    inner_eq = Connective("⇔", 2, [x_in_u, rhs])
+    inner_eq.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    inner_eq.postfix_formatting = [Whitespace(" "), Bracket(")")]
+    
+    # ∀ x ( x ∈ u ⇔ (x ∈ A ∧ Ψ(x)) )
+    forall = Quantifier("∀", Variable(x), inner_eq)
+    forall.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    forall.postfix_formatting = [Whitespace(" "), Bracket(")")]
+    
+    occurrences_clone = []
+    collect_occurrences(formula_clone, SetBuilder, "{", occurrences_clone)
+    target_node_clone = occurrences_clone[occurrence_idx - 1]
+    
+    enclosing_formula = find_smallest_enclosing_formula(formula_clone, target_node_clone)
+    if enclosing_formula is None:
+        raise ValueError("Could not find an enclosing formula scope for the expansion.")
+        
+    in_place_replace_node(formula_clone, target_node_clone, Variable(u))
+    Φ_u = clone_ast(enclosing_formula)
+    
+    # ∀ x (...) ∧ Φ(u)
+    conj = Connective("∧", 2, [forall, Φ_u])
+    conj.prefix_formatting = [Bracket("("), Whitespace(" ")]
+    conj.postfix_formatting = [Whitespace(" "), Bracket(")")]
+    
+    # ∃ u ( ∀ x (...) ∧ Φ(u) )
+    expanded = Quantifier("∃", Variable(u), conj)
+    
+    res = in_place_replace_node(formula_clone, enclosing_formula, expanded)
+    return res
+

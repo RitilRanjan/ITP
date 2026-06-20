@@ -1,0 +1,4 @@
+cv a b
+cf f(x, y) ≡ x = y
+cf f1 a = b
+cf f2 f1 ∧ f1

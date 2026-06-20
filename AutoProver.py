@@ -6,34 +6,10 @@ from AST import (
 from SubstitutionManager import is_substitutable_free, clone_ast, check_free, check_bound
 from PropAbstraction import abstract_to_propositional_with_mapping
 from SequentEvaluator import is_tautology_sequent
-from DeductiveSystem import (
-    axiom_E1, axiom_E2, axiom_E3, axiom_Q1, axiom_Q2,
-    rule_QR1, rule_QR2, rule_PC2
-)
-from ZFC_Rules import (
-    axiom_extension, axiom_pairing, axiom_union, axiom_power_set,
-    axiom_regularity, axiom_infinity, axiom_choice, axiom_specification,
-    axiom_replacement
-)
+from DeductiveSystem import rule_QR1, rule_QR2, rule_PC2
 from Environment import Environment
 from Frontend import reconstruct_string
-
-AXIOMS = {
-    "E1": axiom_E1,
-    "E2": axiom_E2,
-    "E3": axiom_E3,
-    "Q1": axiom_Q1,
-    "Q2": axiom_Q2,
-    "extension": axiom_extension,
-    "pairing": axiom_pairing,
-    "union": axiom_union,
-    "power_set": axiom_power_set,
-    "regularity": axiom_regularity,
-    "infinity": axiom_infinity,
-    "choice": axiom_choice,
-    "specification": axiom_specification,
-    "replacement": axiom_replacement,
-}
+from Registry import AXIOMS
 
 def collect_leaf_sequents(left: List[FormulaNode], right: List[FormulaNode]) -> List[Tuple[List[FormulaNode], List[FormulaNode]]]:
     """
@@ -130,7 +106,7 @@ def decode_propositional_to_fol(node: FormulaNode, reverse_mapping: Dict[str, Fo
     else:
         return clone_ast(node)
 
-def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[FormulaNode]] = None) -> bool:
+def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[FormulaNode]] = None, proof_logger=None) -> bool:
     """
     Attempts to prove the formula with name f_name in environment env.
     If proven, adds it to env.theorems and returns True. Otherwise, returns False.
@@ -168,6 +144,8 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
             if axiom_func(f_node):
                 print(f"[Auto] Proved '{f_name}' ('{reconstruct_string(f_node)}') using axiom '{ax_name}'.")
                 env.theorems[f_name] = clone_ast(f_node)
+                if proof_logger:
+                    proof_logger.log_rule([], f_name, f_node, f"axiom: {ax_name} (auto)")
                 return True
         except Exception:
             pass
@@ -202,12 +180,14 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
                 
                 # Try to prove the premise recursively
                 print(f"[Auto] Attempting QR1: Proving premise '{premise_name}' ('{reconstruct_string(premise)}') to prove '{f_name}'...")
-                if auto_prove(premise_name, env, visited_nodes):
+                if auto_prove(premise_name, env, visited_nodes, proof_logger):
                     # Verify using rule_QR1
                     premise_theorem = env.theorems[premise_name]
                     if rule_QR1([premise_theorem], f_node):
                         env.theorems[f_name] = clone_ast(f_node)
                         print(f"[Auto] Proved '{f_name}' using rule 'QR1' with premise '{premise_name}'.")
+                        if proof_logger:
+                            proof_logger.log_rule([(premise_name, premise_theorem)], f_name, f_node, "QR1 (auto)")
                         return True
 
     # 4. Try QR2
@@ -240,11 +220,13 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
                 
                 # Try to prove the premise recursively
                 print(f"[Auto] Attempting QR2: Proving premise '{premise_name}' ('{reconstruct_string(premise)}') to prove '{f_name}'...")
-                if auto_prove(premise_name, env, visited_nodes):
+                if auto_prove(premise_name, env, visited_nodes, proof_logger):
                     premise_theorem = env.theorems[premise_name]
                     if rule_QR2([premise_theorem], f_node):
                         env.theorems[f_name] = clone_ast(f_node)
                         print(f"[Auto] Proved '{f_name}' using rule 'QR2' with premise '{premise_name}'.")
+                        if proof_logger:
+                            proof_logger.log_rule([(premise_name, premise_theorem)], f_name, f_node, "QR2 (auto)")
                         return True
 
     # 5. Try PC2 (propositional sequent calculus decomposition)
@@ -259,6 +241,8 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
             if rule_PC2([], f_node):
                 env.theorems[f_name] = clone_ast(f_node)
                 print(f"[Auto] Proved '{f_name}' using rule 'PC2' with no premises.")
+                if proof_logger:
+                    proof_logger.log_rule([], f_name, f_node, "PC2 (auto)")
                 return True
         else:
             # Check for progress: if there's only one leaf and it decodes back to the same formula, skip to avoid loop
@@ -294,7 +278,7 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
                 
                 # Recursively prove the leaf formula
                 print(f"[Auto] Decomposed leaf {idx+1}/{len(leaf_sequents)}: Proving '{leaf_name}' ('{reconstruct_string(fol_leaf)}')...")
-                if auto_prove(leaf_name, env, visited_nodes):
+                if auto_prove(leaf_name, env, visited_nodes, proof_logger):
                     premise_names.append(leaf_name)
                 else:
                     all_proven = False
@@ -306,6 +290,8 @@ def auto_prove(f_name: str, env: Environment, visited_nodes: Optional[List[Formu
                 if rule_PC2(premise_nodes, f_node):
                     env.theorems[f_name] = clone_ast(f_node)
                     print(f"[Auto] Proved '{f_name}' using rule 'PC2' and premises: {', '.join(premise_names)}.")
+                    if proof_logger:
+                        proof_logger.log_rule([(pn, env.theorems[pn]) for pn in premise_names], f_name, f_node, "PC2 (auto)")
                     return True
     except Exception as e:
         print(f"[Auto] Error during PC2 decomposition for '{f_name}': {e}")

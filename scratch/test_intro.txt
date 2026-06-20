@@ -1,0 +1,5 @@
+N
+cv z
+cf P1 ∀x(x = x)
+intro P1 z P2
+show

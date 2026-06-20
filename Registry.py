@@ -1,0 +1,36 @@
+from DeductiveSystem import (
+    axiom_E1, axiom_E2, axiom_E3, axiom_Q1, axiom_Q2,
+    rule_QR1, rule_QR2, rule_PC1, rule_PC2, rule_PC3
+)
+from ZFC_Rules import (
+    axiom_extension, axiom_pairing, axiom_union, axiom_power_set,
+    axiom_regularity, axiom_infinity, axiom_choice, axiom_specification,
+    axiom_replacement
+)
+
+AXIOMS = {
+    # Logical Axioms
+    "E1": axiom_E1,
+    "E2": axiom_E2,
+    "E3": axiom_E3,
+    "Q1": axiom_Q1,
+    "Q2": axiom_Q2,
+    # ZFC Axioms
+    "extension": axiom_extension,
+    "pairing": axiom_pairing,
+    "union": axiom_union,
+    "power_set": axiom_power_set,
+    "regularity": axiom_regularity,
+    "infinity": axiom_infinity,
+    "choice": axiom_choice,
+    "specification": axiom_specification,
+    "replacement": axiom_replacement,
+}
+
+RULES = {
+    "QR1": rule_QR1,
+    "QR2": rule_QR2,
+    "PC1": rule_PC1,
+    "PC2": rule_PC2,
+    "PC3": rule_PC3,
+}

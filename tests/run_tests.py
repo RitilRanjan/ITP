@@ -1,4 +1,6 @@
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Mock pytest to avoid installing external dependencies in a network-less environment
 class MockPytest:
@@ -31,6 +33,9 @@ import test_Missions
 import test_Storage
 import test_AutoProver
 import test_Contradiction
+import test_GraphSearch
+import test_BackwardSearch
+import test_InlineDefinitions
 
 def run_all():
     failed = False
@@ -154,6 +159,19 @@ def run_all():
             import traceback
             traceback.print_exc()
             failed = True
+
+    print("\nRunning Epsilon tests...")
+    import test_Epsilon
+    test_funcs_epsilon = [getattr(test_Epsilon, name) for name in dir(test_Epsilon) if name.startswith("test_")]
+    for func in test_funcs_epsilon:
+        try:
+            func()
+            print(f"  [PASS] {func.__name__}")
+        except Exception as e:
+            print(f"  [FAIL] {func.__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            failed = True
             
     print("\nRunning Definition Expander tests...")
     test_funcs_exp = [getattr(test_DefinitionExpander, name) for name in dir(test_DefinitionExpander) if name.startswith("test_")]
@@ -206,6 +224,38 @@ def run_all():
     print("\nRunning Contradiction (contra) tests...")
     test_funcs_contra = [getattr(test_Contradiction, name) for name in dir(test_Contradiction) if name.startswith("test_")]
     for func in test_funcs_contra:
+        try:
+            func()
+            print(f"  [PASS] {func.__name__}")
+        except Exception as e:
+            print(f"  [FAIL] {func.__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            failed = True
+            
+    print("\nRunning Graph Search tests...")
+    try:
+        test_GraphSearch.run_tests()
+        print("  [PASS] test_GraphSearch")
+    except Exception as e:
+        print(f"  [FAIL] test_GraphSearch: {e}")
+        import traceback
+        traceback.print_exc()
+        traceback.print_exc()
+        failed = True
+
+    print("\nRunning Backward Search tests...")
+    try:
+        test_BackwardSearch.run_tests()
+        print("  [PASS] test_BackwardSearch")
+    except Exception as e:
+        print(f"  [FAIL] test_BackwardSearch: {e}")
+        import traceback
+        traceback.print_exc()
+        failed = True
+    print("\nRunning Inline Definitions tests...")
+    test_funcs_inline = [getattr(test_InlineDefinitions, name) for name in dir(test_InlineDefinitions) if name.startswith("test_")]
+    for func in test_funcs_inline:
         try:
             func()
             print(f"  [PASS] {func.__name__}")

@@ -1,0 +1,8 @@
+N
+load
+test_save.txt
+show
+load_h
+test_history.txt
+show
+exit

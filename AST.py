@@ -6,10 +6,13 @@ class FunctionType(Enum):
     PRE_DEFINED = "pre_defined"
     USER_DEFINED = "user_defined"
     IOTA_DEFINED = "iota_defined"
+    EPSILON_DEFINED = "epsilon_defined"
+    SCHEMA = "schema"
 
 class RelationType(Enum):
     PRE_DEFINED = "pre_defined"
     USER_DEFINED = "user_defined"
+    SCHEMA = "schema"
 
 @dataclass
 class Node:
@@ -57,6 +60,14 @@ class Function(TermNode):
 class DummyVariable(TermNode):
     """Acts as a placeholder for terms (used for term replacement)."""
     pass
+
+@dataclass
+class SetBuilder(TermNode):
+    """Represents a set-builder notation term {x ∈ A | Ψ}."""
+    variable: Variable
+    base_set: Variable
+    formula: 'FormulaNode'
+    name: str = field(default="{", init=False)
 
 # ==========================================
 # Formula Nodes
@@ -130,5 +141,9 @@ def is_structurally_equal(n1: Node, n2: Node) -> bool:
     elif isinstance(n1, Quantifier):
         return (n1.name == n2.name and
                 is_structurally_equal(n1.variable, n2.variable) and
+                is_structurally_equal(n1.formula, n2.formula))
+    elif isinstance(n1, SetBuilder):
+        return (is_structurally_equal(n1.variable, n2.variable) and
+                is_structurally_equal(n1.base_set, n2.base_set) and
                 is_structurally_equal(n1.formula, n2.formula))
     return n1.name == n2.name

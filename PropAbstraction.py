@@ -58,15 +58,16 @@ def clear_right_postfix_formatting(node: Node, is_root: bool = True):
         clear_right_postfix_formatting(node.arguments[-1], is_root=False)
 
 def abstract_to_propositional_with_mapping(
-    formula: FormulaNode
-) -> Tuple[FormulaNode, List[Tuple[FormulaNode, PropositionalVariable]]]:
+    formulas: List[FormulaNode],
+    equivalence_fn = is_structurally_equal
+) -> Tuple[List[FormulaNode], List[Tuple[FormulaNode, PropositionalVariable]]]:
     """
-    Abstracts a first-order logic formula into its corresponding propositional logic formula.
+    Abstracts a list of first-order logic formulas into corresponding propositional logic formulas.
     Every atomic subformula (Relation) or quantifier subformula (Quantifier) is replaced by a
     PropositionalVariable in a way that matching subformulae (ignoring formatting/whitespace/brackets)
-    get the same PropositionalVariable.
+    get the same PropositionalVariable based on the equivalence_fn.
     
-    Returns a tuple: (abstracted_formula, mappings_list)
+    Returns a tuple: (abstracted_formulas_list, mappings_list)
     where mappings_list is a list of tuples (cleaned_first_order_subformula, propositional_variable).
     """
     mappings: List[Tuple[FormulaNode, PropositionalVariable]] = []
@@ -78,7 +79,7 @@ def abstract_to_propositional_with_mapping(
 
         # Search for a matching subformula in mappings (ignoring formatting)
         for stored_node, prop_var in mappings:
-            if is_structurally_equal(sub_formula, stored_node):
+            if equivalence_fn(sub_formula, stored_node):
                 res = clone_ast(prop_var)
                 res.prefix_formatting = total_prefix
                 res.postfix_formatting = total_postfix
@@ -119,8 +120,8 @@ def abstract_to_propositional_with_mapping(
             # Treat any other node type at this level as atomic
             return get_or_create_prop_var(node)
 
-    abstracted_formula = recurse(formula)
-    return abstracted_formula, mappings
+    abstracted_formulas = [recurse(f) for f in formulas]
+    return abstracted_formulas, mappings
 
 
 def abstract_to_propositional(formula: FormulaNode) -> FormulaNode:
@@ -130,5 +131,33 @@ def abstract_to_propositional(formula: FormulaNode) -> FormulaNode:
     PropositionalVariable in a way that matching subformulae (ignoring formatting/whitespace/brackets)
     get the same PropositionalVariable.
     """
-    abstracted_formula, _ = abstract_to_propositional_with_mapping(formula)
-    return abstracted_formula
+    abstracted_formulas, _ = abstract_to_propositional_with_mapping([formula])
+    return abstracted_formulas[0]
+
+def is_PC3_equivalent(node1: Node, node2: Node) -> bool:
+    if is_structurally_equal(node1, node2):
+        return True
+    if isinstance(node1, Quantifier) and isinstance(node2, Quantifier):
+        if node1.name == node2.name and is_structurally_equal(node1.variable, node2.variable):
+            # Both are quantifiers of the same type and bound variable.
+            # Check if their bodies are PC3-equivalent propositionally.
+            abs_formulas, _ = abstract_to_propositional_with_mapping(
+                [node1.formula, node2.formula], 
+                equivalence_fn=is_PC3_equivalent
+            )
+            abs_f1, abs_f2 = abs_formulas
+            # Build abs_f1 ⇔ abs_f2
+            equiv = Connective("⇔", 2, [abs_f1, abs_f2])
+            # Check if tautology
+            from SequentEvaluator import is_tautology_sequent
+            return is_tautology_sequent(equiv)
+    return False
+
+def abstract_formulas_modulo_pc3(formulas: List[FormulaNode]) -> List[FormulaNode]:
+    """Abstracts a list of formulas modulo PC3 equivalence."""
+    abs_formulas, _ = abstract_to_propositional_with_mapping(
+        formulas,
+        equivalence_fn=is_PC3_equivalent
+    )
+    return abs_formulas
+

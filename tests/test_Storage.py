@@ -47,7 +47,7 @@ def test_state_save_and_load():
     env.local_theorems["th1"] = f1_node
     
     # 2. Save
-    filepath = "save_files/test_state_1"
+    filepath = "save_files/test_state_1.md"
     save_environment_state(env, filepath)
     
     # Verify save file exists
@@ -87,7 +87,7 @@ def test_nested_states():
     child.local_theorems["th1"] = f1_node
     
     # 2. Save
-    filepath = "save_files/test_state_nested"
+    filepath = "save_files/test_state_nested.md"
     save_environment_state(child, filepath)
     
     # 3. Load
@@ -106,7 +106,7 @@ def test_nested_states():
 
 def test_history_save_and_load():
     cmds = ["cv z", "cf f1 z=z", "ua E1 f1"]
-    filepath = "history_files/test_history_1"
+    filepath = "history_files/test_history_1.md"
     
     # Save
     save_history(cmds, filepath)
