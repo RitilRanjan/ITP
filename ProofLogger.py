@@ -14,6 +14,7 @@ summary line is written.  Full sub-step traces for those can be added later.
 """
 
 import sys
+import os
 from typing import List, Tuple, Optional
 from Frontend import reconstruct_string
 from AST import Node
@@ -33,11 +34,13 @@ class ProofLogger:
     def open(self, filename: str = "proofs.md") -> None:
         """Create/truncate the proof file and enable logging."""
         try:
-            self._file = open(filename, "w", encoding="utf-8")
+            mode = "a" if os.path.exists(filename) else "w"
+            self._file = open(filename, mode, encoding="utf-8")
             self.enabled = True
-            self._file.write("# Foundational Proof Log\n")
-            self._file.write("**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n")
-            self._file.write("---\n")
+            if mode == "w":
+                self._file.write("# Foundational Proof Log\n")
+                self._file.write("**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n")
+                self._file.write("---\n")
             self._file.flush()
         except OSError as e:
             print(f"[ProofLogger] Warning: could not open '{filename}': {e}", file=sys.stderr)
