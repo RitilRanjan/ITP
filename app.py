@@ -15,6 +15,12 @@ from AST import Variable, PropositionalVariable, DummyVariable, Function, Relati
 from main import get_default_env
 from ProofLogger import proof_logger
 from StorageManager import save_environment_state, load_environment_state
+from Autocomplete import autocomplete_engine
+
+try:
+    from st_keyup import st_keyup
+except ImportError:
+    st_keyup = None
 
 # Import all handlers to register them
 import CommandHandlers.env_handlers
@@ -281,7 +287,60 @@ with tab_programs:
                 st.markdown(msg, unsafe_allow_html=True)
 
         prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
-        command = st.chat_input("Enter command here (e.g. cv x, cf f1 x=x, apply E1)")
+        
+        # Real-time Autocomplete UI
+        if st_keyup is not None:
+            # We need a clear button or form to submit, but st_keyup doesn't natively submit on enter unless we use a button
+            # We'll use two columns: input and submit button
+            st.markdown("### Command Input")
+            
+            # Use session state to hold the partial input so suggestions can update it
+            if "current_cmd" not in st.session_state:
+                st.session_state.current_cmd = ""
+                
+            # If the user clicks a suggestion, it updates st.session_state.current_cmd
+            
+            col_input, col_btn = st.columns([5, 1])
+            with col_input:
+                partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key="live_input", debounce=100)
+            with col_btn:
+                # Add some vertical margin so button aligns with input
+                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                submit_clicked = st.button("Run Command", use_container_width=True)
+                
+            # Compute and render suggestions
+            if partial_command:
+                suggestions = autocomplete_engine.get_suggestions(partial_command, current_env)
+                
+                if suggestions == ["ERROR: INVALID REPL COMMAND"]:
+                    st.markdown("<span style='color:red;'>❌ Invalid REPL Command</span>", unsafe_allow_html=True)
+                elif suggestions:
+                    st.markdown("**Suggestions:**")
+                    # Render chips horizontally
+                    cols = st.columns(min(len(suggestions), 8))
+                    for idx, sug in enumerate(suggestions[:8]):
+                        with cols[idx]:
+                            # If a user clicks a suggestion, we append it to the partial command
+                            if st.button(sug, key=f"sug_{sug}_{idx}", use_container_width=True):
+                                # Logic to append suggestion properly
+                                tokens = partial_command.lstrip().split(" ")
+                                tokens[-1] = sug
+                                new_cmd = " ".join(tokens) + " "
+                                st.session_state.current_cmd = new_cmd
+                                st.rerun()
+                else:
+                    st.write("*(No suggestions)*")
+            else:
+                submit_clicked = False
+                
+            command = partial_command if submit_clicked else None
+            
+            # Clear input after run
+            if submit_clicked:
+                st.session_state.current_cmd = ""
+        else:
+            # Fallback if streamlit-keyup is not installed
+            command = st.chat_input("Enter command here (install streamlit-keyup for autocomplete)")
 
         if command:
             parts = command.strip().split(maxsplit=1)
