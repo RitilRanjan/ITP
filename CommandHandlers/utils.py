@@ -35,17 +35,17 @@ def validate_new_name(env: Environment, name: str, allowed_category: Optional[st
             return False
             
     clash = False
-    if allowed_category != "variable" and name in env.variables:
+    if name in env.variables:
         clash = True
-    if allowed_category != "dummy_variable" and name in env.dummy_variables:
+    if name in env.dummy_variables:
         clash = True
-    if allowed_category != "meta_variable" and name in env.meta_variables:
+    if name in env.meta_variables:
         clash = True
-    if allowed_category != "term" and name in env.terms:
+    if name in env.terms:
         clash = True
-    if allowed_category != "propositional_variable" and name in env.propositional_variables:
+    if name in env.propositional_variables:
         clash = True
-    if allowed_category != "formula" and name in env.formulae:
+    if name in env.formulae:
         clash = True
         
     if clash:
