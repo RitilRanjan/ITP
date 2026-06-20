@@ -316,18 +316,22 @@ with tab_programs:
                     st.markdown("<span style='color:red;'>❌ Invalid REPL Command</span>", unsafe_allow_html=True)
                 elif suggestions:
                     st.markdown("**Suggestions:**")
-                    # Render chips horizontally
-                    cols = st.columns(min(len(suggestions), 8))
-                    for idx, sug in enumerate(suggestions[:8]):
-                        with cols[idx]:
-                            # If a user clicks a suggestion, we append it to the partial command
-                            if st.button(sug, key=f"sug_{sug}_{idx}", use_container_width=True):
-                                # Logic to append suggestion properly
-                                tokens = partial_command.lstrip().split(" ")
-                                tokens[-1] = sug
-                                new_cmd = " ".join(tokens) + " "
-                                st.session_state.current_cmd = new_cmd
-                                st.rerun()
+                    # Render chips inside a scrollable container
+                    with st.container(height=180):
+                        max_sugs = min(len(suggestions), 50)
+                        cols_per_row = 8
+                        for i in range(0, max_sugs, cols_per_row):
+                            row_sugs = suggestions[i:i+cols_per_row]
+                            cols = st.columns(cols_per_row)
+                            for idx, sug in enumerate(row_sugs):
+                                with cols[idx]:
+                                    # If a user clicks a suggestion, we append it to the partial command
+                                    if st.button(sug, key=f"sug_{sug}_{i+idx}", use_container_width=True):
+                                        tokens = partial_command.lstrip().split(" ")
+                                        tokens[-1] = sug
+                                        new_cmd = " ".join(tokens) + " "
+                                        st.session_state.current_cmd = new_cmd
+                                        st.rerun()
                 else:
                     st.write("*(No suggestions)*")
             else:
@@ -338,6 +342,12 @@ with tab_programs:
             # Clear input after run
             if submit_clicked:
                 st.session_state.current_cmd = ""
+                
+            # Disable native browser autocomplete
+            st.components.v1.html(
+                "<script>window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));</script>",
+                height=0, width=0
+            )
         else:
             # Fallback if streamlit-keyup is not installed
             command = st.chat_input("Enter command here (install streamlit-keyup for autocomplete)")
