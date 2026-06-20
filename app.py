@@ -353,15 +353,22 @@ with tab_programs:
                     .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
                     
                     /* Make suggestions flow horizontally like inline chips instead of vertical stacking */
-                    div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+                    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
                         display: flex !important;
                         flex-direction: row !important;
                         flex-wrap: wrap !important;
+                        align-content: flex-start !important;
                         gap: 8px !important;
                     }
-                    div[data-testid="stVerticalBlockBorderWrapper"] div.element-container {
+                    /* Force element containers to shrink to fit */
+                    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] > div {
                         width: auto !important;
                         flex: 0 0 auto !important;
+                        min-width: 0 !important;
+                    }
+                    div[data-testid="stVerticalBlockBorderWrapper"] div.stButton {
+                        width: auto !important;
+                        display: inline-block !important;
                     }
                     div[data-testid="stVerticalBlockBorderWrapper"] button {
                         width: auto !important;
