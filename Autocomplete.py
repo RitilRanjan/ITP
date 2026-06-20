@@ -19,7 +19,7 @@ class AutocompleteEngine:
         # If there's only 1 token, the user is typing the command name
         if len(tokens) == 1:
             cmd_prefix = tokens[0]
-            all_cmds = registry.get_all_commands()
+            all_cmds = list(registry.handlers.keys())
             suggestions = [cmd for cmd in all_cmds if cmd.startswith(cmd_prefix)]
             if not suggestions and cmd_prefix:
                 return ["ERROR: INVALID REPL COMMAND"]
@@ -36,17 +36,19 @@ class AutocompleteEngine:
         # e.g. "fold " -> tokens=["fold", ""] -> len 2 -> typing arg 1
         arg_index = len(tokens) - 1 
         current_token = tokens[-1]
-        
+        # Helper to get pure formula names (excluding relation declarations like =, ∈)
+        formula_names = [name for name, node in env.local_formulae.items() if not (isinstance(node, Relation) and node.name == name)]
+
         # Handlers map to argument suggestions
         if cmd_name == "fold":
             # fold <sym> [occ] [<target>] [<out>] [<equiv>]
             if arg_index == 1:
-                options = ["∀", "∃", "all"] + list(env.user_functions.keys()) + list(env.user_relations.keys())
+                options = ["∀", "∃", "∃!", "{", "all"] + list(env.user_functions.keys()) + list(env.user_relations.keys())
                 return [opt for opt in options if opt.startswith(current_token)]
             elif arg_index == 2:
                 return [] # occ
             elif arg_index == 3:
-                return [opt for opt in env.local_formulae.keys() if opt.startswith(current_token)]
+                return [opt for opt in formula_names if opt.startswith(current_token)]
             else:
                 return []
                 
@@ -64,22 +66,22 @@ class AutocompleteEngine:
             elif arg_index == 3:
                 return [] # occ
             elif arg_index == 4:
-                return [opt for opt in env.local_formulae.keys() if opt.startswith(current_token)]
+                return [opt for opt in formula_names if opt.startswith(current_token)]
             else:
                 return []
                 
         elif cmd_name in ["apply", "simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi"]:
             # apply [<target>] <axiom_or_theorem>
             # For simplicity, if arg 1 is not a formula, it might be the theorem. We suggest both.
-            options = list(env.local_formulae.keys()) + ["E1", "E2", "E3", "Q1", "Q2", "QR1", "QR2", "PC1", "PC2", "PC3"]
+            options = formula_names + ["E1", "E2", "E3", "Q1", "Q2", "QR1", "QR2", "PC1", "PC2", "PC3"]
             return [opt for opt in options if opt.startswith(current_token)]
             
-        elif cmd_name in ["left", "right", "and", "imply", "intro"]:
+        elif cmd_name in ["left", "right", "and", "imply", "intro", "neg-", "neg+", "dt"]:
             # target is arg 1 or implied
-            options = list(env.local_formulae.keys())
+            options = formula_names
             return [opt for opt in options if opt.startswith(current_token)]
             
-        elif cmd_name in ["cf", "ct", "cp", "mission", "def_f", "def_r"]:
+        elif cmd_name in ["cf", "ct", "cp", "mission", "def_f", "def_r", "auto", "search", "backward_search", "advanced_search"]:
             # Mathematical grammar prediction
             # cf <name> <formula>
             if cmd_name in ["cf", "ct", "cp"] and arg_index == 1:
@@ -93,7 +95,7 @@ class AutocompleteEngine:
                 math_expr = " ".join(tokens[2:])
             elif cmd_name in ["def_f", "def_r"]:
                 math_expr = " ".join(tokens[3:])
-            else: # mission
+            else: # mission, auto, search, backward_search, advanced_search
                 math_expr = " ".join(tokens[1:])
                 
             return self._predict_grammar(math_expr, env, current_token)

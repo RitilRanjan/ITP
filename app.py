@@ -309,7 +309,7 @@ with tab_programs:
                 submit_clicked = st.button("Run Command", use_container_width=True)
                 
             # Compute and render suggestions
-            if partial_command:
+            if partial_command is not None:
                 suggestions = autocomplete_engine.get_suggestions(partial_command, current_env)
                 
                 if suggestions == ["ERROR: INVALID REPL COMMAND"]:
