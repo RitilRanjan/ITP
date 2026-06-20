@@ -357,6 +357,13 @@ with tab_programs:
                     .stButton > button { transition: all 0.1s ease !important; }
                     .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
                     .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
+                    
+                    /* Increase font size for the suggestions in the st.pills component */
+                    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] span,
+                    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] p {
+                        font-size: 1.2rem !important;
+                        padding: 0.2rem 0 !important;
+                    }
                     </style>`);
                 }
                 </script>
