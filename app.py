@@ -321,20 +321,15 @@ with tab_programs:
                     # Render chips inside a scrollable container
                     with st.container(height=180):
                         max_sugs = min(len(suggestions), 50)
-                        cols_per_row = 8
-                        for i in range(0, max_sugs, cols_per_row):
-                            row_sugs = suggestions[i:i+cols_per_row]
-                            cols = st.columns(cols_per_row)
-                            for idx, sug in enumerate(row_sugs):
-                                with cols[idx]:
-                                    # If a user clicks a suggestion, we append it to the partial command
-                                    if st.button(sug, key=f"sug_{sug}_{i+idx}", use_container_width=True):
-                                        tokens = partial_command.lstrip().split(" ")
-                                        tokens[-1] = sug
-                                        new_cmd = " ".join(tokens) + " "
-                                        st.session_state.current_cmd = new_cmd
-                                        st.session_state.keyup_key += 1
-                                        st.rerun()
+                        for idx, sug in enumerate(suggestions[:max_sugs]):
+                            # If a user clicks a suggestion, we append it to the partial command
+                            if st.button(sug, key=f"sug_{sug}_{idx}"):
+                                tokens = partial_command.lstrip().split(" ")
+                                tokens[-1] = sug
+                                new_cmd = " ".join(tokens) + " "
+                                st.session_state.current_cmd = new_cmd
+                                st.session_state.keyup_key += 1
+                                st.rerun()
                 else:
                     st.write("*(No suggestions)*")
             else:
@@ -356,6 +351,23 @@ with tab_programs:
                     .stButton > button { transition: all 0.1s ease !important; }
                     .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
                     .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
+                    
+                    /* Make suggestions flow horizontally like inline chips instead of vertical stacking */
+                    div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        flex-wrap: wrap !important;
+                        gap: 8px !important;
+                    }
+                    div[data-testid="stVerticalBlockBorderWrapper"] div.element-container {
+                        width: auto !important;
+                        flex: 0 0 auto !important;
+                    }
+                    div[data-testid="stVerticalBlockBorderWrapper"] button {
+                        width: auto !important;
+                        padding-left: 1rem !important;
+                        padding-right: 1rem !important;
+                    }
                     </style>`);
                 }
                 </script>
