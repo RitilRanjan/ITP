@@ -11,9 +11,7 @@ from BackwardSearch import backward_search, advanced_search
 from ProofLogger import proof_logger
 from CommandHandlers.CommandRegistry import registry
 
-@registry.register("show", category="Environment Tools", help_text="Print the active environment variables and formulae")
-def handle_show(env: Environment, args_str: str) -> None:
-    show_environment(env)
+
 
 @registry.register("exit", category="Environment Tools", help_text="Leave current environment / resolve mission")
 def handle_exit(env: Environment, args_str: str) -> Optional[Environment]:
@@ -81,7 +79,7 @@ def handle_help(env: Environment, args_str: str) -> None:
     print("  mission <f>                 Enter a child environment to prove goal formula f")
     print("  contra  [<f1>] f2 f3        Proof by contradiction: f2 = ¬f1, goal f3 = ⊥")
     print("  exit                        Leave current environment / resolve mission")
-    print("  show                        Print the active environment variables and formulae")
+
     print("  apply   [<target>] <ax/r>   Prove goal or <target> using axiom/rule and premises")
     print("  apply2  <QR1|QR2> f1        Back-compute required premise from goal")
     print("  apply3  f1 f2               Modus ponens backwards (goal matches RHS of f1)")

@@ -474,7 +474,7 @@ def colorize_formula(text: str, mode: str = "ansi") -> str:
         return "".join(result) + reset
         
     elif mode == "html":
-        colors = ["#00FFFF", "#FF00FF", "#FFA500", "#00FF00", "#6495ED", "#FF4500"]
+        colors = ["#008B8B", "#FF00FF", "#FFA500", "#00FF00", "#6495ED", "#FF4500"]
         result = [f'<span style="color: {colors[0]}">']
         depth = 0
         

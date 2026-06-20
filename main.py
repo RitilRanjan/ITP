@@ -14,7 +14,7 @@ from CommandHandlers.definition_handlers import (
     handle_def_f, handle_def_r, handle_iota, handle_epsilon
 )
 from CommandHandlers.state_handlers import (
-    handle_show, handle_help, handle_save, handle_load, handle_save_h, handle_load_h,
+    handle_help, handle_save, handle_load, handle_save_h, handle_load_h,
     handle_auto, handle_search, handle_backward_search, handle_advanced_search, handle_dt
 )
 from CommandHandlers.transformation_handlers import (

@@ -1,176 +1,167 @@
-import json
-import sys
+import streamlit as st
+import io
+import contextlib
+import re
+
+# Set page config for wider layout
+st.set_page_config(page_title="Interactive Theorem Prover", layout="wide")
+
 from Environment import Environment
-from AST import (
-    Variable, DummyVariable, PropositionalVariable, Function, FunctionType,
-    Relation, RelationType
-)
-from Frontend import (
-    parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string,
-    UnrecognizedSymbolError, ParserError
-)
+from CommandHandlers.CommandRegistry import registry
+from Frontend import reconstruct_string
+from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation
+from main import get_default_env
 
-def get_dummy_env() -> Environment:
-    """Initializes the environment with default data for testing."""
-    env = Environment()
-    
-    # Standard Variables
-    v_x = Variable(name="x")
-    v_y = Variable(name="y")
-    env.add_variable(v_x)
-    env.add_variable(v_y)
-    
-    # Pre-defined function term S (arity 1) with argument x
-    f_S = Function(name="S", arity=1, func_type=FunctionType.PRE_DEFINED, arguments=[v_x])
-    env.add_term(f_S)
-    
-    # Pre-defined relation formula = (arity 2) with arguments [x, y]
-    rel_eq = Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[v_x, v_y])
-    env.add_formula(rel_eq)
-    
-    # Propositional Variables
-    env.add_propositional_variable(PropositionalVariable("P"))
-    env.add_propositional_variable(PropositionalVariable("Q"))
-    
-    return env
+# Import all handlers to register them
+import CommandHandlers.env_handlers
+import CommandHandlers.logic_handlers
+import CommandHandlers.mission_handlers
+import CommandHandlers.state_handlers
+import CommandHandlers.transformation_handlers
+import CommandHandlers.definition_handlers
 
-def print_header(title: str):
-    print("\n" + "=" * 60)
-    print(f" {title} ".center(60, "="))
-    print("=" * 60)
+# Patch get_user_input to prevent hanging in Streamlit
+import CommandHandlers.utils
+def mock_get_user_input(prompt: str, command_queue: list = None, inputs_collected: list = None) -> str:
+    raise NotImplementedError("Interactive prompts (e.g., for saving, loading, or variable disambiguation) are not supported in the web UI.")
+CommandHandlers.utils.get_user_input = mock_get_user_input
 
-def main():
-    print_header("Interactive Theorem Prover CLI")
-    env = get_dummy_env()
+def ansi_to_html(text: str) -> str:
+    """Converts ANSI color codes to HTML spans."""
+    html = text.replace('\n', '<br>')
     
-    while True:
-        # 1. Print Environment JSON
-        print("\n--- Current Environment State ---")
-        print(env.to_json())
-        print("-" * 33)
+    ansi_regex = re.compile(r'\033\[(\d+)m')
+    
+    color_map = {
+        '31': 'color: #FF4500', # Red
+        '32': 'color: #00FF00', # Green
+        '33': 'color: #FFA500', # Yellow
+        '34': 'color: #6495ED', # Blue
+        '35': 'color: #FF00FF', # Magenta
+        '36': 'color: #008B8B', # DarkCyan (was Cyan)
+        '1': 'font-weight: bold',
+    }
+    
+    def replacer(match):
+        code = match.group(1)
+        if code == '0':
+            return '</span>'
+        if code in color_map:
+            return f'<span style="{color_map[code]}">'
+        return ''
+
+    html = ansi_regex.sub(replacer, html)
+    return html
+
+def init_session():
+    if "env_chain" not in st.session_state:
+        st.session_state.env_chain = [get_default_env()]
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
         
-        # 2. Offer options
-        print("\nChoose an option:")
-        print("  1. Parse & Register a Term")
-        print("  2. Parse & Register a First-Order Logic (FOL) Formula")
-        print("  3. Parse & Register a Propositional Formula")
-        print("  4. Define/Declare a standard Variable")
-        print("  5. Define/Declare a Dummy Variable")
-        print("  6. Define/Declare a Propositional Variable")
-        print("  7. Define/Declare a Function Symbol")
-        print("  8. Define/Declare a Relation Symbol")
-        print("  9. Exit")
-        
-        choice = input("\nEnter choice (1-9): ").strip()
-        if not choice:
-            continue
+init_session()
+
+st.title("Interactive Theorem Prover")
+st.markdown("Host for mathematically rigorous First-Order Logic and Set Theory proofs.")
+
+# Display the environment
+current_env = st.session_state.env_chain[-1]
+ground_env = st.session_state.env_chain[0]
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.subheader("Global Environment Objects")
+    with st.expander("Variables"):
+        for name in ground_env.variables:
+            st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
             
-        if choice == "9":
-            print("\nExiting. Goodbye!")
-            sys.exit(0)
+    with st.expander("Propositional Variables"):
+        for name in ground_env.propositional_variables:
+            st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
             
-        try:
-            if choice == "1":
-                inp = input("Enter term string (e.g. 'S x'): ").strip()
-                ast = parse_term(inp, env)
-                print(f"\n[SUCCESS] Reconstructed: '{reconstruct_string(ast)}'")
+    with st.expander("Dummy Variables"):
+        for name in ground_env.dummy_variables:
+            st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+            
+    with st.expander("Functions"):
+        for name, term in ground_env.terms.items():
+            if isinstance(term, Function) and name == term.name:
+                st.markdown(f'<span style="color: #6495ED">{name}</span> : {term.arity}', unsafe_allow_html=True)
                 
-                name = input("Enter name to register this term in Environment (press Enter to auto-save): ").strip()
-                if not name:
-                    name = reconstruct_string(ast).replace(" ", "")
-                env.terms[name] = ast
-                print(f"Registered term '{name}' in Environment.")
+    with st.expander("Relations"):
+        for name, formula in ground_env.formulae.items():
+            if isinstance(formula, Relation) and name == formula.name:
+                st.markdown(f'<span style="color: #6495ED">{name}</span> : {formula.arity}', unsafe_allow_html=True)
+
+with col2:
+    st.subheader("Environments")
+    with st.expander("Active Environments Chain", expanded=True):
+        for i, env in enumerate(st.session_state.env_chain):
+            with st.expander(f"Environment Level {i} {'(Ground)' if i==0 else '(Mission)'}", expanded=(i == len(st.session_state.env_chain)-1)):
+                if i > 0 and env.target_goal:
+                    st.markdown(f"**Goal**: " + reconstruct_string(env.target_goal, color_mode="html"), unsafe_allow_html=True)
+                    
+                st.markdown("**Terms**")
+                for name, term in env.local_terms.items():
+                    if isinstance(term, Function) and name == term.name:
+                        st.markdown(f'<span style="color: #6495ED">{name}</span> : {term.arity}', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
                 
-            elif choice == "2":
-                inp = input("Enter FOL formula string (e.g. 'x = y ∧ ∀ x ( x = y )'): ").strip()
-                ast = parse_fol_formula(inp, env)
-                print(f"\n[SUCCESS] Reconstructed: '{reconstruct_string(ast)}'")
-                
-                name = input("Enter name to register this formula in Environment (press Enter to auto-save): ").strip()
-                if not name:
-                    name = reconstruct_string(ast).replace(" ", "")
-                env.formulae[name] = ast
-                print(f"Registered formula '{name}' in Environment.")
-                
-            elif choice == "3":
-                inp = input("Enter Propositional formula string (e.g. '¬ P ∨ Q'): ").strip()
-                ast = parse_prop_formula(inp, env)
-                print(f"\n[SUCCESS] Reconstructed: '{reconstruct_string(ast)}'")
-                
-                name = input("Enter name to register this formula in Environment (press Enter to auto-save): ").strip()
-                if not name:
-                    name = reconstruct_string(ast).replace(" ", "")
-                env.formulae[name] = ast
-                print(f"Registered formula '{name}' in Environment.")
-                
-            elif choice == "4":
-                name = input("Enter standard variable name to define (e.g. 'z'): ").strip()
-                if not name:
-                    raise ValueError("Name cannot be empty.")
-                env.add_variable(Variable(name=name))
-                print(f"Defined variable '{name}'.")
-                
-            elif choice == "5":
-                name = input("Enter dummy variable name to define (e.g. 'd'): ").strip()
-                if not name:
-                    raise ValueError("Name cannot be empty.")
-                env.add_dummy_variable(DummyVariable(name=name))
-                print(f"Defined dummy variable '{name}'.")
-                
-            elif choice == "6":
-                name = input("Enter propositional variable name to define (e.g. 'R'): ").strip()
-                if not name:
-                    raise ValueError("Name cannot be empty.")
-                env.add_propositional_variable(PropositionalVariable(name=name))
-                print(f"Defined propositional variable '{name}'.")
-                
-            elif choice == "7":
-                name = input("Enter function symbol name to define (e.g. '+'): ").strip()
-                if not name:
-                    raise ValueError("Name cannot be empty.")
-                arity_str = input("Enter function arity (e.g. '2'): ").strip()
-                arity = int(arity_str)
-                print("Function types: 1. PRE_DEFINED, 2. USER_DEFINED, 3. IOTA_DEFINED")
-                ft_choice = input("Enter type (1-3) [default: 2]: ").strip()
-                ft = FunctionType.USER_DEFINED
-                if ft_choice == "1":
-                    ft = FunctionType.PRE_DEFINED
-                elif ft_choice == "3":
-                    ft = FunctionType.IOTA_DEFINED
-                
-                # Satisfy validation with dummy Variable arguments
-                dummy = Variable("x")
-                args = [dummy] * arity
-                env.add_term(Function(name=name, arity=arity, func_type=ft, arguments=args))
-                print(f"Defined function symbol '{name}' with arity {arity}.")
-                
-            elif choice == "8":
-                name = input("Enter relation symbol name to define (e.g. '∈'): ").strip()
-                if not name:
-                    raise ValueError("Name cannot be empty.")
-                arity_str = input("Enter relation arity (e.g. '2'): ").strip()
-                arity = int(arity_str)
-                print("Relation types: 1. PRE_DEFINED, 2. USER_DEFINED")
-                rt_choice = input("Enter type (1-2) [default: 2]: ").strip()
-                rt = RelationType.USER_DEFINED
-                if rt_choice == "1":
-                    rt = RelationType.PRE_DEFINED
-                
-                # Satisfy validation with dummy Variable arguments
-                dummy = Variable("x")
-                args = [dummy] * arity
-                env.add_formula(Relation(name=name, arity=arity, rel_type=rt, arguments=args))
-                print(f"Defined relation symbol '{name}' with arity {arity}.")
-                
+                st.markdown("**Formulae**")
+                for name, formula in env.local_formulae.items():
+                    if isinstance(formula, Relation) and name == formula.name:
+                        st.markdown(f'<span style="color: #6495ED">{name}</span> : {formula.arity}', unsafe_allow_html=True)
+                    else:
+                        prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
+                        st.markdown(f'{prefix}<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+
+st.divider()
+
+# Chat history
+st.subheader("Console")
+
+# Create a container for the chat history
+chat_container = st.container()
+with chat_container:
+    for msg in st.session_state.chat_history:
+        st.markdown(msg, unsafe_allow_html=True)
+
+# Command Input
+prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
+command = st.chat_input("Enter command here (e.g. cv x, cf f1 x=x, apply E1)")
+
+if command:
+    parts = command.strip().split(maxsplit=1)
+    cmd = parts[0]
+    args_str = parts[1] if len(parts) > 1 else ""
+    
+    # Log the command entered
+    st.session_state.chat_history.append(f'<strong>{prompt_str}{command}</strong>')
+    
+    f = io.StringIO()
+    with contextlib.redirect_stdout(f):
+        if cmd == "exit":
+            if len(st.session_state.env_chain) > 1:
+                st.session_state.env_chain.pop()
+                print("Exited child environment.")
             else:
-                print("Invalid option. Please choose 1-9.")
-                
-        except (UnrecognizedSymbolError, ParserError) as pe:
-            print(f"\n[PARSER ERROR] {pe}")
-        except ValueError as ve:
-            print(f"\n[VALUE ERROR] {ve}")
-        except Exception as e:
-            print(f"\n[ERROR] {e}")
-
-if __name__ == "__main__":
-    main()
+                print("Already at ground environment.")
+        elif registry.is_registered(cmd):
+            try:
+                new_env = registry.dispatch(cmd, current_env, args_str, get_default_env=get_default_env)
+                if new_env is not None and new_env is not current_env:
+                    st.session_state.env_chain.append(new_env)
+            except Exception as e:
+                print(f"Error: {e}")
+        elif cmd == "clear":
+            st.session_state.chat_history.clear()
+        else:
+            print(f"Unknown command '{cmd}'.")
+            
+    output = f.getvalue()
+    if output:
+        st.session_state.chat_history.append(ansi_to_html(output))
+        
+    st.rerun()
