@@ -317,7 +317,12 @@ with tab_programs:
                                 file_data.sort(key=lambda x: x["ctime"])
                                 
                             # Display files in a mini scrollable area if there are many
-                            with st.container(height=250 if len(file_data) > 5 else None):
+                            if len(file_data) > 5:
+                                scroll_container = st.container(height=250)
+                            else:
+                                scroll_container = st.container()
+                                
+                            with scroll_container:
                                 for fd in file_data:
                                     col_f, col_d, col_b = st.columns([5, 3, 2])
                                     with col_f:
