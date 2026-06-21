@@ -419,8 +419,118 @@ def reconstruct_string_raw(node: Node) -> str:
     res += "".join(f.name for f in node.postfix_formatting)
     return res
 
+def reconstruct_string_html(node: Node, depth_ref: list) -> str:
+    colors = ["#008B8B", "#FF00FF", "#FFA500", "#00FF00", "#6495ED", "#FF4500"]
+    res = ""
+    
+    for f in node.prefix_formatting:
+        if isinstance(f, Bracket):
+            if f.name in "([{":
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">{f.name}</span>'
+                depth_ref[0] += 1
+            elif f.name in ")]}":
+                depth_ref[0] = max(0, depth_ref[0] - 1)
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">{f.name}</span>'
+        else:
+            res += f.name
+            
+    tooltip = ""
+    if isinstance(node, Variable): tooltip = "Variable"
+    elif isinstance(node, DummyVariable): tooltip = "Dummy Variable"
+    elif isinstance(node, PropositionalVariable): tooltip = "Propositional Variable"
+    elif isinstance(node, MetaVariable): tooltip = "Meta Variable"
+    elif isinstance(node, Quantifier): tooltip = "Quantifier"
+    elif isinstance(node, Connective): tooltip = "Connective"
+    elif isinstance(node, SetBuilder): tooltip = "Set Builder"
+    elif isinstance(node, Function):
+        type_str = node.func_type.value.replace("_", "-").title()
+        tooltip = f"{type_str} Function"
+    elif isinstance(node, Relation):
+        type_str = node.rel_type.value.replace("_", "-").title()
+        tooltip = f"{type_str} Relation"
+
+    def wrap(text: str) -> str:
+        if tooltip:
+            return f'<span class="itp-tooltip" data-tooltip="{tooltip}">{text}</span>'
+        return text
+
+    if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
+        res += wrap(node.name)
+    elif isinstance(node, Quantifier):
+        res += wrap(node.name)
+        res += reconstruct_string_html(node.variable, depth_ref)
+        res += " "
+        res += reconstruct_string_html(node.formula, depth_ref)
+    elif isinstance(node, SetBuilder):
+        res += wrap(node.name)
+        res += reconstruct_string_html(node.variable, depth_ref)
+        res += wrap("∈")
+        res += reconstruct_string_html(node.base_set, depth_ref)
+        res += wrap("|")
+        res += reconstruct_string_html(node.formula, depth_ref)
+    elif isinstance(node, (Function, Relation, Connective)):
+        if node.arity == 1:
+            if node.name in ["¬", "∀", "∃"]:
+                res += wrap(node.name)
+                if isinstance(node.arguments[0], Relation) and node.arguments[0].arity == 2:
+                    color = colors[depth_ref[0] % len(colors)]
+                    res += f'<span style="color: {color}">(</span>'
+                    depth_ref[0] += 1
+                    res += reconstruct_string_html(node.arguments[0], depth_ref)
+                    depth_ref[0] = max(0, depth_ref[0] - 1)
+                    color = colors[depth_ref[0] % len(colors)]
+                    res += f'<span style="color: {color}">)</span>'
+                else:
+                    res += reconstruct_string_html(node.arguments[0], depth_ref)
+            else:
+                res += wrap(node.name)
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">(</span>'
+                depth_ref[0] += 1
+                res += reconstruct_string_html(node.arguments[0], depth_ref)
+                depth_ref[0] = max(0, depth_ref[0] - 1)
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">)</span>'
+        elif node.arity == 2:
+            res += reconstruct_string_html(node.arguments[0], depth_ref)
+            res += f" {wrap(node.name)} "
+            res += reconstruct_string_html(node.arguments[1], depth_ref)
+        elif node.arity > 2:
+            res += wrap(node.name)
+            color = colors[depth_ref[0] % len(colors)]
+            res += f'<span style="color: {color}">(</span>'
+            depth_ref[0] += 1
+            
+            args_res = [reconstruct_string_html(arg, depth_ref) for arg in node.arguments]
+            res += ", ".join(args_res)
+            
+            depth_ref[0] = max(0, depth_ref[0] - 1)
+            color = colors[depth_ref[0] % len(colors)]
+            res += f'<span style="color: {color}">)</span>'
+        elif node.arity == 0:
+            res += wrap(node.name)
+            
+    for f in node.postfix_formatting:
+        if isinstance(f, Bracket):
+            if f.name in "([{":
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">{f.name}</span>'
+                depth_ref[0] += 1
+            elif f.name in ")]}":
+                depth_ref[0] = max(0, depth_ref[0] - 1)
+                color = colors[depth_ref[0] % len(colors)]
+                res += f'<span style="color: {color}">{f.name}</span>'
+        else:
+            res += f.name
+            
+    return res
+
 def reconstruct_string(node: Node, color_mode: str = "ansi") -> str:
-    """Reconstructs the AST and applies depth-based colorization."""
+    """Reconstructs the AST and applies depth-based colorization or HTML tooltips."""
+    if color_mode == "html":
+        return reconstruct_string_html(node, [0])
     raw = reconstruct_string_raw(node)
     if color_mode == "none":
         return raw

@@ -426,7 +426,7 @@ with tab_programs:
                         for name, term in env.local_terms.items():
                             if isinstance(term, Function) and name == term.name:
                                 continue
-                            st.markdown(f'<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
+                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
                             has_terms = True
                         if not has_terms:
                             st.markdown("*(None)*")
@@ -437,7 +437,7 @@ with tab_programs:
                             if isinstance(formula, Relation) and name == formula.name:
                                 continue
                             prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
-                            st.markdown(f'{prefix}<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+                            st.markdown(f'{prefix}<span class="itp-tooltip" data-tooltip="Formula Definition"><span style="color: #6495ED">{name}</span></span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
                             has_formulae = True
                         if not has_formulae:
                             st.markdown("*(None)*")
@@ -526,6 +526,41 @@ with tab_programs:
                     div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] p {
                         font-size: 1.2rem !important;
                         padding: 0.2rem 0 !important;
+                    }
+                    
+                    /* Tooltip CSS */
+                    .itp-tooltip {
+                        position: relative;
+                        cursor: help;
+                        display: inline-block;
+                        padding: 0 1px;
+                        border-radius: 2px;
+                    }
+                    .itp-tooltip:hover {
+                        outline: 1px solid rgba(100, 149, 237, 0.6);
+                        background-color: rgba(100, 149, 237, 0.1);
+                    }
+                    .itp-tooltip::after {
+                        content: attr(data-tooltip);
+                        position: absolute;
+                        bottom: 100%;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        margin-bottom: 5px;
+                        padding: 4px 8px;
+                        background-color: rgba(0, 0, 0, 0.75);
+                        color: white;
+                        font-family: sans-serif;
+                        font-size: 0.8rem;
+                        white-space: nowrap;
+                        border-radius: 4px;
+                        pointer-events: none;
+                        opacity: 0;
+                        transition: opacity 0.15s ease-in-out;
+                        z-index: 1000;
+                    }
+                    .itp-tooltip:hover::after {
+                        opacity: 1;
                     }
                     </style>`);
                 }
