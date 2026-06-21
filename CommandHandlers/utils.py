@@ -22,6 +22,9 @@ def validate_new_name(env: Environment, name: str, allowed_category: Optional[st
     if "," in name:
         print("Error: Name cannot contain commas.")
         return False
+    if ":" in name:
+        print("Error: Name cannot contain colons (:).")
+        return False
     if any(c.isspace() for c in name):
         print("Error: Name cannot contain whitespace, tab, or newline characters.")
         return False

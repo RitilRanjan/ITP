@@ -426,7 +426,7 @@ with tab_programs:
                         for name, term in env.local_terms.items():
                             if isinstance(term, Function) and name == term.name:
                                 continue
-                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
+                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
                             has_terms = True
                         if not has_terms:
                             st.markdown("*(None)*")
@@ -437,7 +437,7 @@ with tab_programs:
                             if isinstance(formula, Relation) and name == formula.name:
                                 continue
                             prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
-                            st.markdown(f'{prefix}<span class="itp-tooltip" data-tooltip="Formula Definition"><span style="color: #6495ED">{name}</span></span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+                            st.markdown(f'{prefix}<span class="itp-tooltip" data-tooltip="Formula Definition"><span style="color: #6495ED">{name}</span></span> : ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
                             has_formulae = True
                         if not has_formulae:
                             st.markdown("*(None)*")
@@ -564,6 +564,31 @@ with tab_programs:
                     }
                     </style>`);
                 }
+                
+                setInterval(() => {
+                    const iframes = window.parent.document.querySelectorAll('iframe');
+                    iframes.forEach(iframe => {
+                        try {
+                            const input = iframe.contentWindow.document.querySelector('input');
+                            if (input && !input.dataset.enterListenerAdded) {
+                                input.addEventListener('keydown', function(e) {
+                                    if (e.key === 'Enter') {
+                                        setTimeout(() => {
+                                            const btns = window.parent.document.querySelectorAll('button');
+                                            for(let i=0; i<btns.length; i++) {
+                                                if (btns[i].innerText.includes('Run Command')) {
+                                                    btns[i].click();
+                                                    break;
+                                                }
+                                            }
+                                        }, 150);
+                                    }
+                                });
+                                input.dataset.enterListenerAdded = "true";
+                            }
+                        } catch(e) {}
+                    });
+                }, 1000);
                 </script>
                 """,
                 height=0, width=0
