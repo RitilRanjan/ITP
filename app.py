@@ -506,6 +506,11 @@ with tab_programs:
                 
             command = partial_command if submit_clicked else None
             
+            # Check for hidden Enter signal from JS
+            if partial_command and "\u200B" in partial_command:
+                submit_clicked = True
+                command = partial_command.replace("\u200B", "")
+                
             # Clear input after run
             if submit_clicked:
                 st.session_state.current_cmd = ""
@@ -579,29 +584,14 @@ with tab_programs:
                                 
                                 input.addEventListener('keydown', function(e) {
                                     if (e.key === 'Enter') {
-                                        input.blur();
+                                        e.preventDefault();
                                         
-                                        function tryClick() {
-                                            const btns = window.parent.document.querySelectorAll('button');
-                                            let found = null;
-                                            for(let i=0; i<btns.length; i++) {
-                                                if (btns[i].textContent && btns[i].textContent.toLowerCase().includes('run command')) {
-                                                    found = btns[i];
-                                                    break;
-                                                }
-                                            }
-                                            
-                                            if (found) {
-                                                if (found.disabled) {
-                                                    // Streamlit is currently rerunning, wait and try again
-                                                    setTimeout(tryClick, 50);
-                                                } else {
-                                                    found.click();
-                                                }
-                                            }
-                                        }
+                                        // Set value via native setter to bypass React's value caching
+                                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                        nativeInputValueSetter.call(input, input.value + '\u200B');
                                         
-                                        setTimeout(tryClick, 150);
+                                        // Dispatch input event so React picks it up immediately
+                                        input.dispatchEvent(new Event('input', { bubbles: true }));
                                     }
                                 }, true); // Use capture phase to run before React synthetic events
                                 input.dataset.enterListenerAdded = "true";
