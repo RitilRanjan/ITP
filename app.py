@@ -14,7 +14,7 @@ from Frontend import reconstruct_string
 from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation
 from main import get_default_env
 from ProofLogger import proof_logger
-from StorageManager import save_environment_state, load_environment_state
+from StorageManager import save_environment_state, load_environment_state, save_history, load_history
 from Autocomplete import autocomplete_engine
 
 try:
@@ -115,6 +115,14 @@ def init_session():
         st.session_state.chat_history = []
     if "command_history" not in st.session_state:
         st.session_state.command_history = []
+    if "active_action" not in st.session_state:
+        st.session_state.active_action = None
+    if "selected_file" not in st.session_state:
+        st.session_state.selected_file = None
+    if "skip_load_env_confirm" not in st.session_state:
+        st.session_state.skip_load_env_confirm = False
+    if "skip_load_hist_confirm" not in st.session_state:
+        st.session_state.skip_load_hist_confirm = False
         
 init_session()
 
@@ -187,15 +195,159 @@ with tab_programs:
                 st.error("Please enter a valid name.")
     else:
         # PROVER INTERFACE
-        col_hdr1, col_hdr2 = st.columns([4, 1])
+        col_hdr1, col_env_s, col_env_l, col_hst_s, col_hst_l, col_hdr2 = st.columns([2.5, 1, 1, 1, 1, 1])
         with col_hdr1:
-            st.subheader(f"Active Program: {st.session_state.active_program}")
+            st.subheader(f"Active: {st.session_state.active_program}")
+            
+        def toggle_action(action_name):
+            if st.session_state.active_action == action_name:
+                st.session_state.active_action = None
+            else:
+                st.session_state.active_action = action_name
+                st.session_state.selected_file = None
+                
+        with col_env_s:
+            if st.button("💾 Save Env", use_container_width=True): toggle_action("save_env")
+        with col_env_l:
+            if st.button("📂 Load Env", use_container_width=True): toggle_action("load_env")
+        with col_hst_s:
+            if st.button("💾 Save Hist", use_container_width=True): toggle_action("save_hist")
+        with col_hst_l:
+            if st.button("📂 Load Hist", use_container_width=True): toggle_action("load_hist")
         with col_hdr2:
             if st.button("Save & Exit", use_container_width=True):
                 save_program(st.session_state.active_program)
                 proof_logger.close()
                 st.session_state.active_program = None
+                st.session_state.active_action = None
                 st.rerun()
+
+        # Render Active Action Container directly below the buttons
+        if st.session_state.active_action:
+            with st.container(border=True):
+                if st.session_state.active_action in ["save_env", "save_hist"]:
+                    is_env = (st.session_state.active_action == "save_env")
+                    title = "Save Environment State" if is_env else "Save Command History"
+                    st.write(f"**{title}**")
+                    col_input, col_btn = st.columns([4, 1])
+                    with col_input:
+                        save_name = st.text_input("Enter filename:", key="save_filename_input", label_visibility="collapsed", placeholder="Enter filename...")
+                    with col_btn:
+                        if st.button("Confirm Save", use_container_width=True):
+                            if not save_name:
+                                st.error("Filename cannot be empty.")
+                            else:
+                                folder = "save_files" if is_env else "history_files"
+                                os.makedirs(folder, exist_ok=True)
+                                filepath = os.path.join(folder, save_name)
+                                if os.path.exists(filepath) or os.path.exists(filepath + ".md"):
+                                    st.error("A file with that name already exists.")
+                                else:
+                                    if is_env:
+                                        save_environment_state(st.session_state.env_chain[-1], filepath)
+                                        st.success(f"Successfully saved environment state to {save_name}!")
+                                    else:
+                                        clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in st.session_state.command_history]
+                                        save_history(clean_history, filepath)
+                                        st.success(f"Successfully saved command history to {save_name}!")
+                                    st.session_state.active_action = None
+                                    st.rerun()
+                                    
+                elif st.session_state.active_action in ["load_env", "load_hist"]:
+                    is_env = (st.session_state.active_action == "load_env")
+                    title = "Load Environment State" if is_env else "Load Command History"
+                    
+                    if st.session_state.selected_file:
+                        # Confirmation View
+                        st.write(f"**Confirm {title}**")
+                        st.warning(f"Are you sure you want to load `{st.session_state.selected_file}`? The current {'environment state' if is_env else 'command history'} will be lost.")
+                        
+                        skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
+                        skip_checked = st.checkbox("Don't open this confirmation dialog box from next time", value=st.session_state[skip_key])
+                        if skip_checked != st.session_state[skip_key]:
+                            st.session_state[skip_key] = skip_checked
+                            
+                        col_y, col_n = st.columns([1, 6])
+                        with col_y:
+                            if st.button("Yes, Load It", type="primary", use_container_width=True):
+                                filepath = os.path.join("save_files" if is_env else "history_files", st.session_state.selected_file)
+                                if is_env:
+                                    new_env = load_environment_state(filepath, get_default_env)
+                                    chain = []
+                                    curr = new_env
+                                    while curr is not None:
+                                        chain.append(curr)
+                                        curr = curr.parent
+                                    chain.reverse()
+                                    st.session_state.env_chain = chain
+                                else:
+                                    st.session_state.command_history = load_history(filepath)
+                                    
+                                st.session_state.active_action = None
+                                st.session_state.selected_file = None
+                                st.rerun()
+                        with col_n:
+                            if st.button("Cancel (X)", use_container_width=False):
+                                st.session_state.selected_file = None
+                                st.rerun()
+                    else:
+                        # List View
+                        st.write(f"**{title}**")
+                        folder = "save_files" if is_env else "history_files"
+                        os.makedirs(folder, exist_ok=True)
+                        files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+                        if not files:
+                            st.info("No saved files found.")
+                        else:
+                            import datetime
+                            file_data = []
+                            for f in files:
+                                path = os.path.join(folder, f)
+                                ctime = os.path.getctime(path)
+                                file_data.append({"name": f, "ctime": ctime})
+                                
+                            sort_by = st.selectbox("Sort By", ["Name (A-Z)", "Name (Z-A)", "Date (Newest First)", "Date (Oldest First)"], label_visibility="collapsed")
+                            if sort_by == "Name (A-Z)":
+                                file_data.sort(key=lambda x: x["name"].lower())
+                            elif sort_by == "Name (Z-A)":
+                                file_data.sort(key=lambda x: x["name"].lower(), reverse=True)
+                            elif sort_by == "Date (Newest First)":
+                                file_data.sort(key=lambda x: x["ctime"], reverse=True)
+                            else:
+                                file_data.sort(key=lambda x: x["ctime"])
+                                
+                            # Display files in a mini scrollable area if there are many
+                            with st.container(height=250 if len(file_data) > 5 else None):
+                                for fd in file_data:
+                                    col_f, col_d, col_b = st.columns([5, 3, 2])
+                                    with col_f:
+                                        st.write(f"📄 `{fd['name']}`")
+                                    with col_d:
+                                        dt_str = datetime.datetime.fromtimestamp(fd["ctime"]).strftime("%Y-%m-%d %H:%M:%S")
+                                        st.write(f"*{dt_str}*")
+                                    with col_b:
+                                        if st.button("Load", key=f"btn_load_{fd['name']}_{is_env}", use_container_width=True):
+                                            skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
+                                            if st.session_state[skip_key]:
+                                                # Skip confirmation
+                                                filepath = os.path.join(folder, fd['name'])
+                                                if is_env:
+                                                    new_env = load_environment_state(filepath, get_default_env)
+                                                    chain = []
+                                                    curr = new_env
+                                                    while curr is not None:
+                                                        chain.append(curr)
+                                                        curr = curr.parent
+                                                    chain.reverse()
+                                                    st.session_state.env_chain = chain
+                                                else:
+                                                    st.session_state.command_history = load_history(filepath)
+                                                st.session_state.active_action = None
+                                                st.rerun()
+                                            else:
+                                                st.session_state.selected_file = fd['name']
+                                                st.rerun()
+
 
         col_top1, col_top2 = st.columns(2)
         with col_top1:

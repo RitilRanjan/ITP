@@ -16,17 +16,20 @@ class AutocompleteEngine:
         """
         tokens = partial_command.lstrip().split(" ")
         
+        # Exclude save/load commands from web autocomplete as they have GUI equivalents
+        excluded_cmds = {"save", "load", "save_h", "load_h"}
+        
         # If there's only 1 token, the user is typing the command name
         if len(tokens) == 1:
             cmd_prefix = tokens[0]
-            all_cmds = list(registry.handlers.keys())
+            all_cmds = [cmd for cmd in registry.handlers.keys() if cmd not in excluded_cmds]
             suggestions = [cmd for cmd in all_cmds if cmd.startswith(cmd_prefix)]
             if not suggestions and cmd_prefix:
                 return ["ERROR: INVALID REPL COMMAND"]
             return suggestions
             
         cmd_name = tokens[0]
-        if not registry.is_registered(cmd_name):
+        if not registry.is_registered(cmd_name) or cmd_name in excluded_cmds:
             return ["ERROR: INVALID REPL COMMAND"]
             
         # The user is typing arguments
