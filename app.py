@@ -571,8 +571,15 @@ with tab_programs:
                         try {
                             const input = iframe.contentWindow.document.querySelector('input');
                             if (input && !input.dataset.enterListenerAdded) {
+                                // Aggressively disable native autocomplete inside the st_keyup iframe
+                                input.setAttribute('autocomplete', 'new-password');
+                                input.setAttribute('name', 'itp_cmd_' + Math.random());
+                                input.setAttribute('spellcheck', 'false');
+                                input.setAttribute('autocorrect', 'off');
+                                
                                 input.addEventListener('keydown', function(e) {
                                     if (e.key === 'Enter') {
+                                        // Wait slightly for st_keyup's debounce to fire
                                         setTimeout(() => {
                                             const btns = window.parent.document.querySelectorAll('button');
                                             for(let i=0; i<btns.length; i++) {
@@ -583,12 +590,12 @@ with tab_programs:
                                             }
                                         }, 150);
                                     }
-                                });
+                                }, true); // Use capture phase to run before React synthetic events
                                 input.dataset.enterListenerAdded = "true";
                             }
                         } catch(e) {}
                     });
-                }, 1000);
+                }, 500);
                 </script>
                 """,
                 height=0, width=0
