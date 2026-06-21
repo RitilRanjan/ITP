@@ -566,46 +566,56 @@ with tab_programs:
                 }
                 
                 setInterval(() => {
-                    const iframes = window.parent.document.querySelectorAll('iframe');
-                    iframes.forEach(iframe => {
-                        try {
-                            const input = iframe.contentWindow.document.querySelector('input');
-                            if (input && !input.dataset.enterListenerAdded) {
-                                // Aggressively disable native autocomplete inside the st_keyup iframe
-                                input.setAttribute('autocomplete', 'new-password');
-                                input.setAttribute('name', 'itp_cmd_' + Math.random());
-                                input.setAttribute('spellcheck', 'false');
-                                input.setAttribute('autocorrect', 'off');
-                                
-                                input.addEventListener('keydown', function(e) {
-                                    if (e.key === 'Enter') {
-                                        input.blur(); // Remove focus to force value sync
-                                        
-                                        let clickAttempts = 0;
-                                        function tryClick() {
-                                            const btns = window.parent.document.querySelectorAll('button');
-                                            let found = null;
-                                            for(let i=0; i<btns.length; i++) {
-                                                if (btns[i].innerText && btns[i].innerText.toLowerCase().includes('run command')) {
-                                                    found = btns[i];
-                                                    break;
+                    // Inject a script directly into the parent window to escape the iframe sandbox
+                    if (!window.parent.document.getElementById('itp-enter-script')) {
+                        const script = window.parent.document.createElement('script');
+                        script.id = 'itp-enter-script';
+                        script.innerHTML = `
+                            setInterval(() => {
+                                const iframes = document.querySelectorAll('iframe');
+                                iframes.forEach(iframe => {
+                                    try {
+                                        const input = iframe.contentWindow.document.querySelector('input');
+                                        if (input && !input.dataset.enterListenerAdded) {
+                                            input.setAttribute('autocomplete', 'new-password');
+                                            input.setAttribute('name', 'itp_cmd_' + Math.random());
+                                            input.setAttribute('spellcheck', 'false');
+                                            input.setAttribute('autocorrect', 'off');
+                                            
+                                            input.addEventListener('keydown', function(e) {
+                                                if (e.key === 'Enter') {
+                                                    input.blur();
+                                                    
+                                                    let clickAttempts = 0;
+                                                    function tryClick() {
+                                                        const btns = document.querySelectorAll('button');
+                                                        let found = null;
+                                                        for(let i=0; i<btns.length; i++) {
+                                                            if (btns[i].innerText && btns[i].innerText.toLowerCase().includes('run command')) {
+                                                                found = btns[i];
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (found && !found.disabled) {
+                                                            // Use a full MouseEvent for maximum compatibility
+                                                            found.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                                                        } else if (clickAttempts < 10) {
+                                                            clickAttempts++;
+                                                            setTimeout(tryClick, 150);
+                                                        }
+                                                    }
+                                                    setTimeout(tryClick, 150);
                                                 }
-                                            }
-                                            if (found && !found.disabled) {
-                                                found.click();
-                                            } else if (clickAttempts < 10) {
-                                                clickAttempts++;
-                                                setTimeout(tryClick, 150); // Retry every 150ms for 1.5 seconds
-                                            }
+                                            }, true);
+                                            input.dataset.enterListenerAdded = "true";
                                         }
-                                        setTimeout(tryClick, 150);
-                                    }
-                                }, true); // Use capture phase to run before React synthetic events
-                                input.dataset.enterListenerAdded = "true";
-                            }
-                        } catch(e) {}
-                    });
-                }, 500);
+                                    } catch(e) {}
+                                });
+                            }, 500);
+                        `;
+                        window.parent.document.body.appendChild(script);
+                    }
+                }, 1000);
                 </script>
                 """,
                 height=0, width=0
