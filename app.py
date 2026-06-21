@@ -506,11 +506,6 @@ with tab_programs:
                 
             command = partial_command if submit_clicked else None
             
-            # Check for hidden Enter signal from JS
-            if partial_command and "_SUBMIT_" in partial_command:
-                submit_clicked = True
-                command = partial_command.replace("_SUBMIT_", "").strip()
-                
             # Clear input after run
             if submit_clicked:
                 st.session_state.current_cmd = ""
@@ -584,14 +579,26 @@ with tab_programs:
                                 
                                 input.addEventListener('keydown', function(e) {
                                     if (e.key === 'Enter') {
-                                        e.preventDefault();
+                                        input.blur(); // Remove focus to force value sync
                                         
-                                        // Set value via native setter to bypass React's value caching
-                                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                                        nativeInputValueSetter.call(input, input.value + ' _SUBMIT_');
-                                        
-                                        // Dispatch input event so React picks it up immediately
-                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                                        let clickAttempts = 0;
+                                        function tryClick() {
+                                            const btns = window.parent.document.querySelectorAll('button');
+                                            let found = null;
+                                            for(let i=0; i<btns.length; i++) {
+                                                if (btns[i].innerText && btns[i].innerText.toLowerCase().includes('run command')) {
+                                                    found = btns[i];
+                                                    break;
+                                                }
+                                            }
+                                            if (found && !found.disabled) {
+                                                found.click();
+                                            } else if (clickAttempts < 10) {
+                                                clickAttempts++;
+                                                setTimeout(tryClick, 150); // Retry every 150ms for 1.5 seconds
+                                            }
+                                        }
+                                        setTimeout(tryClick, 150);
                                     }
                                 }, true); // Use capture phase to run before React synthetic events
                                 input.dataset.enterListenerAdded = "true";
