@@ -579,16 +579,29 @@ with tab_programs:
                                 
                                 input.addEventListener('keydown', function(e) {
                                     if (e.key === 'Enter') {
-                                        // Wait slightly for st_keyup's debounce to fire
-                                        setTimeout(() => {
+                                        input.blur();
+                                        
+                                        function tryClick() {
                                             const btns = window.parent.document.querySelectorAll('button');
+                                            let found = null;
                                             for(let i=0; i<btns.length; i++) {
-                                                if (btns[i].innerText.includes('Run Command')) {
-                                                    btns[i].click();
+                                                if (btns[i].textContent && btns[i].textContent.toLowerCase().includes('run command')) {
+                                                    found = btns[i];
                                                     break;
                                                 }
                                             }
-                                        }, 150);
+                                            
+                                            if (found) {
+                                                if (found.disabled) {
+                                                    // Streamlit is currently rerunning, wait and try again
+                                                    setTimeout(tryClick, 50);
+                                                } else {
+                                                    found.click();
+                                                }
+                                            }
+                                        }
+                                        
+                                        setTimeout(tryClick, 150);
                                     }
                                 }, true); // Use capture phase to run before React synthetic events
                                 input.dataset.enterListenerAdded = "true";
