@@ -422,19 +422,25 @@ with tab_programs:
                             st.markdown(f"**Goal**: " + reconstruct_string(env.target_goal, color_mode="html"), unsafe_allow_html=True)
                             
                         st.markdown("**Terms**")
+                        has_terms = False
                         for name, term in env.local_terms.items():
                             if isinstance(term, Function) and name == term.name:
-                                st.markdown(f'<span style="color: #6495ED">{name}</span> : {term.arity}', unsafe_allow_html=True)
-                            else:
-                                st.markdown(f'<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
+                                continue
+                            st.markdown(f'<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
+                            has_terms = True
+                        if not has_terms:
+                            st.markdown("*(None)*")
                         
                         st.markdown("**Formulae**")
+                        has_formulae = False
                         for name, formula in env.local_formulae.items():
                             if isinstance(formula, Relation) and name == formula.name:
-                                st.markdown(f'<span style="color: #6495ED">{name}</span> : {formula.arity}', unsafe_allow_html=True)
-                            else:
-                                prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
-                                st.markdown(f'{prefix}<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+                                continue
+                            prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
+                            st.markdown(f'{prefix}<span style="color: #6495ED">{name}</span> = ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+                            has_formulae = True
+                        if not has_formulae:
+                            st.markdown("*(None)*")
 
         st.divider()
         st.subheader("Console")
