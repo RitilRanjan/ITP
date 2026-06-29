@@ -51,12 +51,10 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
             if isinstance(node, Quantifier) and node.name == "∃!": return node, "∃!", "∃!"
             if isinstance(node, SetBuilder) and node.name == "{": return node, "{", "{"
             if isinstance(node, Relation) and node.name in env.user_relations: return node, "user_relation", node.name
-            if isinstance(node, Function):
-                if node.name in env.user_functions: return node, "user_function", node.name
-                elif node.name in env.terms and isinstance(env.terms[node.name], Function):
-                    t = env.terms[node.name]
-                    if t.func_type == FunctionType.EPSILON_DEFINED: return node, "epsilon", node.name
-                    elif t.func_type == FunctionType.IOTA_DEFINED: return node, "iota", node.name
+            if isinstance(node, Function) and node.name in env.user_functions: return node, "user_function", node.name
+            if hasattr(node, 'name'):
+                if node.name == "ε": return node, "epsilon", "ε"
+                if node.name == "ι": return node, "iota", "ι"
             if hasattr(node, 'arguments'):
                 for arg in node.arguments:
                     res = find_first_expandable(arg, env)
@@ -91,13 +89,13 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
                     elif cat == "epsilon":
                         u_fresh = get_fresh_variable_interactive(env, "epsilon", f_clone)
                         if not u_fresh: return
-                        f_clone = expand_epsilon_function_in_formula(env, f_clone, sym_name, 1, u_fresh)
+                        f_clone = expand_epsilon_in_formula(env, f_clone, 1, u_fresh)
                     elif cat == "iota":
                         u_fresh = get_fresh_variable_interactive(env, "iota (first variable)", f_clone)
                         if not u_fresh: return
                         v_fresh = get_fresh_variable_interactive(env, "iota (second variable)", f_clone)
                         if not v_fresh: return
-                        f_clone = expand_iota_function_in_formula(env, f_clone, sym_name, 1, u_fresh, v_fresh)
+                        f_clone = expand_iota_in_formula(env, f_clone, 1, u_fresh, v_fresh)
                     changed = True
                     break
                 except ValueError as e:
@@ -126,10 +124,8 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
     is_term = False
     if symbol in env.user_functions:
         is_term = True
-    elif symbol in env.terms and isinstance(env.terms[symbol], Function):
-        t_type = env.terms[symbol].func_type
-        if t_type in (FunctionType.EPSILON_DEFINED, FunctionType.IOTA_DEFINED):
-            is_term = True
+    elif symbol in ("ε", "ι"):
+        is_term = False
             
     parsed = parse_universal_args(env, "fold", cmd_args, 1, validate_new_name, supports_equiv=True, namespace="term" if is_term else "formula")
     if not parsed:
@@ -168,22 +164,19 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
                     u = get_fresh_variable_interactive(env, "{", target_ast)
                     if not u: return
                     expanded = expand_set_builder_in_formula(env, target_ast, occurrence_idx, u)
+                elif symbol == "ε":
+                    u = get_fresh_variable_interactive(env, "epsilon", target_ast)
+                    if not u: return
+                    expanded = expand_epsilon_in_formula(env, target_ast, occurrence_idx, u)
+                elif symbol == "ι":
+                    u = get_fresh_variable_interactive(env, "iota (first variable)", target_ast)
+                    if not u: return
+                    v = get_fresh_variable_interactive(env, "iota (second variable)", target_ast)
+                    if not v: return
+                    expanded = expand_iota_in_formula(env, target_ast, occurrence_idx, u, v)
                 else:
                     if is_term:
-                        is_eps = (symbol in env.terms and getattr(env.terms[symbol], 'func_type', None) == FunctionType.EPSILON_DEFINED)
-                        is_io = (symbol in env.terms and getattr(env.terms[symbol], 'func_type', None) == FunctionType.IOTA_DEFINED)
-                        if is_eps:
-                            u = get_fresh_variable_interactive(env, "epsilon", target_ast)
-                            if not u: return
-                            expanded = expand_epsilon_function_in_formula(env, target_ast, symbol, occurrence_idx, u)
-                        elif is_io:
-                            u = get_fresh_variable_interactive(env, "iota (first var)", target_ast)
-                            if not u: return
-                            v = get_fresh_variable_interactive(env, "iota (second var)", target_ast)
-                            if not v: return
-                            expanded = expand_iota_function_in_formula(env, target_ast, symbol, occurrence_idx, u, v)
-                        else:
-                            expanded = expand_user_defined_function_in_formula(env, target_ast, symbol, occurrence_idx)
+                        expanded = expand_user_defined_function_in_formula(env, target_ast, symbol, occurrence_idx)
                     else:
                         if symbol in env.user_relations:
                             expanded = expand_user_defined_relation_in_formula(env, target_ast, symbol, occurrence_idx)

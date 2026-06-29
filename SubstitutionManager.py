@@ -2,7 +2,7 @@ from typing import Set, List, Dict, Optional, Any, Union
 from AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, Function, FunctionType,
     PropositionalVariable, Relation, RelationType, Connective, Quantifier, MetaVariable,
-    Bracket, Whitespace, SetBuilder
+    Bracket, Whitespace, SetBuilder, Iota, Epsilon
 )
 
 def matches_occurrence(occurrence_idx: Union[int, List[int], None], current_count: int) -> bool:
@@ -52,6 +52,16 @@ def clone_ast(node: Node) -> Node:
             variable=clone_ast(node.variable),
             formula=clone_ast(node.formula)
         )
+    elif isinstance(node, Iota):
+        c = Iota(
+            variable=clone_ast(node.variable), # type: ignore
+            formula=clone_ast(node.formula) # type: ignore
+        )
+    elif isinstance(node, Epsilon):
+        c = Epsilon(
+            variable=clone_ast(node.variable), # type: ignore
+            formula=clone_ast(node.formula) # type: ignore
+        )
     elif isinstance(node, SetBuilder):
         c = SetBuilder(
             variable=clone_ast(node.variable), # type: ignore
@@ -96,7 +106,7 @@ def collect_all_occurrences(
         for arg in node.arguments:
             collect_all_occurrences(arg, bound_scopes, enclosing_quantifiers, occurrences)
             
-    elif isinstance(node, Quantifier):
+    elif isinstance(node, (Quantifier, Iota, Epsilon)):
         new_enclosing = enclosing_quantifiers + [node]
         q_var = node.variable
         occurrences.append({
@@ -240,7 +250,7 @@ def in_place_replace(node: Node, replacements_map: Dict[int, Node]):
             else:
                 in_place_replace(arg, replacements_map)
                 
-    if isinstance(node, Quantifier):
+    if isinstance(node, (Quantifier, Iota, Epsilon)):
         if id(node.variable) in replacements_map:
             node.variable = replacements_map[id(node.variable)]
         else:
@@ -383,20 +393,20 @@ def substitute_proposition(
     prop_formula: FormulaNode,
     prop_variable: Any,
     replacement_formula: FormulaNode,
-    occurrence_idx: Optional[int] = None
+    occurrences: Optional[List[int]] = None
 ) -> FormulaNode:
     """Substitutes occurrences of propositional variable with replacement_formula in-place."""
     var_name = prop_variable.name if hasattr(prop_variable, 'name') else prop_variable
-    occurrences = collect_prop_vars_list(prop_formula, var_name)
+    all_occurrences = collect_prop_vars_list(prop_formula, var_name)
     
-    if occurrence_idx is not None:
-        if 1 <= occurrence_idx <= len(occurrences):
-            target = occurrences[occurrence_idx - 1]
-            replacements_map = {id(target): replacement_formula}
-        else:
-            replacements_map = {}
+    if occurrences is not None:
+        replacements_map = {}
+        for idx in occurrences:
+            if 1 <= idx <= len(all_occurrences):
+                target = all_occurrences[idx - 1]
+                replacements_map[id(target)] = replacement_formula
     else:
-        replacements_map = {id(o): replacement_formula for o in occurrences}
+        replacements_map = {id(o): replacement_formula for o in all_occurrences}
         
     if id(prop_formula) in replacements_map:
         return replacements_map[id(prop_formula)]
@@ -452,7 +462,7 @@ def find_substituted(formula1: FormulaNode, formula2: FormulaNode, target_variab
                     return
                 for a1, a2 in zip(n1.arguments, n2.arguments):
                     match_nodes(a1, a2)
-            elif isinstance(n1, Quantifier):
+            elif isinstance(n1, (Quantifier, Iota, Epsilon)):
                 if n1.variable.name == v_name:
                     if not is_structurally_equal(n1.formula, n2.formula):
                         match_result["valid"] = False
@@ -527,6 +537,16 @@ def replace_structurally(
     elif isinstance(node, Quantifier):
         c = Quantifier(
             name=node.name,
+            variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
+            formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
+        )
+    elif isinstance(node, Iota):
+        c = Iota(
+            variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
+            formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
+        )
+    elif isinstance(node, Epsilon):
+        c = Epsilon(
             variable=replace_structurally(node.variable, target, replacement, occurrence_idx, current_count), # type: ignore
             formula=replace_structurally(node.formula, target, replacement, occurrence_idx, current_count) # type: ignore
         )
@@ -614,6 +634,16 @@ def remove_double_neg(
     elif isinstance(node, Quantifier):
         c = Quantifier(
             name=node.name,
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    elif isinstance(node, Iota):
+        c = Iota(
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    elif isinstance(node, Epsilon):
+        c = Epsilon(
             variable=clone_ast(node.variable),  # type: ignore
             formula=remove_double_neg(node.formula, occurrence_idx, current_count)  # type: ignore
         )
@@ -741,6 +771,16 @@ def _rebuild_node(
     elif isinstance(node, Quantifier):
         c = Quantifier(
             name=node.name,
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    elif isinstance(node, Iota):
+        c = Iota(
+            variable=clone_ast(node.variable),  # type: ignore
+            formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
+        )
+    elif isinstance(node, Epsilon):
+        c = Epsilon(
             variable=clone_ast(node.variable),  # type: ignore
             formula=recurse_fn(node.formula, occurrence_idx, current_count)  # type: ignore
         )

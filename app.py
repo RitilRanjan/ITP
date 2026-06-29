@@ -324,7 +324,7 @@ with tab_programs:
                                 
                             with scroll_container:
                                 for fd in file_data:
-                                    col_f, col_d, col_b = st.columns([5, 3, 2])
+                                    col_f, col_d, col_b, col_del = st.columns([5, 3, 2, 1])
                                     with col_f:
                                         st.write(f"📄 `{fd['name']}`")
                                     with col_d:
@@ -352,6 +352,14 @@ with tab_programs:
                                             else:
                                                 st.session_state.selected_file = fd['name']
                                                 st.rerun()
+                                    with col_del:
+                                        if st.button("🗑️", key=f"btn_del_{fd['name']}_{is_env}", help="Delete this file", use_container_width=True):
+                                            filepath = os.path.join(folder, fd['name'])
+                                            try:
+                                                os.remove(filepath)
+                                            except OSError:
+                                                pass
+                                            st.rerun()
 
 
         col_top1, col_top2 = st.columns(2)
@@ -419,14 +427,17 @@ with tab_programs:
                 for i, env in enumerate(st.session_state.env_chain):
                     with st.expander(f"Environment Level {i} {'(Ground)' if i==0 else '(Mission)'}", expanded=(i == len(st.session_state.env_chain)-1)):
                         if i > 0 and env.target_goal:
-                            st.markdown(f"**Goal**: " + reconstruct_string(env.target_goal, color_mode="html"), unsafe_allow_html=True)
+                            goal_name = env.goal_formula_name
+                            goal_html = reconstruct_string(env.target_goal, color_mode="html", target_name=goal_name, target_type="fol")
+                            st.markdown(f'**Goal**: <span class="interactive-name itp-tooltip" data-obj-type="goal" data-target="{goal_name}" data-tooltip="Goal Formula" style="color: #FFA500; font-weight: bold;">{goal_name}</span> : {goal_html}', unsafe_allow_html=True)
                             
                         st.markdown("**Terms**")
                         has_terms = False
                         for name, term in env.local_terms.items():
                             if isinstance(term, Function) and name == term.name:
                                 continue
-                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : ' + reconstruct_string(term, color_mode="html"), unsafe_allow_html=True)
+                            term_html = reconstruct_string(term, color_mode="html", target_name=name, target_type="term")
+                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
                             has_terms = True
                         if not has_terms:
                             st.markdown("*(None)*")
@@ -436,8 +447,26 @@ with tab_programs:
                         for name, formula in env.local_formulae.items():
                             if isinstance(formula, Relation) and name == formula.name:
                                 continue
-                            prefix = "<strong>[Proven]</strong> " if name in env.local_theorems else ""
-                            st.markdown(f'{prefix}<span class="itp-tooltip" data-tooltip="Formula Definition"><span style="color: #6495ED">{name}</span></span> : ' + reconstruct_string(formula, color_mode="html"), unsafe_allow_html=True)
+                            
+                            is_proven = name in env.local_theorems
+                            is_goal = (i > 0 and name == env.goal_formula_name)
+                            
+                            if is_goal:
+                                obj_type = "goal"
+                                color = "#FFA500"
+                            elif is_proven:
+                                obj_type = "proven"
+                                color = "#00FF00"
+                            else:
+                                obj_type = "unproven"
+                                color = "#6495ED"
+                                
+                            prefix = "<strong>[Proven]</strong> " if is_proven else ""
+                            
+                            form_html = reconstruct_string(formula, color_mode="html", target_name=name, target_type="fol")
+                            name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="{obj_type}" data-target="{name}" data-tooltip="Formula Definition" style="color: {color}">{name}</span>'
+                            
+                            st.markdown(f'{prefix}{name_span} : {form_html}', unsafe_allow_html=True)
                             has_formulae = True
                         if not has_formulae:
                             st.markdown("*(None)*")
@@ -448,6 +477,444 @@ with tab_programs:
         with chat_container:
             for msg in st.session_state.chat_history:
                 st.markdown(msg, unsafe_allow_html=True)
+
+        # --- INTERACTIVE CLICK HANDLING ---
+        import json
+        import streamlit.components.v1 as components
+        
+        # Hide the text input completely and style the popover
+        st.markdown("""
+        <style>
+        div[data-testid="stElementContainer"]:has(input[aria-label="itp_click_data"]) {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0.01 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            z-index: -1 !important;
+        }
+        .itp-popover {
+            position: absolute;
+            z-index: 10000;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-width: 300px;
+        }
+        .itp-popover button {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            color: #374151;
+            transition: all 0.1s;
+        }
+        .itp-popover button:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+        }
+        .itp-popover-input {
+            width: 100%;
+            padding: 4px 6px;
+            margin-bottom: 4px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .itp-popover-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        clicked_payload_raw = st.text_input("itp_click_data", key="itp_click_data", label_visibility="collapsed")
+
+        if clicked_payload_raw and clicked_payload_raw != st.session_state.get("last_clicked_payload"):
+            print(f"BACKEND RECEIVED CLICK DATA: {clicked_payload_raw}", flush=True)
+            st.session_state.last_clicked_payload = clicked_payload_raw
+            try:
+                data = json.loads(clicked_payload_raw)
+                selected_cmd = data.get("cmd")
+                target = data.get("target")
+                occ = data.get("occ")
+                symbol = data.get("symbol")
+                
+                args = data.get("args", [])
+                
+                if selected_cmd:
+                    if selected_cmd in ["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi"]:
+                        parts = [selected_cmd]
+                        if len(args) > 0: parts.append(args[0])
+                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                        parts.append(target)
+                    elif selected_cmd in ["apply", "apply2", "apply3", "intro2"]:
+                        parts = [selected_cmd, target]
+                        if len(args) > 0: parts.append(args[0])
+                    elif selected_cmd == "intro":
+                        parts = [selected_cmd, target]
+                        if len(args) > 0: parts.append(args[0])
+                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                    elif selected_cmd in ["st", "sb", "sf", "sp"]:
+                        parts = [selected_cmd, symbol]
+                        if len(args) > 0: parts.append(args[0])
+                        parts.extend([str(occ), target])
+                    elif selected_cmd == "fold all":
+                        parts = ["fold", "all", target]
+                    elif selected_cmd == "fold":
+                        parts = ["fold", symbol, str(occ), target]
+                    elif selected_cmd == "sa":
+                        parts = [selected_cmd, symbol]
+                        if len(args) > 0: parts.append(args[0])
+                        parts.append(target)
+                    elif selected_cmd == "contra":
+                        parts = [selected_cmd, target]
+                        if len(args) > 0: parts.append(args[0])
+                        if len(args) > 1: parts.append(args[1])
+                    elif selected_cmd in ["dt", "and", "imply"]:
+                        parts = [selected_cmd, target]
+                        if len(args) > 0: parts.append(args[0])
+                        if len(args) > 1: parts.append(args[1])
+                    elif selected_cmd in ["neg-", "neg+", "left", "right"]:
+                        parts = [selected_cmd, target]
+                        if len(args) > 0: parts.append(args[0])
+                    elif selected_cmd == "rw":
+                        parts = [selected_cmd]
+                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                        if len(args) > 2 and args[2].strip(): parts.append(args[2])
+                        parts.append(target)
+                        if len(args) > 0 and args[0].strip(): parts.append(args[0])
+                    elif selected_cmd in ["mission", "auto", "search", "backward_search", "advanced_search"]:
+                        parts = [selected_cmd, target]
+                    else:
+                        parts = [selected_cmd, target, str(occ)]
+                    
+                    final_cmd = " ".join([p for p in parts if p])
+                    
+                    # Run immediately now that arguments are collected in the popup!
+                    print(f"BACKEND SETTING COMMAND TO: {final_cmd}", flush=True)
+                    st.session_state.interactive_cmd_to_run = final_cmd
+            except Exception as e:
+                print(f"Error parsing click data: {e}")
+            st.rerun()
+
+        components.html("""
+        <script>
+            let existing = window.parent.document.getElementById('itp-click-script');
+            if (existing) {
+                existing.remove();
+            }
+            let script = window.parent.document.createElement('script');
+            script.id = 'itp-click-script';
+            script.innerHTML = `
+            if (window.itpClickListener) {
+                window.document.removeEventListener('click', window.itpClickListener);
+            }
+            window.itpClickListener = function(e) {
+                try {
+                    if (e.target.classList && (e.target.classList.contains('interactive-symbol') || e.target.classList.contains('interactive-name'))) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        let oldPopover = window.document.getElementById('itp-custom-popover');
+                        if (oldPopover) {
+                            oldPopover.remove();
+                        }
+                        
+                        let targetElement = e.target;
+                        let target_name = targetElement.getAttribute('data-target');
+                        let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
+                        let occ = targetElement.getAttribute('data-occ') || 1;
+                        let cmds = [];
+                        
+                        if (targetElement.classList.contains('interactive-symbol')) {
+                            let isLogical = ['∀', '∃', '∃!', 'ε', 'ι', '∨', '∧', '¬', '⇒', '⇔', '=', '∈'].includes(symbol);
+                            cmds = ['st', 'sb', 'sf', 'sp', 'sa'];
+                            if (isLogical) {
+                                cmds = []; // No substitution for logical symbols
+                            }
+                            // fold command for quantifiers, choice ops, or user-defined symbols
+                            if (['∀', '∃', '∃!', 'ε', 'ι'].includes(symbol) || !isLogical) {
+                                cmds.push('fold');
+                            }
+                        } else {
+                            let obj_type = targetElement.getAttribute('data-obj-type');
+                            if (obj_type === 'unproven') {
+                                cmds = ["mission", "contra", "apply", "auto", "search", "backward_search", "advanced_search", "fold all"];
+                            } else if (obj_type === 'goal') {
+                                cmds = ["intro2", "apply", "apply2", "apply3", "auto", "search", "backward_search", "advanced_search", "fold all", 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw'];
+                            } else if (obj_type === 'proven') {
+                                cmds = ['intro', 'apply', 'apply2', 'apply3', 'dt', 'and', 'left', 'right', 'imply', 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'fold all'];
+                            } else {
+                                cmds = ['fold all'];
+                            }
+                        }
+                        
+                        
+                        if (cmds.length === 0) {
+                            return;
+                        }
+                        
+                        let popover = window.document.createElement('div');
+                        popover.id = 'itp-custom-popover';
+                        popover.className = 'itp-popover';
+                        
+                        let rect = e.target.getBoundingClientRect();
+                        
+                        cmds.forEach(cmd => {
+                            let btn = window.document.createElement('button');
+                            btn.innerText = cmd;
+                            btn.onclick = function(ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                
+                                let needsArgs = 0;
+                                let arg1Label = "Argument";
+                                let arg2Label = "Argument 2";
+                                
+                                if (["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi", "apply", "apply2", "apply3", "st", "sb", "sf", "sa", "sp", "intro2"].includes(cmd)) {
+                                    needsArgs = 1;
+                                    if (["st", "sb", "sf", "sa", "sp"].includes(cmd)) arg1Label = "Formula/Term";
+                                    else arg1Label = "Theorem Name";
+                                    
+                                    if (cmd.startsWith("simp_")) {
+                                        needsArgs = 2;
+                                        arg2Label = "Occurrences (optional)";
+                                    }
+                                } else if (cmd === "contra") {
+                                    needsArgs = 2;
+                                    arg1Label = "Formula 1";
+                                    arg2Label = "Formula 2";
+                                } else if (cmd === "intro") {
+                                    needsArgs = 2;
+                                    arg1Label = "Variable/Term";
+                                    arg2Label = "New Formula Name (optional for goals)";
+                                } else if (["neg-", "neg+", "left", "right"].includes(cmd)) {
+                                    needsArgs = 1;
+                                    arg1Label = "New Formula Name";
+                                } else if (["dt", "and", "imply"].includes(cmd)) {
+                                    needsArgs = 2;
+                                    arg1Label = "New Formula Name(s)";
+                                    arg2Label = "Variables/Theorems";
+                                    if (cmd === "and") { arg1Label = "Left Formula"; arg2Label = "Right Formula"; }
+                                } else if (cmd === "rw") {
+                                    needsArgs = 3;
+                                    arg1Label = "New Formula";
+                                    arg2Label = "Rewrite Theorem";
+                                }
+                                
+                                let submitCmd = function(argsList) {
+                                    let data = {
+                                        target: target_name,
+                                        symbol: symbol,
+                                        occ: occ,
+                                        cmd: cmd,
+                                        args: argsList,
+                                        _nonce: Date.now()
+                                    };
+                                    let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
+                                    if (input) {
+                                        input.focus();
+                                        setTimeout(() => {
+                                            let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                            nativeSetter.call(input, JSON.stringify(data));
+                                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                                            setTimeout(() => {
+                                                input.blur();
+                                            }, 50);
+                                        }, 50);
+                                    }
+                                    popover.remove();
+                                };
+
+                                if (needsArgs === 0) {
+                                    submitCmd([]);
+                                    return;
+                                }
+                                
+                                // Show secondary form inline
+                                popover.innerHTML = '';
+                                popover.style.flexDirection = 'column';
+                                
+                                let title = window.document.createElement('div');
+                                title.innerText = "Command: " + cmd;
+                                title.style.fontWeight = 'bold';
+                                title.style.marginBottom = '6px';
+                                title.style.fontSize = '14px';
+                                popover.appendChild(title);
+                                
+                                let input1 = null;
+                                let input2 = null;
+                                
+                                if (needsArgs >= 1) {
+                                    input1 = window.document.createElement('input');
+                                    input1.type = 'text';
+                                    input1.placeholder = arg1Label;
+                                    input1.className = 'itp-popover-input';
+                                    popover.appendChild(input1);
+                                }
+                                if (needsArgs >= 2) {
+                                    input2 = window.document.createElement('input');
+                                    input2.type = 'text';
+                                    input2.placeholder = arg2Label;
+                                    input2.className = 'itp-popover-input';
+                                    popover.appendChild(input2);
+                                }
+                                
+                                let input3 = null;
+                                if (needsArgs >= 3) {
+                                    input3 = window.document.createElement('input');
+                                    input3.type = 'text';
+                                    input3.placeholder = "Occurrences (optional)";
+                                    input3.className = 'itp-popover-input';
+                                    popover.appendChild(input3);
+                                }
+                                
+                                let btnContainer = window.document.createElement('div');
+                                btnContainer.style.display = 'flex';
+                                btnContainer.style.gap = '6px';
+                                btnContainer.style.width = '100%';
+                                
+                                let runBtn = window.document.createElement('button');
+                                runBtn.innerText = 'Run';
+                                runBtn.style.flex = '1';
+                                runBtn.style.background = '#3b82f6';
+                                runBtn.style.color = 'white';
+                                runBtn.style.borderColor = '#2563eb';
+                                
+                                runBtn.onclick = function(eRun) {
+                                    eRun.preventDefault(); eRun.stopPropagation();
+                                    
+                                    let val1 = input1 ? input1.value : "";
+                                    let val2 = input2 ? input2.value : "";
+                                    let val3 = input3 ? input3.value : "";
+                                    
+                                    let occ = targetElement.getAttribute('data-occ') || 1;
+                                    let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
+                                    
+                                    let argsArr = [];
+                                    if (needsArgs >= 1) argsArr.push(val1);
+                                    if (needsArgs >= 2) argsArr.push(val2);
+                                    if (needsArgs >= 3) argsArr.push(val3);
+                                    
+                                    let payload = JSON.stringify({
+                                        cmd: cmd,
+                                        target: target_name,
+                                        occ: parseInt(occ),
+                                        symbol: symbol,
+                                        args: argsArr,
+                                        _nonce: Date.now()
+                                    });
+                                    
+                                    let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
+                                    if (input) {
+                                        input.focus();
+                                        setTimeout(() => {
+                                            let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                            nativeSetter.call(input, payload);
+                                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                                            setTimeout(() => {
+                                                input.blur();
+                                            }, 50);
+                                        }, 50);
+                                    }
+                                    popover.remove();
+                                };
+                                
+                                let cancelBtn = window.document.createElement('button');
+                                cancelBtn.innerText = 'Cancel';
+                                cancelBtn.style.flex = '1';
+                                cancelBtn.onclick = function(eCancel) {
+                                    eCancel.preventDefault(); eCancel.stopPropagation();
+                                    popover.remove();
+                                };
+                                
+                                btnContainer.appendChild(runBtn);
+                                btnContainer.appendChild(cancelBtn);
+                                popover.appendChild(btnContainer);
+                                
+                                if (input1) setTimeout(() => input1.focus(), 50);
+                                
+                                let handleEnter = function(eKey) {
+                                    if (eKey.key === 'Enter') runBtn.click();
+                                };
+                                if (input1) input1.addEventListener('keydown', handleEnter);
+                                if (input2) input2.addEventListener('keydown', handleEnter);
+                            };
+                            popover.appendChild(btn);
+                        });
+                        
+                        
+                        window.document.body.appendChild(popover);
+                        popover.style.position = 'fixed';
+                        popover.style.zIndex = '999999';
+                        
+                        let updatePosition = function() {
+                            let rect = targetElement.getBoundingClientRect();
+                            let pHeight = popover.offsetHeight;
+                            let topPos = rect.top - pHeight - 8;
+                            if (topPos < 0) {
+                                topPos = rect.bottom + 8;
+                            }
+                            popover.style.top = topPos + 'px';
+                            popover.style.left = rect.left + 'px';
+                        };
+                        updatePosition();
+                        
+                        let scrollListener = function() {
+                            if (window.document.body.contains(popover)) {
+                                updatePosition();
+                            } else {
+                                window.parent.removeEventListener('scroll', scrollListener, true);
+                            }
+                        };
+                        window.parent.addEventListener('scroll', scrollListener, true);
+                        
+                        const observer = new ResizeObserver(() => {
+                            if (window.document.body.contains(popover)) {
+                                updatePosition();
+                            } else {
+                                observer.disconnect();
+                            }
+                        });
+                        observer.observe(popover);
+                        
+                    } else {
+                        let popover = window.document.getElementById('itp-custom-popover');
+                        if (popover && !popover.contains(e.target)) {
+                            popover.remove();
+                        }
+                    }
+                } catch (error) {
+                    console.error("ITP JS Error", error);
+                }
+            };
+            window.document.addEventListener('click', window.itpClickListener);
+            `;
+            window.parent.document.head.appendChild(script);
+        </script>
+        """, height=0, width=0)
+        if st.session_state.get("interactive_cmd_to_run"):
+            command = st.session_state.interactive_cmd_to_run
+            st.session_state.interactive_cmd_to_run = None
+            interactive_submit = True
+        else:
+            command = None
+            interactive_submit = False
 
         prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
         
@@ -471,10 +938,11 @@ with tab_programs:
             with col_btn:
                 # Add some vertical margin so button aligns with input
                 st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                submit_clicked = st.button("Run Command", use_container_width=True)
+                btn_clicked = st.button("Run Command", use_container_width=True)
+                submit_clicked = btn_clicked or interactive_submit
                 
             # Compute and render suggestions
-            if partial_command is not None:
+            if partial_command is not None and not submit_clicked:
                 suggestions = autocomplete_engine.get_suggestions(partial_command, current_env)
                 
                 if suggestions == ["ERROR: INVALID REPL COMMAND"]:
@@ -501,10 +969,11 @@ with tab_programs:
                             st.rerun()
                 else:
                     st.write("*(No suggestions)*")
-            else:
+            elif not submit_clicked:
                 submit_clicked = False
                 
-            command = partial_command if submit_clicked else None
+            if not command:
+                command = partial_command if submit_clicked else None
             
             # Clear input after run
             if submit_clicked:
@@ -515,9 +984,12 @@ with tab_programs:
             st.components.v1.html(
                 """<script>
                 window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));
-                if (!window.parent.document.getElementById('custom-button-css')) {
-                    window.parent.document.head.insertAdjacentHTML("beforeend", `<style id='custom-button-css'>
-                    .stButton > button { transition: all 0.1s ease !important; }
+                
+                let oldCss = window.parent.document.getElementById('custom-button-css');
+                if (oldCss) oldCss.remove();
+                
+                window.parent.document.head.insertAdjacentHTML("beforeend", `<style id='custom-button-css'>
+                .stButton > button { transition: all 0.1s ease !important; }
                     .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
                     .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
                     
@@ -540,30 +1012,55 @@ with tab_programs:
                         outline: 1px solid rgba(100, 149, 237, 0.6);
                         background-color: rgba(100, 149, 237, 0.1);
                     }
+                    .interactive-symbol, .interactive-name {
+                        cursor: pointer;
+                        border-bottom: 1px dashed rgba(100, 149, 237, 0.5);
+                    }
+                    .interactive-symbol:hover, .interactive-name:hover {
+                        background-color: rgba(255, 165, 0, 0.2);
+                        outline: 1px solid rgba(255, 165, 0, 0.8);
+                    }
+                    
+                    /* Hide custom click listener component */
+                    iframe[title="click_listener"] {
+                        position: absolute !important;
+                        width: 0px !important;
+                        height: 0px !important;
+                        border: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                    }
+                    div[data-testid="stElementContainer"]:has(iframe[title="click_listener"]) {
+                        height: 0px !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                    }
                     .itp-tooltip::after {
                         content: attr(data-tooltip);
                         position: absolute;
                         bottom: 100%;
                         left: 50%;
                         transform: translateX(-50%);
-                        margin-bottom: 5px;
+                        background-color: #333;
+                        color: #fff;
                         padding: 4px 8px;
-                        background-color: rgba(0, 0, 0, 0.75);
-                        color: white;
-                        font-family: sans-serif;
-                        font-size: 0.8rem;
-                        white-space: nowrap;
                         border-radius: 4px;
-                        pointer-events: none;
+                        font-size: 12px;
+                        white-space: nowrap;
                         opacity: 0;
-                        transition: opacity 0.15s ease-in-out;
+                        pointer-events: none;
+                        transition: opacity 0.2s;
                         z-index: 1000;
+                        font-family: sans-serif;
                     }
                     .itp-tooltip:hover::after {
                         opacity: 1;
                     }
                     </style>`);
-                }
+                
+                let oldScript = window.parent.document.getElementById('itp-enter-script');
+                if (oldScript) oldScript.remove();
                 
                 setInterval(() => {
                     // Inject a script directly into the parent window to escape the iframe sandbox
@@ -654,7 +1151,16 @@ with tab_programs:
                     
             output = f.getvalue()
             if output:
-                st.session_state.chat_history.append(ansi_to_html(output))
+                # Add CSS styling for errors if output contains "Error:"
+                formatted_output = []
+                for line in output.split('\\n'):
+                    if line.startswith('Error:'):
+                        formatted_output.append(f"<span style='color:red;'>{line}</span>")
+                    else:
+                        formatted_output.append(ansi_to_html(line))
+                
+                output_str = "<br>".join(formatted_output)
+                st.session_state.chat_history.append(f"<div style='font-family: monospace; white-space: pre-wrap;'>{output_str}</div>")
                 
             st.rerun()
 

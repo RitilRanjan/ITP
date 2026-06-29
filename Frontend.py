@@ -3,7 +3,7 @@ from typing import List, Optional, Any
 from AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, Function, FunctionType,
     PropositionalVariable, Relation, RelationType, Connective, Quantifier, MetaVariable,
-    Bracket, Whitespace, SetBuilder
+    Bracket, Whitespace, SetBuilder, Iota, Epsilon
 )
 from Environment import Environment
 
@@ -15,7 +15,7 @@ QUANTIFIERS = {"∀", "∃", "∃!"}
 
 def lex(input_str: str) -> List[str]:
     """Tokenize the input string into a flat list of strings, preserving whitespaces, brackets, and logical symbols."""
-    pattern = r'(⇔|⇒|∃!|\s+|[\?\w]+|[^\s\?\w])'
+    pattern = r'(⇔|⇒|∃!|ε|ι|\s+|[\?\w]+|[^\s\?\w])'
     tokens = re.split(pattern, input_str)
     return [t for t in tokens if t]
 
@@ -147,6 +147,7 @@ class Parser:
             elif op in ("=", "∈") or (op in self.env.formulae and isinstance(self.env.formulae[op], Relation)):
                 if target == "term": raise ParserError(f"Relation '{op}' not allowed in terms.")
                 if not isinstance(left, TermNode):
+                    print(f"DEBUG: op={op}, left={left}, type={type(left)}")
                     raise ParserError(f"Left operand of relation '{op}' must be a term, got formula.")
                 if not isinstance(right, TermNode):
                     raise ParserError(f"Right operand of relation '{op}' must be a term, got formula.")
@@ -263,6 +264,12 @@ class Parser:
                 raise ParserError(f"Quantifier '{t}' not allowed in {target}.")
             return self.parse_quantifier()
             
+        # Choice Operators
+        if t in ("ε", "ι"):
+            if target == "prop":
+                raise ParserError(f"Choice operator '{t}' not allowed in {target}.")
+            return self.parse_epsilon_iota(t)
+            
         # Unary Connective
         if t == "¬":
             if target == "term":
@@ -370,6 +377,42 @@ class Parser:
             
         return Quantifier(name=q_str, variable=var_node, formula=scope_node)
 
+    def parse_epsilon_iota(self, op: str) -> Node:
+        self.consume()
+        fmt_after_op = self.consume_formatting()
+        
+        var_str = self.peek()
+        if not var_str or var_str not in self.env.variables:
+            raise ParserError(f"Operator {op} must be followed by a defined variable, got '{var_str}'")
+        self.consume()
+        var_node = Variable(name=var_str)
+        var_node.prefix_formatting = fmt_after_op + var_node.prefix_formatting
+        
+        fmt_after_var = self.consume_formatting()
+        
+        next_t = self.peek()
+        if next_t == '(':
+            self.consume()
+            inner_fmt = self.consume_formatting()
+            scope_node = self.parse_expr(0, "fol")
+            
+            post_inner_fmt = self.consume_formatting()
+            if self.peek() != ')':
+                raise ParserError("Expected ')' to close operator scope")
+            self.consume()
+            
+            scope_node.prefix_formatting = [Bracket(name='(')] + inner_fmt + scope_node.prefix_formatting
+            scope_node.postfix_formatting = scope_node.postfix_formatting + post_inner_fmt + [Bracket(name=')')]
+            scope_node.prefix_formatting = fmt_after_var + scope_node.prefix_formatting
+        else:
+            scope_node = self.parse_expr(0, "fol")
+            scope_node.prefix_formatting = fmt_after_var + scope_node.prefix_formatting
+            
+        if op == "ε":
+            return Epsilon(variable=var_node, formula=scope_node)
+        else:
+            return Iota(variable=var_node, formula=scope_node)
+
 
 def reconstruct_string_raw(node: Node) -> str:
     """Reconstructs the exact input string from the AST without colors."""
@@ -377,7 +420,7 @@ def reconstruct_string_raw(node: Node) -> str:
     
     if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
         res += node.name
-    elif isinstance(node, Quantifier):
+    elif isinstance(node, (Quantifier, Iota, Epsilon)):
         res += node.name
         res += reconstruct_string_raw(node.variable)
         res += " "
@@ -419,7 +462,8 @@ def reconstruct_string_raw(node: Node) -> str:
     res += "".join(f.name for f in node.postfix_formatting)
     return res
 
-def reconstruct_string_html(node: Node, depth_ref: list) -> str:
+def reconstruct_string_html(node: Node, depth_ref: list, target_name: str = None, target_type: str = None, occ_map: dict = None) -> str:
+    if occ_map is None: occ_map = {}
     colors = ["#008B8B", "#FF00FF", "#FFA500", "#00FF00", "#6495ED", "#FF4500"]
     res = ""
     
@@ -442,6 +486,7 @@ def reconstruct_string_html(node: Node, depth_ref: list) -> str:
     elif isinstance(node, PropositionalVariable): tooltip = "Propositional Variable"
     elif isinstance(node, MetaVariable): tooltip = "Meta Variable"
     elif isinstance(node, Quantifier): tooltip = "Quantifier"
+    elif isinstance(node, (Iota, Epsilon)): tooltip = "Choice Operator"
     elif isinstance(node, Connective): tooltip = "Connective"
     elif isinstance(node, SetBuilder): tooltip = "Set Builder"
     elif isinstance(node, Function):
@@ -451,66 +496,89 @@ def reconstruct_string_html(node: Node, depth_ref: list) -> str:
         type_str = node.rel_type.value.replace("_", "-").title()
         tooltip = f"{type_str} Relation"
 
-    def wrap(text: str) -> str:
-        if tooltip:
-            return f'<span class="itp-tooltip" data-tooltip="{tooltip}">{text}</span>'
-        return text
+    def get_occ(sym: str) -> int:
+        if sym not in occ_map:
+            occ_map[sym] = 1
+        else:
+            occ_map[sym] += 1
+        return occ_map[sym]
+
+    def wrap(text: str, is_symbol: bool = False, sym_name: str = None) -> str:
+        classes = "itp-tooltip" if tooltip else ""
+        if is_symbol and target_name:
+            classes += " interactive-symbol"
+            s = sym_name if sym_name else text
+            occ = get_occ(s)
+            t_attr = f' data-tooltip="{tooltip}"' if tooltip else ""
+            return f'<span class="{classes.strip()}" data-target="{target_name}" data-symbol="{s}" data-occ="{occ}"{t_attr}>{text}</span>'
+        else:
+            if tooltip:
+                return f'<span class="{classes.strip()}" data-tooltip="{tooltip}">{text}</span>'
+            return text
 
     if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
-        res += wrap(node.name)
-    elif isinstance(node, Quantifier):
-        res += wrap(node.name)
-        res += reconstruct_string_html(node.variable, depth_ref)
+        res += wrap(node.name, True)
+    elif isinstance(node, (Quantifier, Iota, Epsilon)):
+        op_str = wrap(node.name, True)
+        res += op_str
+        res += reconstruct_string_html(node.variable, depth_ref, target_name, target_type, occ_map)
         res += " "
-        res += reconstruct_string_html(node.formula, depth_ref)
+        res += reconstruct_string_html(node.formula, depth_ref, target_name, target_type, occ_map)
     elif isinstance(node, SetBuilder):
-        res += wrap(node.name)
-        res += reconstruct_string_html(node.variable, depth_ref)
-        res += wrap("∈")
-        res += reconstruct_string_html(node.base_set, depth_ref)
+        op_str = wrap(node.name, True)
+        res += op_str
+        res += reconstruct_string_html(node.variable, depth_ref, target_name, target_type, occ_map)
+        res += wrap("∈", True)
+        res += reconstruct_string_html(node.base_set, depth_ref, target_name, target_type, occ_map)
         res += wrap("|")
-        res += reconstruct_string_html(node.formula, depth_ref)
+        res += reconstruct_string_html(node.formula, depth_ref, target_name, target_type, occ_map)
     elif isinstance(node, (Function, Relation, Connective)):
         if node.arity == 1:
             if node.name in ["¬", "∀", "∃"]:
-                res += wrap(node.name)
+                op_str = wrap(node.name, True)
+                res += op_str
                 if isinstance(node.arguments[0], Relation) and node.arguments[0].arity == 2:
                     color = colors[depth_ref[0] % len(colors)]
                     res += f'<span style="color: {color}">(</span>'
                     depth_ref[0] += 1
-                    res += reconstruct_string_html(node.arguments[0], depth_ref)
+                    res += reconstruct_string_html(node.arguments[0], depth_ref, target_name, target_type, occ_map)
                     depth_ref[0] = max(0, depth_ref[0] - 1)
                     color = colors[depth_ref[0] % len(colors)]
                     res += f'<span style="color: {color}">)</span>'
                 else:
-                    res += reconstruct_string_html(node.arguments[0], depth_ref)
+                    res += reconstruct_string_html(node.arguments[0], depth_ref, target_name, target_type, occ_map)
             else:
-                res += wrap(node.name)
+                op_str = wrap(node.name, True)
+                res += op_str
                 color = colors[depth_ref[0] % len(colors)]
                 res += f'<span style="color: {color}">(</span>'
                 depth_ref[0] += 1
-                res += reconstruct_string_html(node.arguments[0], depth_ref)
+                res += reconstruct_string_html(node.arguments[0], depth_ref, target_name, target_type, occ_map)
                 depth_ref[0] = max(0, depth_ref[0] - 1)
                 color = colors[depth_ref[0] % len(colors)]
                 res += f'<span style="color: {color}">)</span>'
         elif node.arity == 2:
-            res += reconstruct_string_html(node.arguments[0], depth_ref)
-            res += f" {wrap(node.name)} "
-            res += reconstruct_string_html(node.arguments[1], depth_ref)
+            op_str = wrap(node.name, True)
+            left_str = reconstruct_string_html(node.arguments[0], depth_ref, target_name, target_type, occ_map)
+            right_str = reconstruct_string_html(node.arguments[1], depth_ref, target_name, target_type, occ_map)
+            res += left_str
+            res += f" {op_str} "
+            res += right_str
         elif node.arity > 2:
-            res += wrap(node.name)
+            op_str = wrap(node.name, True)
+            res += op_str
             color = colors[depth_ref[0] % len(colors)]
             res += f'<span style="color: {color}">(</span>'
             depth_ref[0] += 1
             
-            args_res = [reconstruct_string_html(arg, depth_ref) for arg in node.arguments]
+            args_res = [reconstruct_string_html(arg, depth_ref, target_name, target_type, occ_map) for arg in node.arguments]
             res += ", ".join(args_res)
             
             depth_ref[0] = max(0, depth_ref[0] - 1)
             color = colors[depth_ref[0] % len(colors)]
             res += f'<span style="color: {color}">)</span>'
         elif node.arity == 0:
-            res += wrap(node.name)
+            res += wrap(node.name, True)
             
     for f in node.postfix_formatting:
         if isinstance(f, Bracket):
@@ -527,10 +595,10 @@ def reconstruct_string_html(node: Node, depth_ref: list) -> str:
             
     return res
 
-def reconstruct_string(node: Node, color_mode: str = "ansi") -> str:
+def reconstruct_string(node: Node, color_mode: str = "ansi", target_name: str = None, target_type: str = None) -> str:
     """Reconstructs the AST and applies depth-based colorization or HTML tooltips."""
     if color_mode == "html":
-        return reconstruct_string_html(node, [0])
+        return reconstruct_string_html(node, [0], target_name=target_name, target_type=target_type)
     raw = reconstruct_string_raw(node)
     if color_mode == "none":
         return raw

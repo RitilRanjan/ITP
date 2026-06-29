@@ -11,7 +11,7 @@ from CommandHandlers.env_handlers import (
     handle_st, handle_sf, handle_sb, handle_sa, handle_sp
 )
 from CommandHandlers.definition_handlers import (
-    handle_def_f, handle_def_r, handle_iota, handle_epsilon
+    handle_def_f, handle_def_r
 )
 from CommandHandlers.state_handlers import (
     handle_save, handle_load, handle_save_h, handle_load_h,
@@ -20,6 +20,7 @@ from CommandHandlers.state_handlers import (
 from CommandHandlers.transformation_handlers import (
     handle_fold, handle_simp, handle_neg
 )
+import CommandHandlers.terminal_handlers
 from CommandHandlers.utils import validate_new_name, get_target_resolutions, handle_variable_capture_interactive
 
 from typing import Optional, Tuple
@@ -95,7 +96,7 @@ from DefinitionExpander import (
     expand_user_defined_function_in_term, expand_user_defined_function_in_formula,
     expand_user_defined_relation_in_formula, expand_existential_in_formula,
     expand_unique_existential_in_formula, expand_set_builder_in_formula,
-    expand_epsilon_function_in_formula, expand_iota_function_in_formula,
+    expand_epsilon_in_formula, expand_iota_in_formula,
     VariableCaptureError
 )
 

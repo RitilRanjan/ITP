@@ -72,6 +72,7 @@ class Environment:
         self.target_proven_formula_name: Optional[str] = target_proven_formula_name
         # Tracks the right-hand sub-goal name when goal was split by 'and' command
         self.and_right_formula_name: Optional[str] = None
+        self.target_goal = None
         
         self.local_variables: Dict[str, Variable] = {}
         self.local_dummy_variables: Dict[str, DummyVariable] = {}

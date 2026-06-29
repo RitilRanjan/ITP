@@ -16,8 +16,11 @@ def get_user_input(prompt: str, command_queue: list = None, inputs_collected: li
 
 def validate_new_name(env: Environment, name: str, allowed_category: Optional[str] = None) -> bool:
     from Frontend import LOGICAL_CONNECTIVES, QUANTIFIERS
-    if name in LOGICAL_CONNECTIVES or name in QUANTIFIERS or name in ("⊤", "⊥"):
+    if name in LOGICAL_CONNECTIVES or name in QUANTIFIERS or name in ("⊤", "⊥", "ε", "ι"):
         print(f"Error: Logical symbols like '{name}' cannot be used as names.")
+        return False
+    if "ε" in name or "ι" in name:
+        print("Error: Name cannot contain 'ε' or 'ι'.")
         return False
     if "," in name:
         print("Error: Name cannot contain commas.")

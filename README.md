@@ -18,7 +18,7 @@
 6. [Substitution commands](#6-substitution-commands)
 7. [Rewriting by proven equations and bi-implications](#7-rewriting-by-proven-equations-and-bi-implications)
 8. [Double-negation commands](#8-double-negation-commands)
-9. [User-defined symbols, iota, and definition folding](#9-user-defined-symbols-iota-and-definition-folding)
+9. [User-defined symbols and definition folding](#9-user-defined-symbols-and-definition-folding)
 10. [Direct proof commands](#10-direct-proof-commands)
     - [Axioms (ua)](#101-axioms-ua)
     - [Inference rules (ir)](#102-inference-rules-ir)
@@ -413,7 +413,7 @@ neg+ f1 1 f2
 
 ---
 
-## 9. User-defined symbols, iota, and definition folding
+## 9. User-defined symbols and definition folding
 
 ### `def_f` — Define a new function symbol
 
@@ -446,17 +446,13 @@ def_r 2 x divides y f_div
 
 ---
 
-### `iota` — Define a choice function via unique existence
+### Choice Operators (`ε` and `ι`)
 
-If you have proven a theorem of the form `∃! x Ψ(x)` (there exists a **unique** x satisfying Ψ), you can introduce a function that returns that unique object.
+You can define terms using choice operators directly in the language, similar to quantifiers:
+- `ε x Ψ(x)`: An arbitrary object `x` such that `Ψ(x)` is true.
+- `ι x Ψ(x)`: The unique object `x` such that `Ψ(x)` is true.
 
-```
-iota F1 f1
-```
-
-where `f1` is the proven theorem `∃! x Ψ(x)`.
-
-After this, `F1` is a 0-arity constant (a term) representing that unique object.
+These act as core term nodes. You can unfold them in formulas using the `fold` command.
 
 ---
 
@@ -468,6 +464,9 @@ When you expand a user-defined symbol (the program unfolds it automatically), yo
 fold <symbol> <occurrence> <input> [args...] <output> [f3]
 fold ∃  <occurrence> <formula> <output> [f3]
 fold ∃! <occurrence> <formula> <y> <output> [f3]
+fold {  <occurrence> <formula> <u> <output> [f3]
+fold ε  <occurrence> <formula> <u> <output> [f3]
+fold ι  <occurrence> <formula> <u> <v> <output> [f3]
 ```
 
 `f3` (optional) stores a proven equivalence `(input ⇔ output)`.
@@ -1074,7 +1073,6 @@ Use this frequently to keep track of what you have.
 |---------|-------------|
 | `def_f n F v1..vn t` | Define function symbol |
 | `def_r n R v1..vn f` | Define relation symbol |
-| `iota F f` | Define choice function from `∃!x Ψ(x)` |
 | `fold …` | Fold a definition back |
 
 ### Direct Proofs

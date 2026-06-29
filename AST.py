@@ -5,8 +5,6 @@ from enum import Enum
 class FunctionType(Enum):
     PRE_DEFINED = "pre_defined"
     USER_DEFINED = "user_defined"
-    IOTA_DEFINED = "iota_defined"
-    EPSILON_DEFINED = "epsilon_defined"
     SCHEMA = "schema"
 
 class RelationType(Enum):
@@ -68,6 +66,24 @@ class SetBuilder(TermNode):
     base_set: Variable
     formula: 'FormulaNode'
     name: str = field(default="{", init=False)
+
+# ==========================================
+# Formula Nodes
+# ==========================================
+
+@dataclass
+class Iota(TermNode):
+    """Represents an Iota choice term (ι x Ψ(x))."""
+    variable: Variable
+    formula: 'FormulaNode'
+    name: str = field(default="ι", init=False)
+
+@dataclass
+class Epsilon(TermNode):
+    """Represents an Epsilon choice term (ε x Ψ(x))."""
+    variable: Variable
+    formula: 'FormulaNode'
+    name: str = field(default="ε", init=False)
 
 # ==========================================
 # Formula Nodes
@@ -139,11 +155,9 @@ def is_structurally_equal(n1: Node, n2: Node) -> bool:
             return False
         return all(is_structurally_equal(a1, a2) for a1, a2 in zip(n1.arguments, n2.arguments))
     elif isinstance(n1, Quantifier):
-        return (n1.name == n2.name and
-                is_structurally_equal(n1.variable, n2.variable) and
-                is_structurally_equal(n1.formula, n2.formula))
+        return n1.name == n2.name and n1.variable.name == n2.variable.name and is_structurally_equal(n1.formula, n2.formula)
     elif isinstance(n1, SetBuilder):
-        return (is_structurally_equal(n1.variable, n2.variable) and
-                is_structurally_equal(n1.base_set, n2.base_set) and
-                is_structurally_equal(n1.formula, n2.formula))
+        return n1.variable.name == n2.variable.name and is_structurally_equal(n1.base_set, n2.base_set) and is_structurally_equal(n1.formula, n2.formula)
+    elif isinstance(n1, (Iota, Epsilon)):
+        return n1.name == n2.name and n1.variable.name == n2.variable.name and is_structurally_equal(n1.formula, n2.formula)
     return n1.name == n2.name

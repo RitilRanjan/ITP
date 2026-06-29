@@ -46,7 +46,7 @@ class AutocompleteEngine:
         if cmd_name == "fold":
             # fold <sym> [occ] [<target>] [<out>] [<equiv>]
             if arg_index == 1:
-                options = ["∀", "∃", "∃!", "{", "all"] + list(env.user_functions.keys()) + list(env.user_relations.keys())
+                options = ["∀", "∃", "∃!", "ε", "ι", "{", "all"] + list(env.user_functions.keys()) + list(env.user_relations.keys())
                 return [opt for opt in options if opt.startswith(current_token)]
             elif arg_index == 2:
                 return [] # occ

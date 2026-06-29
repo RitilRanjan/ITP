@@ -100,6 +100,7 @@ def handle_contra(env: Environment, args_str: str) -> Environment:
     
     # 5. Instantiation of child environment
     child_env = Environment(parent=env, goal_formula_name=f3_name, target_proven_formula_name=f1_name)
+    child_env.target_goal = goal_node
     child_env.formulae[f2_name] = neg_f1_node
     child_env.add_theorem(f2_name)
     child_env.formulae[f3_name] = goal_node
