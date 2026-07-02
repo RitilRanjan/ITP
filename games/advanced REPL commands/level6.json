@@ -1,0 +1,18 @@
+{
+  "id": "level6",
+  "name": "Negation Adjustments",
+  "guide_hints": [
+    "# Level 6: Negation Adjustments (`neg-` and `neg+`)\n\nSometimes you have a formula `p` but you need `¬¬p` to apply a rule, or vice-versa. The `neg+` command adds two negation symbols, and `neg-` removes two consecutive negation symbols.",
+    "### The 1-Argument Rule\nMany commands like `neg+`, `fold`, `intro` can take both a `<target>` (the formula to act on) and an `<out>` (the name for the new formula). If you provide ONLY ONE argument, how does the REPL know which it is?",
+    "**The Rule:** If only 1 argument is provided, the system defaults to assuming it's the `<out>` argument while operating on the *default goal formula*. Or, if the argument type specifically matches what's expected for `<target>` (like passing an existing formula name), it uses it as the `<target>` and omits `<out>` (doing an in-place modification!).",
+    "This rule resolves ambiguity and allows you to work very quickly on the active goal without specifying it explicitly every time.",
+    "### Instructions:\nCreate propositional variable `p` with `cV p`.\nCreate the goal: `cf goal p ⇒ ¬¬p`.\nStart a mission: `mission goal`.",
+    "You have premise `p` and goal `¬¬p`.\nType `neg+ p` (here we provide `p` as the target). Notice it creates a new formula `¬¬p` (or you can specify `neg+ p f2` to name it `f2`).",
+    "Once you've created `¬¬p` as a proven formula, the goal is achieved! Use `PC1` or `auto` to close."
+  ],
+  "allowed_commands": ["cV", "cf", "apply", "mission", "neg+", "neg-", "auto", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "p ⇒ ¬¬p",
+  "start_env": null
+}

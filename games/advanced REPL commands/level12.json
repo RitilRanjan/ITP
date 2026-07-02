@@ -1,0 +1,17 @@
+{
+  "id": "level12",
+  "name": "Schemas and Instantiation",
+  "guide_hints": [
+    "# Level 12: Schemas (`cfs`, `crs`, `intro2`)\n\nIn mathematics, we often prove theorems that follow a general pattern. Instead of re-proving them for every specific function or relation, we can prove a **Schema**.\n\nA schema is a placeholder for any arbitrary term/formula. `cfs` creates a Function Schema, and `crs` creates a Relation Schema.",
+    "Once a theorem involving a schema is proven, you can use the `intro2` command to instantiate it! `intro2` takes a schema theorem and replaces the schema symbol with a specific function or relation of your choice.",
+    "### Syntax and Symbols\nTo type the Greek letter `ψ` (psi), use hex code `03C8`. To type `ε` (epsilon), use hex code `03B5`.",
+    "### Instructions:\nCreate a unary Relation Schema `ψ` by typing `crs ψ 1`.\nCreate a variable `x`.\nCreate the goal: `cf goal ∃x ψ(x) ⇒ ψ(ε x ψ(x))`.",
+    "Wait, look familiar? This is exactly the Epsilon axiom (`Epsilon`)! You can prove this schema directly by typing `apply goal Epsilon`.",
+    "If you wanted to instantiate this for a specific relation (e.g. equality), you would use `intro2 goal =`."
+  ],
+  "allowed_commands": ["cv", "cf", "crs", "cfs", "intro2", "apply", "exit"],
+  "allowed_axioms": ["Epsilon"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "∃x ψ(x) ⇒ ψ(ε x ψ(x))",
+  "start_env": null
+}

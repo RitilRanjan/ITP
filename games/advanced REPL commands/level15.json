@@ -1,0 +1,18 @@
+{
+  "id": "level15",
+  "name": "Explicit Substitutions",
+  "guide_hints": [
+    "# Level 15: Explicit Substitutions (`st`, `sf`, `sb`, `sa`)\n\nSometimes you want to explicitly substitute variables inside a formula or term without relying on axioms like `Q1`.",
+    "- **`st`**: Substitute variable in a Term. Syntax: `st <term> <var_to_replace> <new_term> [<out>]`\n- **`sf`**: Substitute a *Free* variable in a Formula. Syntax: `sf <formula> <var_to_replace> <new_term> [<out>]`",
+    "- **`sb`**: Substitute a *Bound* variable in a Formula (renaming a quantifier variable). Syntax: `sb <formula> <old_bound_var> <new_var> [<out>]`\n- **`sa`**: Substitute *All* (both Free and Bound) variables in a Formula.",
+    "**Note:** `sf` automatically checks for *variable capture*. If substituting a term would cause one of its free variables to accidentally become bound by a quantifier in the formula, the command will fail safely.",
+    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal (∀x x=x) ⇒ (∀y y=y)`.\nStart a mission: `mission goal`.",
+    "You have premise `f1: ∀x x=x`. Since `x` is a bound variable, you can rename it using `sb`. Type `sb f1 x y`.",
+    "The prover creates the proven formula `∀y y=y`! Now just use `auto goal` to finish."
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "st", "sf", "sb", "sa", "auto", "mission", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(∀x x=x) ⇒ (∀y y=y)",
+  "start_env": null
+}

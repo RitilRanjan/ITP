@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any, Tuple, TypeVar, Type
 from AST import (
     Node, Variable, DummyVariable, MetaVariable, TermNode,
     PropositionalVariable, FormulaNode, Function, Relation, Connective,
-    Quantifier, SetBuilder
+    Quantifier, SetBuilder, Constant, FunctionType, RelationType
 )
 
 class ASTEncoder(json.JSONEncoder):
@@ -107,6 +107,12 @@ class Environment:
             self.theorems = TheoremSetMap(self)
             self.user_functions = ChainMap(self.local_user_functions)
             self.user_relations = ChainMap(self.local_user_relations)
+            # Inject Number Theory Constants and Predefined Functions
+            self.local_terms["0"] = Constant("0")
+            self.local_terms["S"] = Function(name="S", arity=1, func_type=FunctionType.PRE_DEFINED, arguments=[DummyVariable(name="_1")])
+            self.local_terms["+"] = Function(name="+", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[DummyVariable(name="_1"), DummyVariable(name="_2")])
+            self.local_terms["*"] = Function(name="*", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[DummyVariable(name="_1"), DummyVariable(name="_2")])
+            self.local_terms["^"] = Function(name="^", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[DummyVariable(name="_1"), DummyVariable(name="_2")])
 
     def add_variable(self, node: Variable) -> None:
         self.local_variables[node.name] = node

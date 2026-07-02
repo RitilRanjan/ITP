@@ -1,0 +1,17 @@
+{
+  "id": "level8",
+  "name": "Logical Rewriting",
+  "guide_hints": [
+    "# Level 8: Logical Rewriting (`rw`)\n\nThe `rw` command is used to rewrite logically equivalent formulas. If you have a proven definition or equivalence `A ⇔ B`, you can use `rw` to replace occurrences of `A` with `B` (or vice-versa) inside a target formula.",
+    "### Syntax\n`rw <thm> [occ] [<target>] [<out>] [<equiv>]`\n- `<thm>`: the equivalence theorem `A ⇔ B` or definition you want to use.\n- `[occ]`: which occurrence to replace (optional, defaults to all).\n- `<target>`: the formula to rewrite.\n- `<out>`: the name of the new rewritten formula.",
+    "Just like other commands, the 0-argument and 1-argument rules apply! If you omit `<target>` and `<out>`, it acts on the current goal formula in-place.",
+    "### Instructions:\nCreate propositional variables `p`, `q`, and `r`.\nCreate the goal: `cf goal (p ⇔ q) ⇒ (p ∨ r ⇔ q ∨ r)`.\nStart a mission: `mission goal`.",
+    "You have premise `p ⇔ q`. Your goal is `p ∨ r ⇔ q ∨ r`.\nType `rw <name of premise>`. It will rewrite `p` to `q` in the goal, changing the goal to `q ∨ r ⇔ q ∨ r`!",
+    "Now prove this new goal by applying `PC1` or `auto`, and the mission will close!"
+  ],
+  "allowed_commands": ["cV", "cf", "apply", "mission", "rw", "auto", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(p ⇔ q) ⇒ (p ∨ r ⇔ q ∨ r)",
+  "start_env": null
+}

@@ -50,6 +50,7 @@ def handle_help(env: Environment, args_str: str) -> None:
     print("  simp_r_eq <thm>  [occ] [<target>] [<out>] [<equiv>] Replace RHS with LHS of theorem")
     print("  simp_l_bi <thm>  [occ] [<target>] [<out>] [<equiv>] Replace LHS with RHS of bi-implication")
     print("  simp_r_bi <thm>  [occ] [<target>] [<out>] [<equiv>] Replace RHS with LHS of bi-implication")
+    print("  rw <thm>         [occ] [<target>] [<out>] [<equiv>] Rewrite a term/formula definition within another")
 
     print("\n" + _blue(_bold("── Logic Elimination & Introduction (Mission Tactics) ─────────────────────────────")))
     print("  intro  [<target>] <term> [<out>] [<equiv>] Instantiates ∀/∃ premises or reduces goals")
@@ -80,6 +81,8 @@ def handle_help(env: Environment, args_str: str) -> None:
     print("  ct  <name> <term_expr>      Create a term")
     print("  cf  <name> <fol_expr>       Create a 1st-order formula")
     print("  cp  <name> <prop_expr>      Create a propositional formula")
+    print("  cfs <name> <arity>          Create a function/term schema (e.g. cfs T 2)")
+    print("  crs <name> <arity>          Create a relation schema (e.g. crs Ψ 2)")
     print("  def_f <name> <arity> <def>  Define a user function")
     print("  def_r <name> <arity> <def>  Define a user relation")
     print("  dt  <theorem>               Delete a proven theorem (from any environment)")

@@ -1,0 +1,17 @@
+{
+  "id": "level2",
+  "name": "The Mission Command",
+  "guide_hints": [
+    "# Level 2: The Mission Command\n\nRené Descartes said that in order to solve a complex problem, break it down into smaller sub-problems such that each sub-problem can be easily solved. Following the same analogy, if a mathematician wants to prove some complicated theorem, he finds what will be the important *lemmas* to prove, then restricts all his attention to proving the lemma so that he can better focus on a narrow goal because of limited memory (just like the limited context window of an LLM).\n\n`mission` allows you to create *sub-missions* where you will have to prove a *goal statement* (lemma). Each mission has its own *environment objects* (variables, functions, relations, terms, formulae, theorems).",
+    "Once the goal formula is proven, the *current active mission* closes and all its environment objects are deleted, and the goal formula is proven in the *parent environment*. Or you can type `exit` to prematurely close the current environment, returning back to the parent environment without proving the goal formula.",
+    "### Instructions:\nCreate the variables `x`, `y`, `z`.\nCreate the goal: `cf goal (x=y ∧ y=z) ⇒ x=z`.",
+    "Now start a mission for it: `mission goal`. Notice you are now in `ITP 1>`!\nYou have been given `x=y` and `y=z` as premises. Your new goal is just `x=z`.",
+    "Prove `x=z` by creating `cf f1 (x=x ∧ y=z) ⇒ (x=y ⇒ x=z)` and applying `E3`. Then prove `x=x` via `E1` and finally use `PC1` on `f1` to prove the sub-goal `x=z`.",
+    "Once proven, the mission automatically closes! Note: You can nest missions indefinitely, creating grand-child environments."
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "mission", "exit"],
+  "allowed_axioms": ["E1", "E3"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(x=y ∧ y=z) ⇒ x=z",
+  "start_env": null
+}

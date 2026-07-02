@@ -1,0 +1,461 @@
+--- games/basics of ITP/level1.json ---
+# Level 1: Equality is Reflexive
+
+Welcome to your very first Interactive Theorem Prover level!
+
+In logic, the most basic truth is that everything is equal to itself. Our goal today is to prove exactly that: **`x = x`**.
+### Your Available Tools:
+- **`cv` (Create Variable):** Use this to create a variable object.
+- **`cf` (Create Formula):** Use this to construct a formula from variables.
+- **`apply`:** Apply a known axiom or rule to prove a formula.
+### Instructions:
+First, create a variable named `x`. Type `cv x` in the command box and click Run.
+Next, we need to create our goal formula so we can talk about it. Type `cf goal x=x`.
+Finally, notice the `goal` formula appears in your Environment under 'Formulae'. Click on it to open the popup menu.
+
+Select the **`apply`** command.
+In the input box that appears, type `E1` and click Run.
+
+*(Note: `E1` is our first fundamental axiom, which states exactly what we're trying to prove: `∀A (A = A)`)*
+
+Alternatively, you can just type `apply goal E1` in the console to prove the formula.
+Similarly, you can create a variable `y`, then create a formula `y=y` with some other name, and prove it using the `E1` axiom. However, if you create the formula `x=y` and try to prove it using `E1`, it will give an error (you can try that!)
+--- games/basics of ITP/level2.json ---
+# Level 2: Equality is Reflexive 2
+
+`E1` is not only used to prove equality of variables but equality of any **term** in general. A term is basically any variable, constant or function of other terms.
+You have been provided with a **unary** function `S`. Unary means having **arity** 1 i.e. it is a function acting upon a single term.
+In this level, the function `S` is acting upon the variable `x`, which is also a term. We don't know what `S` *means* here, but you can assume anything of your choice, for example, the successor function.
+### Instructions:
+First, create a variable named `x`. Type `cv x` in the command box and click Run.
+Next, we need to create our goal formula so we can talk about it. Type `cf goal S x = S x`.
+Finally, apply the `E1` axiom to prove it. Type `apply goal E1` in the console.
+Similarly you can create a formula `S S y = S S y` where `y` is a variable and prove it using `E1`, but you can't prove `S x = x` using `E1`.
+--- games/basics of ITP/level3.json ---
+# Level 3: Variable Substitution in Function
+
+The `E2` axiom is used to prove any formula of the format `(x₁ = y₁ ∧ x₂ = y₂ ... xₙ = yₙ) ⇒ f(x₁, x₂, ... xₙ) = f(y₁, y₂, ... yₙ)` where `x₁`, `y₁`, ... `xₙ`, `yₙ` are variables and `f` is a function of arity `n` (i.e. taking `n` terms as input).
+**Typing Symbols & Logic:**
+The `∧` (AND) and `⇒` (IMPLIES) symbols are called **binary connectives** because they act over two formulas to create a larger formula.
+- **AND (`∧`)** means both formulas must be true.
+- **IMPLIES (`⇒`)** means if the first formula is true, the second must also be true.
+
+*How to type them:*
+Since these are Unicode characters, the easiest way is to use the keyboard shortcut which in Mac is to type the hex code (e.g., 2227 for `∧`, 21D2 for `⇒`) while holding the Option button. There are similar methods in Windows (using Alt + hex code) and Android (long press). Alternatively, you can always just **copy and paste** them from here.
+### Instructions:
+First, create two variables named `x` and `y`. Type `cv x` and then `cv y` in the command box.
+Next, create the goal formula. You can copy the symbols from here: `cf goal x=y ⇒ S x = S y`.
+Finally, apply the `E2` axiom to prove it. Notice how `E2` substitutes `x` with `y` inside the function `S`! Type `apply goal E2` in the console.
+Similarly you can try proving `(y=x) ⇒ (S S y = S S x)` or `(x=x) ⇒ (S x = S x)` using `E2` axiom.
+--- games/basics of ITP/level4.json ---
+# Level 4: Variable Substitution in Relation
+
+The `E3` axiom is used to prove any formula of the format `(x₁ = y₁ ∧ x₂ = y₂ ... xₙ = yₙ) ⇒ (R(x₁, x₂, ... xₙ) ⇒ R(y₁, y₂, ... yₙ))` where `x₁`, `y₁`, ... `xₙ`, `yₙ` are variables and `R` is a **relation** of arity `n` (i.e. taking `n` terms as input). Just like in set theory, a relation is a subset of cartesian product, meaning that a relation takes a fixed number of terms as input then returns true or false depending upon whether that specific sequence of terms *belong* to the relation or not. We have been dealing with equality till now which was also a binary relation. A relation applied upon terms is what we called as an **atomic formula**, which is one type of **formula**. Truth value can only be assigned to formulas and not terms, just like in english only sentences can be true or false and not phrases themselves. That is why only formula can be proven and not terms. Just like `=`, `∈` (belongs to) is another binary relation which will be used extensively in the set theory.
+**Typing Symbols:**
+To type the `∈` (belongs to) symbol:
+- The easiest way is to use the keyboard shortcut which in Mac is to type the hex code (2208 for `∈`) while holding the Option button.
+- There are similar methods in Windows (using Alt + hex code) and Android (long press).
+- Alternatively, you can always just **copy and paste** it from here: `∈`.
+### Instructions:
+First, create three variables named `x`, `y` and `z`. Type `cv x`, `cv y`, and `cv z`.
+Next, construct the goal formula. Copy and paste the symbols from here: `cf goal (x=y ∧ x=z) ⇒ (x∈x ⇒ y∈z)`.
+Finally, apply the `E3` axiom. Type `apply goal E3` to complete the level!
+Similarly you can try proving `(x=y ∧ y=x) ⇒ (x∈y ⇒ y∈x)` using `E3` axiom.
+--- games/basics of ITP/level5.json ---
+# Level 5: Propositional Calculus Inference rules
+
+**Inference Rules:** An inference rule is a logical tool that allows us to derive a new true formula from one or more already proven true formulas (called premises). While axioms are unconditionally true, inference rules represent valid steps of reasoning. Their general syntax in this prover is `apply <target_formula> <rule_name> <premise_1> <premise_2> ...`.
+The `PC1` and `PC2` inference rules break down every atomic subformula in the **1st order formula** into **propositional variables**, thus creating a **propositional formula** such that similar atomic subformulas become similar propositional variables.
+**Internal Mechanism:** When you apply `PC1` or `PC2`, the prover replaces each unique atomic formula with a boolean variable (like `p`, `q`, `r`). Then, it checks if `(Premise_1 ∧ Premise_2 ...) ⇒ Target` is a *tautology* (always true) using truth tables or SAT solvers. If it is, the target formula is successfully proven!
+### Instructions:
+First, create the variables `x` and `y` using `cv x` and `cv y`.
+Then, construct our goal formula: `cf goal x=y ⇒ (x∈x ⇒ y∈y)`.
+But wait! We cannot prove this directly using `E3` because `E3` requires two pairs of equalities for a binary relation. For the relation `∈`, `E3` provides `(x=y ∧ x=y) ⇒ (x∈x ⇒ y∈y)`. So, let's create this intermediate formula: `cf f1 (x=y ∧ x=y) ⇒ (x∈x ⇒ y∈y)`.
+Now, prove the intermediate formula by applying `E3`: `apply f1 E3`.
+Finally, use `PC1` or `PC2` to prove the goal formula from our proven premise `f1`: `apply goal PC1 f1`.
+*Explanation:* The prover breaks this down into propositional logic: does `((p ∧ p) ⇒ (q ⇒ r))` imply `(p ⇒ (q ⇒ r))`? Yes, it's a tautology! So `PC1` succeeds.
+**PC1 vs PC2:** Since `PC1` and `PC2` serve the same purpose, in which scenario is which one more efficient? `PC1` uses a complete Truth Table evaluation, which is fast for a small number of unique atomic formulas. `PC2` uses **Gentzen's Sequent Calculus** instead, making it much more efficient when the formula is large and contains many different atomic subformulas.
+**Grammar Rules:** You must have noticed that the syntax of creating terms and formulas is a bit complicated. The rule is that for unary operators (functions, relations, **negation symbol** (which will come later)), the argument is written just after the symbol whereas for binary operators (functions, relations, logical connectives), the 1st operand is written before it and 2nd is written after this. For higher arity operators (functions and relations), all arguments are written after it in sequence. The sequence definitely matters here.
+--- games/basics of ITP/level6.json ---
+# Level 6: PC Inference Rule 2
+
+Now we have a challenge for you to prove a complicated statement: `(x=y ∧ y=z) ⇒ ((x=x ∨ y=z) ⇒ (x=y ∨ z=z))`.
+**The OR Operator:**
+The `∨` (OR) symbol is a binary connective that evaluates to true if at least one of its subformulas is true. To type it:
+- Mac: Type the hex code `2228` while holding the Option button.
+- Windows: Use Alt + hex code, or Android long press.
+- Or, simply **copy and paste** it from here: `∨`.
+**Strategy:**
+You need to 1st prove `(x=y ∧ y=z) ⇒ (x=x ∧ x=y ∧ y=z ∧ z=z)` so that you can use E3 axiom.
+### Step 1:
+First, create the three variables `x`, `y`, and `z` using `cv x`, `cv y`, and `cv z`.
+### Step 2:
+Create the goal formula: `cf goal (x=y ∧ y=z) ⇒ ((x=x ∨ y=z) ⇒ (x=y ∨ z=z))`.
+### Step 3:
+Create formulas `f1 x=x` and `f2 z=z`, then prove them using `apply f1 E1` and `apply f2 E1`.
+### Step 4:
+Now create the intermediate formula: `cf f3 (x=y ∧ y=z) ⇒ (x=x ∧ x=y ∧ y=z ∧ z=z)`.
+Prove it by applying `PC1` and passing our proven formulas `f1` and `f2` as premises: `apply f3 PC1 f1 f2`.
+### Step 5:
+Now you can create the appropriate formulas using the `E3` axiom and apply `PC1` again to deduce the final goal!
+**Operator Precedence:**
+Since there are a lot of operators, it is necessary to keep operator precedence in mind. It is unary function > binary function > higher arity functions > unary relation > binary relation > higher arity relations > negation symbol > binary connectives. Within the same precedence, order goes from left to right(eg:- x=x ∧ y=y ∨ z=z will mean ((x=x ∧ y=y) ∨ z=z). You can write this precedence order in some copy. This is what we usually follow in mathematics.
+--- games/basics of ITP/level7.json ---
+# Level 7: Equality is Symmetric
+
+To prove that equality is symmetric (`x=y ⇒ y=x`), you need an essential lemma from the `E3` axiom. Remember that `=` itself is a binary relation! The `E3` axiom applied to equality gives `(x₁=y₁ ∧ x₂=y₂) ⇒ (x₁=x₂ ⇒ y₁=y₂)`. Can you figure out what to substitute for `x₁`, `y₁`, `x₂`, and `y₂` to help you prove `y=x`?
+
+*Hint:* substitute `x₁` with `x`, `y₁` with `y`, `x₂` with `x`, and `y₂` with `x` to get `(x=y ∧ x=x) ⇒ (x=x ⇒ y=x)`!
+### Step 1:
+Create the variables `x` and `y` using `cv x` and `cv y`.
+### Step 2:
+Create the goal formula: `cf goal x=y ⇒ y=x`.
+### Step 3:
+Create the essential lemma formula (you can copy-paste this): `cf f1 (x=y ∧ x=x) ⇒ (x=x ⇒ y=x)`.
+Prove it using `E3` by typing: `apply f1 E3`.
+### Step 4:
+You will also need to prove that `x=x` is true since it's a condition in our lemma. Create the formula `cf f2 x=x` and prove it using `E1`: `apply f2 E1`.
+### Step 5:
+Finally, use `PC1` or `PC2` to prove your goal formula using the two proven lemmas `f1` and `f2`! Type: `apply goal PC1 f1 f2`.
+Similarly try to prove `S y = S x ⇒ S x = S y`.
+--- games/basics of ITP/level8.json ---
+# Level 8: Equality is Transitive
+
+To prove that equality is transitive (`(x=y ∧ y=z) ⇒ x=z`), you again need an essential lemma from the `E3` axiom. The `E3` axiom applied to equality gives `(x₁=y₁ ∧ x₂=y₂) ⇒ (x₁=x₂ ⇒ y₁=y₂)`. Can you figure out what to substitute for `x₁`, `y₁`, `x₂`, and `y₂`?
+
+*Hint:* substitute `x₁` with `x`, `y₁` with `x`, `x₂` with `y`, and `y₂` with `z` to get `(x=x ∧ y=z) ⇒ (x=y ⇒ x=z)`!
+### Step 1:
+Create the three variables `x`, `y`, and `z` using `cv x`, `cv y`, and `cv z`.
+### Step 2:
+Create the goal formula: `cf goal (x=y ∧ y=z) ⇒ x=z`.
+### Step 3:
+Create the essential lemma formula (you can copy-paste this): `cf f1 (x=x ∧ y=z) ⇒ (x=y ⇒ x=z)`.
+Prove it using `E3`: `apply f1 E3`.
+### Step 4:
+Just like in the previous level, you need to prove that `x=x` is true since it's a required condition. Create the formula `cf f2 x=x` and prove it using `E1`: `apply f2 E1`.
+### Step 5:
+Finally, apply `PC1` to prove your goal formula using the two proven lemmas `f1` and `f2`! Type: `apply goal PC1 f1 f2`.
+Congratulations, you have proved that `=` is an equivalence relation!
+--- games/basics of ITP/level9.json ---
+# Level 9: Universal Instantiation
+
+Universal Instantiation is the rule that says if a property holds for **all** elements in a domain, then it holds for any specific element you choose. The `∀` symbol means 'for all' or 'for every'. 
+
+*Real-life example:* If 'For all people, they need water to survive' is true, and 'John' is a person, we can instantiate it to say 'John needs water to survive'. 
+
+In our logic, the `Q1` axiom captures this: `(∀x P(x)) ⇒ P(t)`, where `t` is some term we substitute for `x` and P is any formula in which x is a **free variable**.
+**Typing Symbols:**
+To type the `∀` (for all) symbol:
+- The easiest way is to use the keyboard shortcut which in Mac is to type the hex code (`2200` for `∀`) while holding the Option button.
+- There are similar methods in Windows (using Alt + hex code) and Android (long press).
+- Alternatively, you can always just **copy and paste** it from here: `∀`.
+### Step 1:
+First, create the two variables you will need: `x` and `y` using `cv x` and `cv y`.
+### Step 2:
+Create the goal formula: `cf goal (∀x x=x) ⇒ y=y`.
+Notice the parentheses! We write `(∀x x=x)` to group the quantifier scope before applying the implication `⇒`.
+### Step 3:
+Now, just apply the `Q1` axiom to prove it! The prover's `Q1` axiom automatically checks that replacing `x` with `y` inside `x=x` yields `y=y`, proving the implication. Type: `apply goal Q1`.
+∀, ∃ and ∃! are called **quantifier symbols**. They can't be used in a term. They are always followed by a variable called quantifier variable(x in the above case). The rest of the formula written after the variable and before the closing bracket(or end of line) is called **scope** of the formula, which is another formula in itself. All the variables which appear as quantifier variables in some place in the formula are called *bounded variables*. Any other variable appearing in the formula is called *free variable*. So x is a free variable in 'x=x' but bounded in '∀x x=x'.
+--- games/basics of ITP/level10.json ---
+# Level 10: Existential Generalisation
+
+Existential generalisation (`Q2` axiom) states that if a property is true for a specific term `t`, then there exists at least one element for which the property is true: `P(t) ⇒ ∃x P(x)`. 
+
+**Typing Symbols:**
+To type the `∃` (exists) symbol:
+- Mac: Type the hex code `2203` while holding the Option button.
+- Windows: Use Alt + hex code, or Android long press.
+- Or, simply **copy and paste** it from here: `∃`.
+### Step 1:
+First, create the two variables you will need: `x` and `y`.
+### Step 2:
+Create the goal formula: `cf goal ∃x x=x`.
+### Step 3:
+We can't prove the goal directly with `Q2` since `Q2` generates an implication. We need a fact that is true for a specific element. Create `cf f1 y=y` and prove it using `E1`: `apply f1 E1`.
+### Step 4:
+Now create the implication formula using the `Q2` axiom. Since `y=y` is true, it implies `∃x x=x`. Create it: `cf f2 y=y ⇒ ∃x x=x`.
+Prove it using `Q2`: `apply f2 Q2`.
+### Step 5:
+Finally, apply `PC1` with your proven premises `f1` and `f2` to deduce the goal! Type: `apply goal PC1 f1 f2`.
+**Substitutability Criteria:**
+We say that a term `t` is *substitutable* for a free variable `x` in formula `φ` iff no free variable in 't' becomes accidentally a bounded variable in `φ` after substitution. If it does, it's called *variable capture* and it completely alters the meaning of the formula! The `Q1` and `Q2` axioms automatically check this and will only hold if this substitutability criteria is perfectly satisfied.
+--- games/basics of ITP/level11.json ---
+# Level 11: QR1 Inference Rule
+
+The `QR1` rule relates implication and universal quantification. It states that if `ψ ⇒ φ` is a proven formula, and the variable `x` is **not free** in `ψ` and **not bound** in `φ`, then we can deduce `ψ ⇒ (∀x φ)`. Intuitively, if a condition that doesn't depend on `x` implies a statement about `x`, then it implies that the statement holds for all `x`.
+### Step 1:
+Create two variables `x` and `y` using `cv x` and `cv y`.
+### Step 2:
+Create the goal formula: `cf goal x=x ⇒ (∀y y=y)`.
+Notice that `y` is the quantifier variable we are targeting.
+### Step 3:
+Let's build the premise. Create the formula `cf f1 x=x ⇒ y=y`.
+To prove this, you can prove `x=x` and `y=y` individually using `E1` (e.g. `cf f2 x=x`, `cf f3 y=y`, then `apply f2 E1` and `apply f3 E1`), and finally use `PC1` on `f1` using those two facts (`apply f1 PC1 f2 f3`).
+### Step 4:
+Now apply the `QR1` rule to prove the goal! The `QR1` rule will check that `y` is not free in the left side (`x=x`) and not bound in the right side (`y=y`) of the premise `f1`.
+Type: `apply goal QR1 f1`.
+--- games/basics of ITP/level12.json ---
+# Level 12: QR2 Inference Rule
+
+The `QR2` rule is the existential counterpart to `QR1`. It states that if `φ ⇒ ψ` is proven, and the variable `x` is **not free** in `ψ` and **not bound** in `φ`, we can deduce `(∃x φ) ⇒ ψ`. Intuitively, if knowing `φ` about an arbitrary `x` implies a conclusion that doesn't depend on `x`, then just knowing that *some* `x` satisfies `φ` is enough to reach the same conclusion.
+### Step 1:
+Create the variables `x` and `y` using `cv x` and `cv y`.
+### Step 2:
+Create the goal formula: `cf goal (∃y y=y) ⇒ x=x`.
+Here we are quantifying over `y`.
+### Step 3:
+Create the premise formula: `cf f1 y=y ⇒ x=x`.
+Prove it using `E1` and `PC1` just like you did in the previous level.
+### Step 4:
+Apply the `QR2` rule to prove the goal! The prover will verify the free/bounded variable conditions before applying it.
+Type: `apply goal QR2 f1`.
+All the axioms and inference rules we have developed so far are called *logical axioms and logical inference rules* respectively. Together, they comprise the *deductive system*. You can safely assume that the deductive system which we are currently using will be fixed from now onwards since it used in almost entire of maths, computer science, every day life and infact anywhere logic is used. There may be other equivalent versions, for example instead of PC inference rules, there will be modus ponens, modus tolens, excluded middle etc.
+--- games/basics of ITP/level13.json ---
+# Level 13: Human beings and living organisms
+
+Suppose that all human beings are living organisms. Can we say that there is some human being which is a living organism? From common sense, you know the answer should be true, but we will prove it rigorously now. Suppose `H` denotes the set of all human beings and `L` denotes the set of all living organisms. Now if you translate the goal formula from english to 1st order logic, it becomes `(∀y y∈H ⇒ y∈L) ⇒ (∃x x∈H ⇒ x∈L)`. I hope you can understand the translation. Now prove it.
+### Step 1:
+First, create the four variables we need: `x`, `y`, `H`, and `L` using `cv x`, `cv y`, `cv H`, and `cv L`.
+### Step 2:
+Create the goal formula you're trying to prove: `cf goal (∀y y∈H ⇒ y∈L) ⇒ (∃x x∈H ⇒ x∈L)`.
+Make sure to get the parentheses right! You can always copy and paste.
+### Step 3:
+Now let's use the Universal Instantiation axiom (`Q1`). If the statement holds for all `y`, it must hold for `x`. Let's create this formula: `cf f1 (∀y y∈H ⇒ y∈L) ⇒ (x∈H ⇒ x∈L)`.
+Prove it by typing: `apply f1 Q1`.
+### Step 4:
+Next, let's use the Existential Generalization axiom (`Q2`). If the statement is true for `x`, it must be true for *some* element. Let's create this formula: `cf f2 (x∈H ⇒ x∈L) ⇒ (∃x x∈H ⇒ x∈L)`.
+Prove it by typing: `apply f2 Q2`.
+### Step 5:
+Notice that `f1` is essentially `A ⇒ B` and `f2` is `B ⇒ C`. By combining them, we logically deduce `A ⇒ C`, which is exactly our `goal`! Use Propositional Calculus (`PC1`) to finish the proof:
+Type: `apply goal PC1 f1 f2`.
+--- games/basics of ITP/level14.json ---
+# Level 14: Negation Symbol
+
+The negation symbol `¬` is a unary logical connective that reverses the truth value of a formula. If `A` is true, `¬A` is false. To type it:
+- Mac: Type the hex code `00AC` while holding the Option button, or try Option + L depending on keyboard layout.
+- Windows: Use Alt + `0172`.
+- Or, simply **copy and paste** it from here: `¬`.
+The goal formula appears to have been easily proved using PC inference rule if `∀` was not there. So the question is how to introduce `∀` symbol in some proved formula?
+### Step 1:
+The `QR1` rule can introduce a `∀`! Remember `QR1`? It says `ψ ⇒ φ ⊢ ψ ⇒ (∀x φ)`. We can use this to introduce the `∀` over our target formula. Let's create our variables `x` and `y` using `cv`.
+### Step 2:
+Create the goal formula: `cf goal ∀x ¬x∈x ∨ x∈x`.
+### Step 3:
+We need a tautology for `ψ` that doesn't contain `x` as a free variable so that `QR1` will legally apply. Let's use `y=y`. Create it and prove it using `E1`: `cf f1 y=y` followed by `apply f1 E1`.
+### Step 4:
+Now create the implication connecting our dummy tautology `y=y` to our target formula (without the quantifier). Create `cf f2 y=y ⇒ ¬x∈x ∨ x∈x`.
+Since the right side is a tautology (the law of excluded middle), we can prove this implication directly using PC inference. Type: `apply f2 PC1`.
+### Step 5:
+Now apply the `QR1` rule on `f2` to introduce the universal quantifier! Create the formula `cf f3 y=y ⇒ ∀x ¬x∈x ∨ x∈x`.
+Prove it by typing: `apply f3 QR1 f2`.
+### Step 6:
+Finally, we know `f1` is true and `f3` is true, so use `PC1` to deduce the goal! Type: `apply goal PC1 f1 f3`.
+I hope you remember the precedence order of operands which was mentioned to you before. Quantifier symbols have the **lowest** precedence among all operators! That means their scope extends as far right as possible until bounded by parentheses. That's why `∀x ¬x∈x ∨ x∈x` is parsed with the quantifier covering the entire `∨` statement.
+--- games/basics of ITP/level15.json ---
+# Level 15: Syllogism
+
+Suppose all human beings are animals and all animals are living organisms. Can we say that all human beings are living organisms? If you have studied syllogism, you would know that the answer is true. Now we will prove it rigorously. 
+
+The goal formula is `((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (∀x x∈H ⇒ x∈L)`.
+### Step 1:
+Create the required variables: `x`, `H`, `A`, and `L` using `cv`.
+### Step 2:
+Create the goal formula: `cf goal ((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (∀x x∈H ⇒ x∈L)`.
+Make sure you copy the brackets exactly!
+### Step 3:
+We'll use Universal Instantiation (`Q1`) to unpack the premises. First, instantiate the human-to-animal premise. Create `cf f1 (∀x x∈H ⇒ x∈A) ⇒ (x∈H ⇒ x∈A)` and prove it using `Q1`: `apply f1 Q1`.
+### Step 4:
+Now instantiate the animal-to-living organism premise. Create `cf f2 (∀x x∈A ⇒ x∈L) ⇒ (x∈A ⇒ x∈L)` and prove it using `Q1`: `apply f2 Q1`.
+### Step 5:
+Now we chain these facts together logically using `PC1`. Create an intermediate formula linking the combined premises to the unquantified conclusion: `cf f3 ((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (x∈H ⇒ x∈L)`.
+Prove it by tying `f1` and `f2` together: `apply f3 PC1 f1 f2`.
+### Step 6:
+Finally, we want to generalize this back to 'for all x'. Notice that the variable `x` is *not free* in the premise (the left side of `f3`) because every instance of `x` is safely bounded by the `∀x` quantifiers! Therefore, we can safely apply the `QR1` rule to introduce `∀x` on the conclusion. Type: `apply goal QR1 f3`.
+--- games/basics of ITP/level16.json ---
+# Level 16: Quantifier placement matters
+
+Statement 1: Every organism lives on some planet.
+Statement 2: Every organism lives on the same planet.
+
+There is some difference in the 2 statements which will be evident if you try to convert them into 1st order logic. Try it yourself once.
+Let `x` denote some organism and `y` denote some planet. Then the 1st statement is `∀x ∃y x∈y` and the 2nd statement is `∃y ∀x x∈y`. This shows that the placement of quantifiers completely changes the meaning of the sentence. From your common sense you know that the 2nd statement implies the 1st statement but not the other way around (Imagine half the organisms live on Earth and half on Mars!) Now we will prove this rigorously.
+
+The 2nd statement `∃y ∀x x∈y` is already given as a proven theorem (called `theorem_1`). Your goal is to prove the 1st statement `∀x ∃y x∈y`.
+### Step 1:
+The variables `x` and `y` are already created for you in this level! Let's just create the goal formula: `cf goal ∀x ∃y x∈y`.
+### Step 2:
+We'll work backwards from the inner core of the goal. The inner statement is `x∈y`. If we know `∀x x∈y`, it implies `x∈y`. Let's create this and prove it with `Q1`. Create `cf f1 (∀x x∈y) ⇒ x∈y` and apply `Q1`: `apply f1 Q1`.
+### Step 3:
+Now we want to introduce `∃y`. `Q2` says `x∈y ⇒ ∃y x∈y`. Let's create this and prove it with `Q2`. Create `cf f2 x∈y ⇒ ∃y x∈y` and apply `Q2`: `apply f2 Q2`.
+### Step 4:
+We can link the two implications using Propositional Calculus (`PC1`). From `f1` and `f2`, we logically deduce `(∀x x∈y) ⇒ ∃y x∈y`. Create `cf f3 (∀x x∈y) ⇒ ∃y x∈y` and prove it using `PC1`: `apply f3 PC1 f1 f2`.
+### Step 5:
+Now we want to add the `∀x` to the right side of `f3`. `QR1` allows us to deduce `(∀x x∈y) ⇒ ∀x ∃y x∈y`. Notice that `x` is bound on the left side, so it is strictly not free! Create `cf f4 (∀x x∈y) ⇒ ∀x ∃y x∈y` and prove it using `QR1`: `apply f4 QR1 f3`.
+### Step 6:
+Finally, we want to add `∃y` to the left side of `f4`. `QR2` allows us to deduce `(∃y ∀x x∈y) ⇒ ∀x ∃y x∈y`. Notice that `y` is safely bound on the right side! Create `cf f5 (∃y ∀x x∈y) ⇒ ∀x ∃y x∈y` and prove it using `QR2`: `apply f5 QR2 f4`.
+### Step 7:
+Now we have our final implication `f5`, and we were already given the premise `theorem_1`! Apply `PC1` to logically conclude the goal: `apply goal PC1 f5 theorem_1`.
+--- games/basics of ITP/level17.json ---
+# Level 17: fold command
+
+The `fold` command is an extremely powerful tool that allows us to expand or fold the definitions of logical operators. Most notably, the universal quantifier `∀` and existential quantifier `∃` can be transformed into each other!
+
+- `∀x P(x)` is logically equivalent to `¬∃x ¬P(x)` (Everything is P means there does not exist anything that is not P).
+- `∃x P(x)` is logically equivalent to `¬∀x ¬P(x)` (There exists something that is P means not everything is not P).
+
+The `fold` command allows you to unfold a `∀` into a `¬∃¬` or vice-versa!
+The syntax of the `fold` command is:
+`fold <symbol> [<occurrences>] <target> [<out>] [<equiv>]`
+
+- `<symbol>`: the symbol you want to unfold (e.g. `∀` or `∃`).
+- `[<occurrences>]` (optional): the index of the occurrence you want to unfold. e.g. `1`, `2`, or `1,2`. If omitted, it folds all occurrences.
+- `<target>`: the name of the formula you want to apply the fold to.
+- `[<out>]` (optional): the name of the new formula to store the result in. If omitted, it modifies the `<target>` in place.
+- `[<equiv>]` (optional): if provided, it registers a new logically proven theorem named `<equiv>` which states `<target> ⇔ <out>`!
+Here are some examples to show how flexible it is:
+- `fold ∀ f1` : Modifies `f1` in place, replacing all `∀` with `¬∃¬`.
+- `fold ∃ 2 f1 f2` : Creates `f2` by replacing the 2nd occurrence of `∃` in `f1` with `¬∀¬`.
+- `fold ∀ 1 f1 f2 thm1` : Creates `f2` by replacing the 1st occurrence of `∀` in `f1`, AND creates a proven theorem named `thm1` which proves `f1 ⇔ f2`.
+
+*Alternatively, you can just click on any `∀` or `∃` symbol in a formula on the screen, and click 'Fold' in the pop-up menu!*
+Now let's prove our simple goal formula: `(∀x x=x) ⇔ ¬∃x ¬(x=x)`.
+
+Step 1: Create the required variable `x` by typing `cv x`.
+Step 2: Create the goal formula `cf goal (∀x x=x) ⇔ ¬∃x ¬(x=x)`.
+Step 3: Create the left side of the equivalence as our starting point. 
+Type `cf f1 ∀x x=x`.
+Step 4: Now use the `fold` command to unfold `∀` in `f1`, output it to `f2`, and save the equivalence theorem directly into `goal`!
+
+Type: `fold ∀ f1 f2 goal`
+And you are done! It will generate the exact theorem needed to beat the level.
+
+Note: The `⇔` symbol is the logical connective for 'if and only if' (equivalence). You can type it by entering `21d4` and pressing Option+X (on Mac) or equivalent hex-code shortcuts on other systems, or simply copy-pasting it. The `<equiv>` parameter in the `fold` command automatically generates a theorem using this `⇔` connective!
+--- games/basics of ITP/level18.json ---
+# Level 18: Uniquely existing
+
+We introduce the `∃!` quantifier, which stands for 'there exists exactly one' or 'uniquely existing'. You can type it by entering `2203` Option+X followed by `!`, or simply copy-paste it.
+
+The statement `∃!x P(x)` asserts that there is one and only one `x` that satisfies `P(x)`. Logically, this means: 'There is some `x` such that for any `y`, `y` satisfies `P` if and only if `y = x`'.
+Because unfolding `∃!` mathematically introduces a brand new variable `y` into the logical statement (as seen in `∃x ∀y (P(y) ⇔ y=x)`), the `fold` command cannot just guess the name of this variable—it needs your explicit input to ensure it doesn't accidentally capture or collide with an existing variable!
+
+When you run the `fold ∃!` command, the interactive prover prompts you for a fresh variable name. You can supply it by typing it on the next line using `Shift+Enter` in the chat input box!
+Let's prove a simple formula that demonstrates this: `(∃!x x=x) ⇔ (∃x ∀y (y=y ⇔ y=x))`.
+
+Step 1: First, create the variables `x` and `y` using `cv x y`.
+Step 2: Create the goal formula exactly as above using `cf goal (∃!x x=x) ⇔ (∃x ∀y (y=y ⇔ y=x))`.
+Step 3: Now let's construct the left side. Create `cf f1 ∃!x x=x`.
+Step 4: Finally, let's unfold it! We want to unfold `∃!` in `f1`, store the result in `f2`, and save the equivalence theorem directly into `goal`.
+
+But wait! We need to provide the fresh variable `y` to the fold command. Type this exactly (use `Shift+Enter` to create the new line):
+```text
+fold ∃! f1 f2 goal
+y
+```
+
+This will execute the command and answer the prompt with `y` simultaneously! The equivalence theorem will be generated, and your goal will be successfully proven!
+--- games/basics of ITP/level19.json ---
+# Level 19: User defined functions
+
+In mathematics, defining your own functions is essential for building complex structures. The prover allows you to define your own functions using the `def_f` command!
+
+The environment currently has a pre-defined unary function `S` (the successor function, which you can mathematically think of as `+ 1`). We are going to define a new function `add_2` that adds 2 to a number.
+The syntax to define a new function is:
+`def_f <arity> <name> <v1> <v2> ... <vn> <definition>`
+
+For example, to define a completely new binary function `f(x, y) = S x`, you would type: `def_f 2 f x y S x`.
+To define our required unary function `add_2(x) = S(S(x))`, simply type: `def_f 1 add_2 x S S x`.
+Now that you have defined `add_2`, you can use the `fold` command to logically unfold its definition in any formula, exactly like how we unfolded quantifiers!
+
+The syntax is exactly the same: `fold add_2 [<occurrences>] <target> [<out>] [<equiv>]`.
+Let's prove a simple identity demonstrating this unfolding: `add_2 x = S S x ⇔ S S x = S S x`.
+Step 1: First, create the variable `x` using `cv x`.
+Step 2: Define the `add_2` function using `def_f 1 add_2 x S S x`.
+Step 3: Create the goal formula exactly as mentioned above: `cf goal add_2 x = S S x ⇔ S S x = S S x`.
+Step 4: Create the left side of the equivalence as our starting formula. Type `cf f1 add_2 x = S S x`.
+Step 5: Finally, unfold `add_2` in `f1` and output the equivalence theorem directly into `goal`!
+
+Type: `fold add_2 f1 f2 goal`
+And you are done! The definition expands perfectly and proves your goal.
+--- games/basics of ITP/level20.json ---
+# Level 20: User defined relations
+
+Just like functions, defining your own relations is crucial for setting up custom mathematical constraints (such as 'is greater than' or 'is a subset of'). The prover allows you to define your own relations using the `def_r` command!
+
+We are going to define a new unary relation `is_zero(x)` that simply checks if `x` equals itself (a trivial relation for the sake of practice!).
+The syntax to define a new relation is:
+`def_r <arity> <name> <v1> <v2> ... <vn> <definition>`
+
+For example, to define a completely new binary relation `R(x, y) ⇔ x=y`, you would type: `def_r 2 R x y x=y`.
+To define our required unary relation `is_zero(x) ⇔ x=x`, simply type: `def_r 1 is_zero x x=x`.
+Now that you have defined `is_zero`, you can use the `fold` command to logically unfold its definition in any formula!
+
+The syntax is exactly the same: `fold is_zero [<occurrences>] <target> [<out>] [<equiv>]`.
+Let's prove a simple identity demonstrating this unfolding: `is_zero x ⇔ x = x`.
+Step 1: First, create the variable `x` using `cv x`.
+Step 2: Define the `is_zero` relation using `def_r 1 is_zero x x=x`.
+Step 3: Create the goal formula exactly as mentioned above: `cf goal is_zero x ⇔ x=x`.
+Step 4: Create the left side of the equivalence as our starting formula. Type `cf f1 is_zero x`.
+Step 5: Finally, unfold `is_zero` in `f1` and output the equivalence theorem directly into `goal`!
+
+Type: `fold is_zero f1 f2 goal`
+And you are done! The definition expands perfectly and proves your goal.
+--- games/basics of ITP/level21.json ---
+# Level 21: Epsilon operator
+
+We introduce the `ε` (Hilbert's epsilon) operator. You can type it using `03B5` Option+X or by copy-pasting it.
+
+The epsilon operator is used to construct a term that represents *some* object satisfying a given property. For example, `εy (S y = x)` means 'some y such that S y = x'.
+Let's define a predecessor function `P` using this! Type: `def_f 1 P x εy S y = x`.
+
+*Note*: The theoretically correct way to define this would be using the `ι` (iota) operator for definite descriptions ('THE unique y'), because otherwise `P` behaves like a multivalued function. However, using `ι` requires proving that `S` is strictly injective, which is not the case here. We will deal with the more complicated case in the next game!
+Our goal is to prove: `∀x P S x = x`.
+First, create the variables: `cv x y`.
+Then create the goal: `cf goal ∀x P S x = x`.
+Step 1: Start with the inner equality. Type: `cf f1 P S x = x`.
+Step 2: Unfold the definition of `P`. Type: `fold P f1 f2 p_def`.
+
+Now `f2` holds `(εy S y = S x) = x`.
+Step 3: Unfold the `ε` operator in `f2` and store the equivalence in `e_def`. When prompted, provide `y` as the fresh variable using `Shift+Enter`:
+```text
+fold ε f2 f3 e_def
+y
+```
+
+`f3` now elegantly expands to: `∃y (S y = S x ∧ y = x)`.
+Step 4: We can prove `f3` using the `Q2` existential introduction axiom! We just need to prove the property for `t = x`. Type:
+`apply q2 Q2 S y = S x ∧ y = x y x`
+
+This generates `(S x = S x ∧ x = x) ⇒ ∃y (S y = S x ∧ y = x)`. Now we just need to prove the left side using equality axioms!
+Step 5: Prove reflexivity for `x`! Type: `apply e1 E1 x=x`.
+Step 6: Prove reflexivity for `S x`! Type: `apply e2 E1 S x = S x`.
+Step 7: Combine them into a conjunction using `PC2`. Type: `apply e3 PC2 e1 e2`.
+Step 8: Now apply Modus Ponens to derive our existential statement! Type: `apply f3_proven PC2 q2 e3`.
+Step 9: We have proven `f3`! Now use our unfolded equivalence `e_def` to substitute backwards into `f2`! Type: `apply f2_proven PC2 f3_proven e_def`.
+Step 10: Use our `P` unfolding equivalence `p_def` to substitute backwards into `f1`! Type: `apply f1_proven PC2 f2_proven p_def`.
+
+Now you have fully proven `P S x = x`!
+Step 11: Finally, apply the `QR1` Universal Generalization rule to hit your target goal! Type: `apply goal QR1 f1_proven`.
+--- games/basics of ITP/level22.json ---
+# Level 22: Iota operator
+
+We introduce the `ι` (iota) operator, also known as the definite description operator. You can type it using `03B9` Option+X or by copy-pasting it.
+
+While the epsilon operator `εx P(x)` means 'SOME x that satisfies P(x)', the iota operator `ιx P(x)` strictly means 'THE UNIQUE x that satisfies P(x)'. If exactly one such object exists, it represents that object. If not, its value is arbitrary.
+Because it asserts uniqueness, `ι` unfolds into a slightly more complex logical expression. Specifically, substituting it into a relation `Q(ιx P(x))` expands logically to: `∃y (∀z (P(z) ⇔ y=z) ∧ Q(y))`.
+
+Notice that unfolding `ι` mathematically introduces TWO fresh variables `y` and `z`. Therefore, when you use the `fold` command on `ι`, you must provide TWO fresh variables on the next lines using `Shift+Enter`!
+Let's prove the standard unfolding: `Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)`.
+We have pre-defined two unary relations `P` and `Q` for you in this level.
+Step 1: Create the variables `x`, `y`, and `z` using `cv x y z`.
+Step 2: Create the goal formula `cf goal Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)`.
+Step 3: Create the starting formula `cf f1 Q(ιx P x)`.
+Step 4: Now, use the fold command! Remember that it will prompt you for the TWO fresh variables, so use `Shift+Enter` to provide `y` and then `z` on the subsequent lines:
+```text
+fold ι f1 f2 goal
+y
+z
+```
+
+This completely unfolds the iota operator and generates your equivalence theorem!
+Congratulations on completing the *Basics of ITP* game! Technically you have enough knowledge to be able to prove anything which is provable but you must have experienced that the proving experience is a bit cumbersome, requiring to type a lot even for simple proofs like this one. For such purposes, you need to use more advanced REPL commands which are covered in the next game.

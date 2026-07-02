@@ -3,7 +3,7 @@ from typing import List, Optional, Any
 from AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, Function, FunctionType,
     PropositionalVariable, Relation, RelationType, Connective, Quantifier, MetaVariable,
-    Bracket, Whitespace, SetBuilder, Iota, Epsilon
+    Bracket, Whitespace, SetBuilder, Iota, Epsilon, Constant
 )
 from Environment import Environment
 
@@ -76,6 +76,9 @@ class Parser:
         if op in ("∧",): return 40
         if op in ("=", "∈") or (op in self.env.formulae and isinstance(self.env.formulae[op], Relation) and self.env.formulae[op].arity == 2):
             return 50
+        if op == "+": return 60
+        if op == "*": return 70
+        if op == "^": return 80
         if op in self.env.terms and isinstance(self.env.terms[op], Function) and self.env.terms[op].arity == 2:
             return 60
         return 0
@@ -300,25 +303,29 @@ class Parser:
             return Variable(name=t)
         elif t in self.env.dummy_variables:
             return DummyVariable(name=t)
-        elif t in self.env.terms and isinstance(self.env.terms[t], Function) and self.env.terms[t].name == t:
-            f_def = self.env.terms[t]
-            if f_def.arity == 0:
-                return Function(name=t, arity=0, func_type=f_def.func_type, arguments=[])
-            elif f_def.arity == 1:
-                fmt = self.consume_formatting()
-                right = self.parse_expr(80, "term")
-                right.prefix_formatting = fmt + right.prefix_formatting
-                return Function(name=t, arity=1, func_type=f_def.func_type, arguments=[right])
-            elif f_def.arity > 2:
-                args = []
-                for _ in range(f_def.arity):
+        elif t in self.env.terms:
+            term_def = self.env.terms[t]
+            if isinstance(term_def, Constant):
+                return Constant(name=t)
+            elif isinstance(term_def, Function):
+                f_def = term_def
+                if f_def.arity == 0:
+                    return Function(name=t, arity=0, func_type=f_def.func_type, arguments=[])
+                elif f_def.arity == 1:
                     fmt = self.consume_formatting()
-                    arg = self.parse_expr(0, "term")
-                    arg.prefix_formatting = fmt + arg.prefix_formatting
-                    args.append(arg)
-                return Function(name=t, arity=f_def.arity, func_type=f_def.func_type, arguments=args)
-            elif f_def.arity == 2:
-                raise ParserError(f"Binary function '{t}' cannot be used as prefix.")
+                    right = self.parse_expr(80, "term")
+                    right.prefix_formatting = fmt + right.prefix_formatting
+                    return Function(name=t, arity=1, func_type=f_def.func_type, arguments=[right])
+                elif f_def.arity > 2:
+                    args = []
+                    for _ in range(f_def.arity):
+                        fmt = self.consume_formatting()
+                        arg = self.parse_expr(0, "term")
+                        arg.prefix_formatting = fmt + arg.prefix_formatting
+                        args.append(arg)
+                    return Function(name=t, arity=f_def.arity, func_type=f_def.func_type, arguments=args)
+                elif f_def.arity == 2:
+                    raise ParserError(f"Binary function '{t}' cannot be used as prefix.")
         elif t in self.env.formulae and isinstance(self.env.formulae[t], Relation) and self.env.formulae[t].name == t:
             r_def = self.env.formulae[t]
             if r_def.arity == 0:

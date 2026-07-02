@@ -42,6 +42,11 @@ class Variable(TermNode):
     pass
 
 @dataclass
+class Constant(TermNode):
+    """Represents a mathematical constant."""
+    pass
+
+@dataclass
 class Function(TermNode):
     """Represents an FOL function."""
     arity: int
@@ -149,6 +154,8 @@ def is_structurally_equal(n1: Node, n2: Node) -> bool:
     if type(n1) != type(n2):
         return False
     if isinstance(n1, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
+        return n1.name == n2.name
+    elif isinstance(n1, Constant):
         return n1.name == n2.name
     elif isinstance(n1, (Function, Relation, Connective)):
         if n1.name != n2.name or len(n1.arguments) != len(n2.arguments):

@@ -7,6 +7,11 @@ from ZFC_Rules import (
     axiom_regularity, axiom_infinity, axiom_choice, axiom_specification,
     axiom_replacement
 )
+from NT_Rules import (
+    is_S_injective, is_0_pred, is_add_base, is_add_induction,
+    is_multiply_base, is_multiply_induction, is_power_base,
+    is_power_induction, is_induction
+)
 
 AXIOMS = {
     # Logical Axioms
@@ -25,6 +30,17 @@ AXIOMS = {
     "choice": axiom_choice,
     "specification": axiom_specification,
     "replacement": axiom_replacement,
+    
+    # NT Axioms
+    "S_injective": is_S_injective,
+    "0_pred": is_0_pred,
+    "add_base": is_add_base,
+    "add_induction": is_add_induction,
+    "multiply_base": is_multiply_base,
+    "multiply_induction": is_multiply_induction,
+    "power_base": is_power_base,
+    "power_induction": is_power_induction,
+    "induction": is_induction,
 }
 
 RULES = {

@@ -117,7 +117,7 @@ def load_program(name: str):
         st.session_state.rb_manager.history_pointer = None
         
         st.session_state.active_program = name
-        proof_logger.open()
+        proof_logger.open(use_streamlit=True)
 
 # --- SESSION INITIALIZATION ---
 def init_session():
@@ -1251,14 +1251,13 @@ with tab_programs:
                     st.session_state.chat_history = []
                     st.session_state.command_history = []
                     st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
-                    
                     st.session_state.rb_manager.cleanup()
                     st.session_state.rb_manager.history_commands.clear()
                     st.session_state.rb_manager.permanent_recycle_bin.clear()
                     st.session_state.rb_manager.temporary_recycle_bin.clear()
                     st.session_state.rb_manager.history_pointer = None
                     
-                    proof_logger.open()
+                    proof_logger.open(use_streamlit=True)
                     save_program(new_prog_name)
                     st.rerun()
             else:
@@ -1373,7 +1372,7 @@ with tab_games:
                                 st.session_state.active_program = f"game_{selected_game}_{level_data['id']}"
                                 
                                 # Setup environment
-                                proof_logger.open()
+                                proof_logger.open(use_streamlit=True)
                                 
                                 # Clear existing environment to load fresh
                                 env = Environment()

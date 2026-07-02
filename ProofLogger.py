@@ -25,18 +25,26 @@ class ProofLogger:
 
     def __init__(self):
         self.enabled: bool = False
-        self._file = None
+        self.use_streamlit: bool = False
+        self.filename = None
 
     # ------------------------------------------------------------------ #
     #  Life-cycle                                                          #
     # ------------------------------------------------------------------ #
 
-    def open(self, filename: str = "proofs.md") -> None:
-        """Initialize the proof log in session_state."""
-        import streamlit as st
+    def open(self, filename: str = "proofs.md", use_streamlit: bool = False) -> None:
+        """Initialize the proof log."""
         self.enabled = True
-        if "proofs_html" not in st.session_state:
-            st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
+        self.use_streamlit = use_streamlit
+        self.filename = filename
+        
+        if self.use_streamlit:
+            import streamlit as st
+            if "proofs_html" not in st.session_state:
+                st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
+        else:
+            with open(self.filename, "w", encoding="utf-8") as f:
+                f.write("# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n")
 
     def close(self) -> None:
         """Disable logging."""
@@ -56,18 +64,25 @@ class ProofLogger:
         if not self.enabled:
             return
 
-        import streamlit as st
         try:
             parts = []
             for name, node in premises:
-                parts.append(f"{name}: {reconstruct_string(node, color_mode='html')}")
+                color_mode = 'html' if self.use_streamlit else 'ansi'
+                parts.append(f"{name}: {reconstruct_string(node, color_mode=color_mode)}")
 
             lhs = ", ".join(parts) + " " if parts else ""
-            rhs = f"{conclusion_name}: {reconstruct_string(conclusion_node, color_mode='html')}"
-            line = f"{lhs}⊢ {rhs}  ({justification})<br>\n"
-
-            if "proofs_html" in st.session_state:
-                st.session_state.proofs_html += line
+            rhs = f"{conclusion_name}: {reconstruct_string(conclusion_node, color_mode=color_mode if self.use_streamlit else 'ansi')}"
+            
+            if self.use_streamlit:
+                import streamlit as st
+                line = f"{lhs}⊢ {rhs}  ({justification})<br>\n"
+                if "proofs_html" in st.session_state:
+                    st.session_state.proofs_html += line
+            else:
+                line = f"{lhs}⊢ {rhs}  ({justification})\n"
+                if self.filename:
+                    with open(self.filename, "a", encoding="utf-8") as f:
+                        f.write(line)
         except Exception as e:
             # Never let logging crash the prover
             print(f"[ProofLogger] Warning: failed to write step: {e}", file=sys.stderr)

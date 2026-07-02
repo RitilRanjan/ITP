@@ -1,0 +1,19 @@
+{
+  "id": "level7",
+  "name": "Backwards Reasoning",
+  "guide_hints": [
+    "# Level 7: Backwards Reasoning (`apply2` and `apply3`)\n\nSometimes it's easier to work backwards from the goal rather than forwards from the premises. We have two commands for this: `apply3` and `apply2`.",
+    "`apply3` is Backwards Modus Ponens. If your goal is `B`, and you have a proven implication `A ⇒ B`, typing `apply3 <name of implication>` changes your goal to `A`.",
+    "`apply2` works backwards with Inference Rules (like `QR1` or `PC1`). If your goal matches the output of a rule, `apply2 <RuleName>` computes the required premise and makes THAT your new goal!",
+    "Also note: the `apply` command itself can be used without the `<target>` argument (via the 1-argument rule) to implicitly target the current goal formula.",
+    "### Instructions:\nCreate prop variables `p` and `q`.\nCreate the goal: `cf goal p ⇒ (q ⇒ p)`.\nStart a mission: `mission goal`. Your premise is `p`, goal is `q ⇒ p`.",
+    "Start another mission for the sub-goal: `mission goal`. Your premises are `p` and `q`, goal is `p`.",
+    "Since the goal is `p`, which is already a proven premise, just type `apply goal PC1 p` (or `auto`) to prove it and close the sub-mission.",
+    "Now your goal is `q ⇒ p`. Use `apply goal PC1 p` (or `auto`) to close the main mission!"
+  ],
+  "allowed_commands": ["cV", "cf", "apply", "mission", "apply2", "apply3", "auto", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "p ⇒ (q ⇒ p)",
+  "start_env": null
+}

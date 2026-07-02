@@ -1,0 +1,16 @@
+{
+  "id": "level5",
+  "name": "The intro Command",
+  "guide_hints": [
+    "# Level 5: The intro Command\n\nThe `intro` command is a powerful tool to instantiate or introduce variables for `∀` and `∃` quantifiers, making the use of raw `Q1` and `Q2` axioms unnecessary.",
+    "There are 4 ways to use it:\n1. **`∀` in a premise** (with `<target>`): `intro f1 t`. If `f1` is `∀x P(x)`, this produces `P(t)` where `t` is a term you provide.\n2. **`∃` in a premise** (with `<target>`): `intro f1 v`. If `f1` is `∃x P(x)`, this produces `P(v)` for a *newly created variable* `v`.",
+    "3. **`∀` in the goal** (no `<target>`): `intro`. If the goal is `∀x P(x)`, this changes the goal to `P(v)` for a *newly created variable* `v`.\n4. **`∃` in the goal** (no `<target>`): `intro t`. If the goal is `∃x P(x)`, this changes the goal to `P(t)` where `t` is a term you provide.",
+    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal (∀x x=x) ⇒ y=y`.\nStart a mission: `mission goal`.",
+    "You have premise `f1: ∀x x=x` and goal `y=y`.\nUse the first way: type `intro f1 y`. This will instantiate `x` with `y`, giving you a new proven formula `y=y`.\nNow just type `auto goal` or use `PC1` to close the mission!"
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "mission", "intro", "auto", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(∀x x=x) ⇒ y=y",
+  "start_env": null
+}

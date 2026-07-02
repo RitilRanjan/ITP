@@ -1,0 +1,22 @@
+{
+  "id": "level1",
+  "name": "Creating Terms",
+  "guide_hints": [
+    "# Level 1: Creating Terms (`ct`)\n\nWelcome to advanced REPL commands! These advanced commands are supplementary to the older commands—they don't add new logical capability, but they provide massive ease of use when proving theorems.\n\nIn baking, a \"term\" is like raw dough, and a \"formula\" is the baked cake. In logic, terms are the building blocks you construct before assembling them into formulas.\n\nThe `ct` command allows you to create a standalone term in the environment.",
+    "### Instructions:\nFirst, create a variable `x` by typing `cv x`.",
+    "Next, create a term `S x` using the `ct` command. Type `ct t1 S x`. This creates a term named `t1`.",
+    "Now let's prove a formula using this term. Create the goal: `cf goal S x = S x`.",
+    "Prove it using `apply goal E1`. Since `E1` says any term equals itself, it works!"
+  ],
+  "allowed_commands": ["cv", "ct", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": [],
+  "goal_statement": "S x = S x",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "start_env": null
+}

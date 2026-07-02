@@ -40,6 +40,11 @@ def validate_new_name(env: Environment, name: str, allowed_category: Optional[st
             print("Error: Names starting with '?' are reserved for meta variables only.")
             return False
             
+    if name.isdigit():
+        if allowed_category != "term":
+            print("Error: Pure digits can only be used to name terms.")
+            return False
+            
     clash = False
     if name in env.variables:
         clash = True
@@ -175,6 +180,16 @@ def parse_universal_args(
         global_dict = env.formulae
         local_dict = env.local_formulae
         default_target = env.goal_formula_name
+        
+    # Anti-greedy rollback for ambiguity resolution
+    if occs is not None and len(remaining) == 0 and default_target is None:
+        if len(occs) == 1:
+            # The only parsed occurrence was actually the target term
+            remaining.append(str(occs.pop()))
+            occs = None
+        elif len(occs) > 1:
+            # The last parsed occurrence was the target term
+            remaining.append(str(occs.pop()))
     
     if len(remaining) == 0:
         if default_target is None:

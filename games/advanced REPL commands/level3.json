@@ -1,0 +1,20 @@
+{
+  "id": "level3",
+  "name": "The fold Command In-Place",
+  "guide_hints": [
+    "# Level 3: The fold Command (0-argument rule)\n\nWe previously learned the `fold` command, which unrolls definitions like `∃` or `∈`. We supplied the `<target>` formula and the `<out>` formula name.",
+    "But what if you omit those? This introduces our **0-argument rule** (or omitting optional arguments). If you omit `<target>` and `<out>`, the command acts directly on the *current goal*.",
+    "### System Invariants",
+    "An invariant maintained by our system for consistency: an object created in an ancestor environment can't be modified or deleted in the current environment.",
+    "How does this affect omitting the `<out>` argument? In-place modifications (which omitting `<out>` attempts to do) are only allowed for objects created in the current environment.",
+    "A formula created in some ancestor environment can be proven in the current environment even if it is not the goal formula, but the cons is that once the current mission closes, it will again become an unproven formula.",
+    "### Instructions:\nCreate variable `x`.\nCreate the goal: `cf goal ∃x x=x`.",
+    "Use the `fold` command without providing the target or out arguments. Just type: `fold ∃` and provide a dummy variable name when prompted.",
+    "Notice how it unrolls the goal formula in-place! Finally, prove the unrolled goal by applying `E1` and using `PC1` / `Q2`."
+  ],
+  "allowed_commands": ["cv", "cf", "fold", "apply"],
+  "allowed_axioms": ["E1", "Q2"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "∃x x=x",
+  "start_env": null
+}

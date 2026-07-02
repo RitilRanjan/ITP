@@ -1,0 +1,17 @@
+{
+  "id": "level9",
+  "name": "Left and Right",
+  "guide_hints": [
+    "# Level 9: Left and Right Commands\n\nThe `left` and `right` commands are used to extract information from Conjunctions (`∧`) or to narrow down Disjunctions (`∨`).",
+    "If you apply `left` to a proven premise `A ∧ B`, it extracts `A` as a new proven formula. If you apply `right`, it extracts `B`.",
+    "If your goal is `A ∨ B` and you type `left` (acting on the goal without a target argument), your new goal becomes just `A` (because proving `A` is sufficient to prove `A ∨ B`).",
+    "### Instructions:\nCreate prop variables `p` and `q`.\nCreate the goal: `cf goal (p ∧ q) ⇒ p`.\nStart a mission: `mission goal`.",
+    "You now have premise `f1: p ∧ q` and your goal is `p`.\nType `left f1`. This extracts the left side of the conjunction, generating a proven premise `p`.",
+    "Since your goal is `p` and you now have `p` as a premise, the goal is automatically achieved! Use `auto` or `apply goal PC1 p` to finish."
+  ],
+  "allowed_commands": ["cV", "cf", "apply", "mission", "left", "right", "auto", "exit"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(p ∧ q) ⇒ p",
+  "start_env": null
+}
