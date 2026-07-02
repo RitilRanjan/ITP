@@ -1500,9 +1500,24 @@ with tab_contact:
                         "timestamp": str(datetime.datetime.now())
                     }
                     # We send the data to the Google Apps Script Webhook
-                    response = requests.post(st.secrets["WEBHOOK_URL"], json=payload, timeout=10)
+                    # Apps Script web apps return 200 OK even if they fail internally, so we must parse the JSON
+                    # Wait, requests.post to Google Apps Script returns a 302 redirect to a script.googleusercontent.com URL, which requests follows automatically.
+                    response = requests.post(st.secrets["WEBHOOK_URL"], json=payload, timeout=15)
+                    
                     if response.status_code == 200:
-                        st.success(f"{feedback_type} submitted successfully! A confirmation email has been sent to you.")
+                        try:
+                            # Try to parse the response as JSON (if it's our ContentService output)
+                            resp_json = response.json()
+                            if resp_json.get("status") == "success":
+                                st.success(f"{feedback_type} submitted successfully! A confirmation email has been sent to you.")
+                            else:
+                                st.error(f"Webhook error: {resp_json.get('message', 'Unknown error')}")
+                                st.write("Raw response:", resp_json)
+                        except json.JSONDecodeError:
+                            # If it's not JSON, it might be an HTML error page from Google (e.g. script authorization issue)
+                            st.error(f"Failed to submit. Webhook returned non-JSON response. Ensure your Apps Script is deployed to 'Anyone'.")
+                            with st.expander("Show raw response"):
+                                st.write(response.text)
                     else:
                         st.error(f"Failed to submit. Server returned status code: {response.status_code}")
                 except Exception as e:
