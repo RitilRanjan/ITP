@@ -4,7 +4,7 @@ from typing import List, Callable, Optional, Tuple, Any
 
 from Environment import Environment
 from Frontend import show_environment, lex
-from StorageManager import save_environment_state, load_environment_state, save_history, load_history
+from StorageManager import serialize_environment_state, deserialize_environment_state, serialize_history, deserialize_history
 from AutoProver import auto_prove
 from GraphSearch import forward_search
 from BackwardSearch import backward_search, advanced_search
@@ -42,8 +42,10 @@ def handle_save(env: Environment, args_str: str, command_queue: list = None, inp
         print("Error: A save file with that name already exists.")
         return
     try:
-        save_environment_state(env, filepath)
-        print(f"Saved state to '{filepath}'")
+        content = serialize_environment_state(env)
+        with open(filepath + ".md", "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Saved state to '{filepath}.md'")
     except Exception as e:
         print(f"Error: {e}")
 
@@ -59,11 +61,15 @@ def handle_load(env: Environment, args_str: str, get_default_env, command_queue:
         print("Error: Filename cannot be empty.")
         return None
     filepath = os.path.join("save_files", name)
+    if not filepath.endswith(".md") and not os.path.exists(filepath):
+        filepath += ".md"
     if not os.path.exists(filepath):
         print(f"Error: Save file '{filepath}' not found.")
         return None
     try:
-        new_env = load_environment_state(filepath, get_default_env)
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        new_env = deserialize_environment_state(content, get_default_env)
         print(f"Loaded state from '{filepath}'")
         return new_env
     except Exception as e:
@@ -88,8 +94,10 @@ def handle_save_h(env: Environment, args_str: str, history_commands: list, comma
     try:
         # Extract only command strings if necessary
         clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in history_commands]
-        save_history(clean_history, filepath)
-        print(f"Saved history to '{filepath}'")
+        content = serialize_history(clean_history)
+        with open(filepath + ".md", "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Saved history to '{filepath}.md'")
     except Exception as e:
         print(f"Error: {e}")
 
@@ -105,14 +113,18 @@ def handle_load_h(env: Environment, args_str: str, history_commands: list, comma
         print("Error: Filename cannot be empty.")
         return
     filepath = os.path.join("history_files", name)
+    if not filepath.endswith(".md") and not os.path.exists(filepath):
+        filepath += ".md"
     if not os.path.exists(filepath):
         print(f"Error: History file '{filepath}' not found.")
         return
     try:
-        cmds = load_history(filepath)
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        loaded_history = deserialize_history(content)
         history_commands.clear()
-        command_queue.extend(cmds)
-        print(f"Loaded history from '{filepath}'. Replaying {len(cmds)} commands...")
+        history_commands.extend(loaded_history)
+        print(f"Loaded history from '{filepath}'")
     except Exception as e:
         print(f"Error: {e}")
 

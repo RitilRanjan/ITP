@@ -14,7 +14,9 @@ from Frontend import reconstruct_string
 from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation
 from main import get_default_env
 from ProofLogger import proof_logger
-from StorageManager import save_environment_state, load_environment_state, save_history, load_history
+from StorageManager import serialize_environment_state, deserialize_environment_state, serialize_history, deserialize_history
+from streamlit_javascript import st_javascript
+import streamlit.components.v1 as components
 from Autocomplete import autocomplete_engine
 
 try:
@@ -58,60 +60,63 @@ def ansi_to_html(text: str) -> str:
     return ansi_regex.sub(replacer, html)
 
 # --- PROGRAM MANAGEMENT ---
-PROGRAMS_DIR = "saved_programs"
-os.makedirs(PROGRAMS_DIR, exist_ok=True)
-
-def get_program_dir(name: str) -> str:
-    return os.path.join(PROGRAMS_DIR, name)
-
 def save_program(name: str):
-    p_dir = get_program_dir(name)
-    os.makedirs(p_dir, exist_ok=True)
-    
+    env_state = ""
     if st.session_state.env_chain:
-        save_environment_state(st.session_state.env_chain[-1], os.path.join(p_dir, f"{name}.env_state"))
+        env_state = serialize_environment_state(st.session_state.env_chain[-1])
         
-    with open(os.path.join(p_dir, "chat.json"), "w") as f:
-        json.dump(st.session_state.chat_history, f)
-    with open(os.path.join(p_dir, "cmd.json"), "w") as f:
-        json.dump(st.session_state.command_history, f)
+    if "programs" not in st.session_state.itp_data:
+        st.session_state.itp_data["programs"] = {}
         
+    st.session_state.itp_data["programs"][name] = {
+        "env_state": env_state,
+        "chat_history": st.session_state.chat_history,
+        "command_history": st.session_state.command_history,
+        "proofs_html": st.session_state.get("proofs_html", "")
+    }
+    st.session_state.needs_save = True
     st.success(f"Program '{name}' saved successfully!")
 
 def load_program(name: str):
-    p_dir = get_program_dir(name)
-    env_path = os.path.join(p_dir, f"{name}.env_state")
-    if os.path.exists(env_path):
-        top_env = load_environment_state(env_path)
-        chain = []
-        curr = top_env
-        while curr is not None:
-            chain.append(curr)
-            curr = curr.parent
-        chain.reverse()
-        st.session_state.env_chain = chain
-    else:
-        st.session_state.env_chain = [get_default_env()]
+    prog_data = st.session_state.itp_data.get("programs", {}).get(name)
+    if prog_data:
+        if prog_data.get("env_state"):
+            top_env = deserialize_environment_state(prog_data["env_state"], get_default_env)
+            chain = []
+            curr = top_env
+            while curr is not None:
+                chain.append(curr)
+                curr = curr.parent
+            chain.reverse()
+            st.session_state.env_chain = chain
+        else:
+            st.session_state.env_chain = [get_default_env()]
+            
+        st.session_state.chat_history = prog_data.get("chat_history", [])
+        st.session_state.command_history = prog_data.get("command_history", [])
+        st.session_state.proofs_html = prog_data.get("proofs_html", "")
         
-    chat_path = os.path.join(p_dir, "chat.json")
-    if os.path.exists(chat_path):
-        with open(chat_path, "r") as f:
-            st.session_state.chat_history = json.load(f)
-    else:
-        st.session_state.chat_history = []
-        
-    cmd_path = os.path.join(p_dir, "cmd.json")
-    if os.path.exists(cmd_path):
-        with open(cmd_path, "r") as f:
-            st.session_state.command_history = json.load(f)
-    else:
-        st.session_state.command_history = []
-        
-    st.session_state.active_program = name
-    proof_logger.open(os.path.join(p_dir, "proofs.html"))
+        st.session_state.active_program = name
+        proof_logger.open()
 
 # --- SESSION INITIALIZATION ---
 def init_session():
+    if "itp_data" not in st.session_state:
+        ls_str = st_javascript("localStorage.getItem('itp_data');")
+        if ls_str == 0:
+            st.write("Loading from Local Storage...")
+            st.stop()
+        elif ls_str is None:
+            st.session_state.itp_data = {"programs": {}, "games_progress": {}}
+        else:
+            try:
+                st.session_state.itp_data = json.loads(ls_str)
+            except:
+                st.session_state.itp_data = {"programs": {}, "games_progress": {}}
+    
+    if "needs_save" not in st.session_state:
+        st.session_state.needs_save = False
+        
     if "active_program" not in st.session_state:
         st.session_state.active_program = None
     if "env_chain" not in st.session_state:
@@ -129,11 +134,7 @@ def init_session():
     if "skip_load_hist_confirm" not in st.session_state:
         st.session_state.skip_load_hist_confirm = False
     if "games_progress" not in st.session_state:
-        if os.path.exists("games_progress.json"):
-            with open("games_progress.json", "r") as f:
-                st.session_state.games_progress = json.load(f)
-        else:
-            st.session_state.games_progress = {}
+        st.session_state.games_progress = st.session_state.itp_data.get("games_progress", {})
     if "active_game_state" not in st.session_state:
         st.session_state.active_game_state = {
             "is_playing": False,
@@ -142,6 +143,9 @@ def init_session():
             "goal_ast_str": None,
             "completed": False
         }
+    if "proofs_html" not in st.session_state:
+        st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
+
         
 init_session()
 
@@ -187,137 +191,53 @@ def render_prover_interface(is_game_mode=False):
                 is_env = (st.session_state.active_action == "save_env")
                 title = "Save Environment State" if is_env else "Save Command History"
                 st.write(f"**{title}**")
-                col_input, col_btn = st.columns([4, 1])
-                with col_input:
-                    save_name = st.text_input("Enter filename:", key="save_filename_input", label_visibility="collapsed", placeholder="Enter filename...")
-                with col_btn:
-                    if st.button("Confirm Save", use_container_width=True):
-                        if not save_name:
-                            st.error("Filename cannot be empty.")
-                        else:
-                            folder = "save_files" if is_env else "history_files"
-                            os.makedirs(folder, exist_ok=True)
-                            filepath = os.path.join(folder, save_name)
-                            if os.path.exists(filepath) or os.path.exists(filepath + ".md"):
-                                st.error("A file with that name already exists.")
-                            else:
-                                if is_env:
-                                    save_environment_state(st.session_state.env_chain[-1], filepath)
-                                    st.success(f"Successfully saved environment state to {save_name}!")
-                                else:
-                                    clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in st.session_state.command_history]
-                                    save_history(clean_history, filepath)
-                                    st.success(f"Successfully saved command history to {save_name}!")
-                                st.session_state.active_action = None
-                                st.rerun()
+                
+                if is_env:
+                    data_str = serialize_environment_state(st.session_state.env_chain[-1])
+                    file_name = f"{st.session_state.active_program}_env.md"
+                    mime = "text/markdown"
+                else:
+                    clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in st.session_state.command_history]
+                    data_str = serialize_history(clean_history)
+                    file_name = f"{st.session_state.active_program}_history.md"
+                    mime = "text/markdown"
+                    
+                st.download_button(
+                    label=f"Download {title}",
+                    data=data_str,
+                    file_name=file_name,
+                    mime=mime,
+                    use_container_width=True
+                )
+                if st.button("Close", use_container_width=True):
+                    st.session_state.active_action = None
+                    st.rerun()
                                 
             elif st.session_state.active_action in ["load_env", "load_hist"]:
                 is_env = (st.session_state.active_action == "load_env")
                 title = "Load Environment State" if is_env else "Load Command History"
+                st.write(f"**{title}**")
                 
-                if st.session_state.selected_file:
-                    # Confirmation View
-                    st.write(f"**Confirm {title}**")
-                    st.warning(f"Are you sure you want to load `{st.session_state.selected_file}`? The current {'environment state' if is_env else 'command history'} will be lost.")
-                    
-                    skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
-                    skip_checked = st.checkbox("Don't open this confirmation dialog box from next time", value=st.session_state[skip_key])
-                    if skip_checked != st.session_state[skip_key]:
-                        st.session_state[skip_key] = skip_checked
-                        
-                    col_y, col_n = st.columns([1, 6])
-                    with col_y:
-                        if st.button("Yes, Load It", type="primary", use_container_width=True):
-                            filepath = os.path.join("save_files" if is_env else "history_files", st.session_state.selected_file)
-                            if is_env:
-                                new_env = load_environment_state(filepath, get_default_env)
-                                chain = []
-                                curr = new_env
-                                while curr is not None:
-                                    chain.append(curr)
-                                    curr = curr.parent
-                                chain.reverse()
-                                st.session_state.env_chain = chain
-                            else:
-                                st.session_state.command_history = load_history(filepath)
-                                
-                            st.session_state.active_action = None
-                            st.session_state.selected_file = None
-                            st.rerun()
-                    with col_n:
-                        if st.button("Cancel (X)", use_container_width=False):
-                            st.session_state.selected_file = None
-                            st.rerun()
-                else:
-                    # List View
-                    st.write(f"**{title}**")
-                    folder = "save_files" if is_env else "history_files"
-                    os.makedirs(folder, exist_ok=True)
-                    files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-                    if not files:
-                        st.info("No saved files found.")
+                uploaded_file = st.file_uploader(f"Upload {title} (.md)", type=["md"])
+                if uploaded_file is not None:
+                    file_content = uploaded_file.read().decode("utf-8")
+                    if is_env:
+                        new_env = deserialize_environment_state(file_content, get_default_env)
+                        chain = []
+                        curr = new_env
+                        while curr is not None:
+                            chain.append(curr)
+                            curr = curr.parent
+                        chain.reverse()
+                        st.session_state.env_chain = chain
                     else:
-                        import datetime
-                        file_data = []
-                        for f in files:
-                            path = os.path.join(folder, f)
-                            ctime = os.path.getctime(path)
-                            file_data.append({"name": f, "ctime": ctime})
-                            
-                        sort_by = st.selectbox("Sort By", ["Name (A-Z)", "Name (Z-A)", "Date (Newest First)", "Date (Oldest First)"], label_visibility="collapsed")
-                        if sort_by == "Name (A-Z)":
-                            file_data.sort(key=lambda x: x["name"].lower())
-                        elif sort_by == "Name (Z-A)":
-                            file_data.sort(key=lambda x: x["name"].lower(), reverse=True)
-                        elif sort_by == "Date (Newest First)":
-                            file_data.sort(key=lambda x: x["ctime"], reverse=True)
-                        else:
-                            file_data.sort(key=lambda x: x["ctime"])
-                            
-                        # Display files in a mini scrollable area if there are many
-                        if len(file_data) > 5:
-                            scroll_container = st.container(height=250)
-                        else:
-                            scroll_container = st.container()
-                            
-                        with scroll_container:
-                            for fd in file_data:
-                                col_f, col_d, col_b, col_del = st.columns([5, 3, 2, 1])
-                                with col_f:
-                                    st.write(f"📄 `{fd['name']}`")
-                                with col_d:
-                                    dt_str = datetime.datetime.fromtimestamp(fd["ctime"]).strftime("%Y-%m-%d %H:%M:%S")
-                                    st.write(f"*{dt_str}*")
-                                with col_b:
-                                    if st.button("Load", key=f"btn_load_{fd['name']}_{is_env}", use_container_width=True):
-                                        skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
-                                        if st.session_state[skip_key]:
-                                            # Skip confirmation
-                                            filepath = os.path.join(folder, fd['name'])
-                                            if is_env:
-                                                new_env = load_environment_state(filepath, get_default_env)
-                                                chain = []
-                                                curr = new_env
-                                                while curr is not None:
-                                                    chain.append(curr)
-                                                    curr = curr.parent
-                                                chain.reverse()
-                                                st.session_state.env_chain = chain
-                                            else:
-                                                st.session_state.command_history = load_history(filepath)
-                                            st.session_state.active_action = None
-                                            st.rerun()
-                                        else:
-                                            st.session_state.selected_file = fd['name']
-                                            st.rerun()
-                                with col_del:
-                                    if st.button("🗑️", key=f"btn_del_{fd['name']}_{is_env}", help="Delete this file", use_container_width=True):
-                                        filepath = os.path.join(folder, fd['name'])
-                                        try:
-                                            os.remove(filepath)
-                                        except OSError:
-                                            pass
-                                        st.rerun()
+                        st.session_state.command_history = deserialize_history(file_content)
+                        
+                    st.success(f"Successfully loaded {title}!")
+                    
+                if st.button("Close", use_container_width=True):
+                    st.session_state.active_action = None
+                    st.rerun()
 
 
     col_top1, col_top2 = st.columns(2)
@@ -330,21 +250,19 @@ def render_prover_interface(is_game_mode=False):
 
     with col_top2:
         with st.expander("proofs.html"):
-            p_dir = get_program_dir(st.session_state.active_program)
-            proofs_path = os.path.join(p_dir, "proofs.html")
-            try:
-                with open(proofs_path, "r") as f:
-                    proof_html = f.read()
-                st.components.v1.html(proof_html, height=400, scrolling=True)
-                
-                with open(proofs_path, "rb") as f:
-                    st.download_button(
-                        label="Export proofs.html", 
-                        data=f, 
-                        file_name=f"{st.session_state.active_program}_proofs.html", 
-                        mime="text/html"
-                    )
-            except FileNotFoundError:
+            proof_html = st.session_state.get("proofs_html", "")
+            if len(proof_html) > 100:  # Has more than just header
+                import markdown
+                import streamlit.components.v1 as components
+                html_rendered = markdown.markdown(proof_html)
+                components.html(html_rendered, height=400, scrolling=True)
+                st.download_button(
+                    label="Export proofs.md", 
+                    data=proof_html.encode("utf-8"), 
+                    file_name=f"{st.session_state.active_program}_proofs.md", 
+                    mime="text/markdown"
+                )
+            else:
                 st.write("No proofs generated yet. Prove a theorem to generate the log!")
 
     st.divider()
@@ -1148,8 +1066,8 @@ def render_prover_interface(is_game_mode=False):
                                 st.session_state.active_game_state["completed"] = True
                                 level_id = st.session_state.active_game_state["level_id"]
                                 st.session_state.games_progress[level_id] = True
-                                with open("games_progress.json", "w") as f_prog:
-                                    json.dump(st.session_state.games_progress, f_prog)
+                                st.session_state.itp_data["games_progress"] = st.session_state.games_progress
+                                st.session_state.needs_save = True
                                 break
                 except Exception as e:
                     print(f"Error: {e}")
@@ -1209,7 +1127,7 @@ with tab_programs:
         if is_in_game:
             st.info("You are currently in Game Mode. Return to the Games tab to continue playing, or exit the game to load a different program.")
         
-        programs = [d for d in os.listdir(PROGRAMS_DIR) if os.path.isdir(os.path.join(PROGRAMS_DIR, d))]
+        programs = list(st.session_state.itp_data.get("programs", {}).keys())
         if not programs:
             st.write("No programs created yet.")
         else:
@@ -1234,10 +1152,9 @@ with tab_programs:
                     st.session_state.env_chain = [get_default_env()]
                     st.session_state.chat_history = []
                     st.session_state.command_history = []
+                    st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
                     
-                    p_dir = get_program_dir(new_prog_name)
-                    os.makedirs(p_dir, exist_ok=True)
-                    proof_logger.open(os.path.join(p_dir, "proofs.html"))
+                    proof_logger.open()
                     save_program(new_prog_name)
                     st.rerun()
             else:
@@ -1352,9 +1269,7 @@ with tab_games:
                                 st.session_state.active_program = f"game_{selected_game}_{level_data['id']}"
                                 
                                 # Setup environment
-                                p_dir = get_program_dir(st.session_state.active_program)
-                                os.makedirs(p_dir, exist_ok=True)
-                                proof_logger.open(os.path.join(p_dir, "proofs.html"))
+                                proof_logger.open()
                                 
                                 # Clear existing environment to load fresh
                                 env = Environment()
@@ -1370,7 +1285,9 @@ with tab_games:
                                     # load the start env from the game directory
                                     start_env_path = os.path.join(game_path, level_data["start_env"])
                                     if os.path.exists(start_env_path):
-                                        env.load_state(start_env_path)
+                                        with open(start_env_path, "r", encoding="utf-8") as f:
+                                            start_env_content = f.read()
+                                        env = deserialize_environment_state(start_env_content, get_default_env)
                                 st.session_state.env_chain = [env]
                                 st.session_state.chat_history = []
                                 st.session_state.command_history = []
@@ -1481,3 +1398,9 @@ with tab_contact:
                     st.error(f"Failed to submit: {e}")
             else:
                 st.warning("Please enter some text before submitting.")
+
+if st.session_state.get("needs_save", False):
+    val_str = json.dumps(st.session_state.itp_data).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"')
+    js = f"<script>window.parent.localStorage.setItem('itp_data', \"{val_str}\");</script>"
+    components.html(js, height=0, width=0)
+    st.session_state.needs_save = False

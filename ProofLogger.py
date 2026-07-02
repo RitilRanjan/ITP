@@ -32,29 +32,14 @@ class ProofLogger:
     # ------------------------------------------------------------------ #
 
     def open(self, filename: str = "proofs.md") -> None:
-        """Create/truncate the proof file and enable logging."""
-        try:
-            mode = "a" if os.path.exists(filename) else "w"
-            self._file = open(filename, mode, encoding="utf-8")
-            self.enabled = True
-            if mode == "w":
-                self._file.write("# Foundational Proof Log\n")
-                self._file.write("**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n")
-                self._file.write("---\n")
-            self._file.flush()
-        except OSError as e:
-            print(f"[ProofLogger] Warning: could not open '{filename}': {e}", file=sys.stderr)
-            self.enabled = False
+        """Initialize the proof log in session_state."""
+        import streamlit as st
+        self.enabled = True
+        if "proofs_html" not in st.session_state:
+            st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
 
     def close(self) -> None:
-        """Flush and close the proof file."""
-        if self._file is not None:
-            try:
-                self._file.flush()
-                self._file.close()
-            except OSError:
-                pass
-            self._file = None
+        """Disable logging."""
         self.enabled = False
 
     # ------------------------------------------------------------------ #
@@ -68,9 +53,10 @@ class ProofLogger:
         conclusion_node: Node,
         justification: str,
     ) -> None:
-        if not self.enabled or self._file is None:
+        if not self.enabled:
             return
 
+        import streamlit as st
         try:
             parts = []
             for name, node in premises:
@@ -80,8 +66,8 @@ class ProofLogger:
             rhs = f"{conclusion_name}: {reconstruct_string(conclusion_node, color_mode='html')}"
             line = f"{lhs}⊢ {rhs}  ({justification})<br>\n"
 
-            self._file.write(line)
-            self._file.flush()
+            if "proofs_html" in st.session_state:
+                st.session_state.proofs_html += line
         except Exception as e:
             # Never let logging crash the prover
             print(f"[ProofLogger] Warning: failed to write step: {e}", file=sys.stderr)

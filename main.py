@@ -74,9 +74,7 @@ from SubstitutionManager import (
     substitute_free, substitute_bound, substitute_all, substitute_term, substitute_proposition,
     is_substitutable_free, is_substitutable_bound, clone_ast, get_term_vars
 )
-from StorageManager import (
-    save_environment_state, load_environment_state, save_history, load_history
-)
+
 from AutoProver import auto_prove
 from GraphSearch import forward_search
 from BackwardSearch import backward_search, advanced_search

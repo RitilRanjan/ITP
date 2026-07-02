@@ -21,134 +21,124 @@ def get_env_chain(env: Environment) -> List[Environment]:
     chain.reverse()
     return chain
 
-def save_environment_state(env: Environment, filepath: str) -> None:
-    """Serializes the entire environment stack into a human-readable Markdown format."""
+def serialize_environment_state(env: Environment) -> str:
+    """Serializes the entire environment stack into a human-readable Markdown format and returns it as a string."""
     chain = get_env_chain(env)
     
-    # Enforce .md extension
-    if not filepath.endswith(".md"):
-        filepath += ".md"
+    import io
+    f = io.StringIO()
+    f.write("# Environment State\n\n")
+    f.write("This file contains the saved state of the theorem prover.\n\n")
     
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write("# Environment State\n\n")
-        f.write("This file contains the saved state of the theorem prover.\n\n")
-        
-        # 1. Write the pretty HTML summary
-        for idx, e in enumerate(chain):
-            if e.parent is None:
-                header = "Ground Environment"
+    # 1. Write the pretty HTML summary
+    for idx, e in enumerate(chain):
+        if e.parent is None:
+            header = "Ground Environment"
+        else:
+            orig = getattr(e, "original_goal_formula_name", e.goal_formula_name)
+            ar = getattr(e, "and_right_formula_name", None)
+            if orig != e.goal_formula_name and ar:
+                header = f"Child Environment (Original: {orig} &rarr; &Psi;: {e.goal_formula_name}, &Phi;: {ar})"
+            elif orig != e.goal_formula_name:
+                header = f"Child Environment (Original: {orig} &rarr; Current: {e.goal_formula_name})"
             else:
-                orig = getattr(e, "original_goal_formula_name", e.goal_formula_name)
-                ar = getattr(e, "and_right_formula_name", None)
-                if orig != e.goal_formula_name and ar:
-                    header = f"Child Environment (Original: {orig} &rarr; &Psi;: {e.goal_formula_name}, &Phi;: {ar})"
-                elif orig != e.goal_formula_name:
-                    header = f"Child Environment (Original: {orig} &rarr; Current: {e.goal_formula_name})"
-                else:
-                    header = f"Child Environment (Goal: {e.goal_formula_name})"
-                    
-            f.write(f"## {header}\n\n")
-            
-            # Formulate lists
-            f.write(f"- **Variables**: {', '.join(e.local_variables.keys()) or 'None'}\n")
-            f.write(f"- **Theorems**: {len(e.local_theorems)}\n\n")
-            
-            # Print proven theorems beautifully
-            if e.local_theorems:
-                f.write("### Proven Theorems\n")
-                for k in e.local_theorems:
-                    v = e.local_formulae[k]
-                    f.write(f"- **{k}**: {reconstruct_string(v, color_mode='html')}\n")
-                f.write("\n")
+                header = f"Child Environment (Goal: {e.goal_formula_name})"
                 
-            f.write("---\n\n")
-            
-        # 2. Write the machine-readable ITP block
-        f.write("## Data Payload\n")
-        f.write("```itp\n")
-        for idx, e in enumerate(chain):
-            f.write(f"[Environment {idx}]\n")
-            f.write(f"Goal: {e.goal_formula_name}\n")
-            f.write(f"Original Goal: {e.original_goal_formula_name}\n")
-            f.write(f"And Right: {e.and_right_formula_name}\n")
-            f.write(f"Target Proven: {e.target_proven_formula_name}\n")
-            
-            is_ground = (idx == 0)
-            
-            # Variables
-            vars_list = []
-            for name in e.local_variables.keys():
-                if is_ground and name in {"x", "y"}:
-                    continue
-                vars_list.append(name)
-            f.write(f"Variables: {', '.join(vars_list)}\n")
-            
-            # Dummy Variables
-            dummies = list(e.local_dummy_variables.keys())
-            f.write(f"Dummy Variables: {', '.join(dummies)}\n")
-            
-            # Meta Variables
-            metas = list(e.local_meta_variables.keys())
-            f.write(f"Meta Variables: {', '.join(metas)}\n")
-            
-            # Propositional Variables
-            props_list = []
-            for name in e.local_propositional_variables.keys():
-                if is_ground and name in {"p", "q"}:
-                    continue
-                props_list.append(name)
-            f.write(f"Propositional Variables: {', '.join(props_list)}\n")
-            
-            # User Functions
-            f.write("User Functions:\n")
-            for name, (arity, definition) in e.local_user_functions.items():
-                func_node = e.local_terms.get(name)
-                func_type = func_node.func_type.name if func_node else "USER_DEFINED"
-                def_str = reconstruct_string(definition, color_mode="none")
-                f.write(f"  {name} | {arity} | {func_type} | {def_str}\n")
-                
-            # User Relations
-            f.write("User Relations:\n")
-            for name, (arity, definition) in e.local_user_relations.items():
-                def_str = reconstruct_string(definition, color_mode="none")
-                f.write(f"  {name} | {arity} | {def_str}\n")
-                
-            # Terms
-            f.write("Terms:\n")
-            for name, term_node in e.local_terms.items():
-                if is_ground and name in {"S", "+"}: continue
-                if isinstance(term_node, Function) and name == term_node.name: continue
-                def_str = reconstruct_string(term_node, color_mode="none")
-                f.write(f"  {name} | {def_str}\n")
-                
-            # Formulae
-            f.write("Formulae:\n")
-            for name, formula_node in e.local_formulae.items():
-                if is_ground and name in {"=", "∈"}: continue
-                if isinstance(formula_node, Relation) and name == formula_node.name: continue
-                def_str = reconstruct_string(formula_node, color_mode="none")
-                f.write(f"  {name} | {def_str}\n")
-                
-            # Theorems
-            f.write("Theorems:\n")
-            for name in e.local_theorems:
-                theorem_node = e.local_formulae[name]
-                def_str = reconstruct_string(theorem_node, color_mode="none")
-                f.write(f"  {name} | {def_str}\n")
-                
+        f.write(f"## {header}\n\n")
+        
+        # Formulate lists
+        f.write(f"- **Variables**: {', '.join(e.local_variables.keys()) or 'None'}\n")
+        f.write(f"- **Theorems**: {len(e.local_theorems)}\n\n")
+        
+        # Print proven theorems beautifully
+        if e.local_theorems:
+            f.write("### Proven Theorems\n")
+            for k in e.local_theorems:
+                v = e.local_formulae[k]
+                f.write(f"- **{k}**: {reconstruct_string(v, color_mode='html')}\n")
             f.write("\n")
-        f.write("```\n")
+            
+        f.write("---\n\n")
+        
+    # 2. Write the machine-readable ITP block
+    f.write("## Data Payload\n")
+    f.write("```itp\n")
+    for idx, e in enumerate(chain):
+        f.write(f"[Environment {idx}]\n")
+        f.write(f"Goal: {e.goal_formula_name}\n")
+        f.write(f"Original Goal: {e.original_goal_formula_name}\n")
+        f.write(f"And Right: {e.and_right_formula_name}\n")
+        f.write(f"Target Proven: {e.target_proven_formula_name}\n")
+        
+        is_ground = (idx == 0)
+        
+        # Variables
+        vars_list = []
+        for name in e.local_variables.keys():
+            if is_ground and name in {"x", "y"}:
+                continue
+            vars_list.append(name)
+        f.write(f"Variables: {', '.join(vars_list)}\n")
+        
+        # Dummy Variables
+        dummies = list(e.local_dummy_variables.keys())
+        f.write(f"Dummy Variables: {', '.join(dummies)}\n")
+        
+        # Meta Variables
+        metas = list(e.local_meta_variables.keys())
+        f.write(f"Meta Variables: {', '.join(metas)}\n")
+        
+        # Propositional Variables
+        props_list = []
+        for name in e.local_propositional_variables.keys():
+            if is_ground and name in {"p", "q"}:
+                continue
+            props_list.append(name)
+        f.write(f"Propositional Variables: {', '.join(props_list)}\n")
+        
+        # User Functions
+        f.write("User Functions:\n")
+        for name, (arity, definition) in e.local_user_functions.items():
+            func_node = e.local_terms.get(name)
+            func_type = func_node.func_type.name if func_node else "USER_DEFINED"
+            def_str = reconstruct_string(definition, color_mode="none")
+            f.write(f"  {name} | {arity} | {func_type} | {def_str}\n")
+            
+        # User Relations
+        f.write("User Relations:\n")
+        for name, (arity, definition) in e.local_user_relations.items():
+            def_str = reconstruct_string(definition, color_mode="none")
+            f.write(f"  {name} | {arity} | {def_str}\n")
+            
+        # Terms
+        f.write("Terms:\n")
+        for name, term_node in e.local_terms.items():
+            if is_ground and name in {"S", "+"}: continue
+            if isinstance(term_node, Function) and name == term_node.name: continue
+            def_str = reconstruct_string(term_node, color_mode="none")
+            f.write(f"  {name} | {def_str}\n")
+            
+        # Formulae
+        f.write("Formulae:\n")
+        for name, formula_node in e.local_formulae.items():
+            if is_ground and name in {"=", "∈"}: continue
+            if isinstance(formula_node, Relation) and name == formula_node.name: continue
+            def_str = reconstruct_string(formula_node, color_mode="none")
+            f.write(f"  {name} | {def_str}\n")
+            
+        # Theorems
+        f.write("Theorems:\n")
+        for name in e.local_theorems:
+            theorem_node = e.local_formulae[name]
+            def_str = reconstruct_string(theorem_node, color_mode="none")
+            f.write(f"  {name} | {def_str}\n")
+            
+        f.write("\n")
+    f.write("```\n")
+    return f.getvalue()
 
-def load_environment_state(filepath: str, get_default_env_func) -> Environment:
-    """Loads and reconstructs the environment stack from a saved file."""
-    if not filepath.endswith(".md") and not os.path.exists(filepath):
-        filepath += ".md"
-        
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"State file '{filepath}' not found.")
-        
-    with open(filepath, "r", encoding="utf-8") as f:
-        full_content = f.read()
+def deserialize_environment_state(full_content: str, get_default_env_func) -> Environment:
+    """Loads and reconstructs the environment stack from a saved markdown string."""
         
     # Extract the payload inside ```itp ... ```
     match = re.search(r"```itp\n(.*?)```", full_content, re.DOTALL)
@@ -342,24 +332,17 @@ def load_environment_state(filepath: str, get_default_env_func) -> Environment:
         
     return active_env
 
-def save_history(commands: List[str], filepath: str) -> None:
-    if not filepath.endswith(".md"):
-        filepath += ".md"
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write("# Command History\n\n")
-        f.write("```\n")
-        for cmd in commands:
-            f.write(cmd + "\n")
-        f.write("```\n")
+def serialize_history(commands: List[str]) -> str:
+    import io
+    f = io.StringIO()
+    f.write("# Command History\n\n")
+    f.write("```\n")
+    for cmd in commands:
+        f.write(cmd + "\n")
+    f.write("```\n")
+    return f.getvalue()
 
-def load_history(filepath: str) -> List[str]:
-    if not filepath.endswith(".md") and not os.path.exists(filepath):
-        filepath += ".md"
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"History file '{filepath}' not found.")
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
-    
+def deserialize_history(content: str) -> List[str]:
     match = re.search(r"```\n(.*?)```", content, re.DOTALL)
     if match:
         lines = match.group(1).splitlines()
