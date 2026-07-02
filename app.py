@@ -4,6 +4,20 @@ import contextlib
 import re
 import os
 import json
+import zipfile
+
+@st.cache_data
+def get_desktop_zip():
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for root, dirs, files in os.walk("."):
+            if ".git" in root or "__pycache__" in root or ".gemini" in root or ".venv" in root or "scratch" in root:
+                continue
+            for file in files:
+                if file.endswith(".py") or file.endswith(".txt") or file.endswith(".md"):
+                    file_path = os.path.join(root, file)
+                    zip_file.write(file_path, os.path.relpath(file_path, "."))
+    return zip_buffer.getvalue()
 
 # Set page config for wider layout
 st.set_page_config(page_title="Interactive Theorem Prover", layout="wide")
@@ -1191,6 +1205,18 @@ with tab_home:
     st.markdown("1. Head over to the **Games** tab.")
     st.markdown("2. Select the **basics of ITP** game.")
     st.markdown("3. Play all the levels sequentially from Level 1 to Level 22 to master the system!")
+    
+    st.markdown("---")
+    st.markdown("### Desktop / Terminal Version")
+    st.markdown("Want to run the Interactive Theorem Prover in your own local terminal instead? You can download the entire source code here. Extract the zip file and run `python main.py` to start the CLI version!")
+    
+    zip_bytes = get_desktop_zip()
+    st.download_button(
+        label="⬇️ Download Desktop Version (ZIP)",
+        data=zip_bytes,
+        file_name="itp_desktop_version.zip",
+        mime="application/zip"
+    )
 
 with tab_programs:
     is_in_game = st.session_state.active_game_state.get("is_playing", False)

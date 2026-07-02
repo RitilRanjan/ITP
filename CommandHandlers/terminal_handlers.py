@@ -86,4 +86,11 @@ def handle_help(env: Environment, args_str: str) -> None:
     print("  show                        Show the current environment state")
     print("  save / load                 Save/Load environment state to disk")
     print("  save_h / load_h             Save/Load command history to disk")
+    
+    print("\n" + _blue(_bold("── Recycle Bin & Memory Management ────────────────────────────────────────────────")))
+    print("  undo                        Revert the last environment change")
+    print("  redo                        Restore the last undone environment change")
+    print("  rb_stat                     View current recycle bin sizes")
+    print("  rb_empty [perm|temp] [n]    Empty the recycle bins from memory")
+    print("  rb_swap  <perm|temp> <n>    Swap bottom N items to disk (pickle) to save RAM")
     print("=" * W)
