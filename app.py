@@ -1481,29 +1481,38 @@ with tab_contact:
             if advice_text.strip():
                 try:
                     import datetime
-                    with open("complaints.json", "a") as f:
-                        entry = {"type": "advice", "timestamp": str(datetime.datetime.now()), "text": advice_text}
-                        f.write(json.dumps(entry) + "\n")
-                    st.success("Advice submitted successfully! Thank you.")
-                except Exception as e:
-                    st.error(f"Failed to submit: {e}")
-            else:
+    with st.expander("Contact Us (Feedback & Suggestions)"):
+        st.write("We'd love to hear from you! Please let us know about any bugs, or share your suggestions for the game.")
+        
+        feedback_type = st.radio("Type", ["Suggestion", "Complaint"], horizontal=True)
+        user_email = st.text_input("Your Email Address")
+        feedback_text = st.text_area("Description:")
+        
+        if st.button("Submit"):
+            if not user_email.strip():
+                st.warning("Please enter your email address so we can confirm receipt.")
+            elif not feedback_text.strip():
                 st.warning("Please enter some text before submitting.")
-
-    with st.expander("Submit a Complaint"):
-        complaint_text = st.text_area("Your Complaint / Bug Report:", key="complaint_text")
-        if st.button("Submit Complaint"):
-            if complaint_text.strip():
+            elif "WEBHOOK_URL" not in st.secrets:
+                st.error("Server is not configured to receive feedback yet (WEBHOOK_URL missing in secrets).")
+            else:
                 try:
+                    import requests
                     import datetime
-                    with open("complaints.json", "a") as f:
-                        entry = {"type": "complaint", "timestamp": str(datetime.datetime.now()), "text": complaint_text}
-                        f.write(json.dumps(entry) + "\n")
-                    st.success("Complaint submitted successfully! Thank you.")
+                    payload = {
+                        "type": feedback_type,
+                        "email": user_email.strip(),
+                        "text": feedback_text.strip(),
+                        "timestamp": str(datetime.datetime.now())
+                    }
+                    # We send the data to the Google Apps Script Webhook
+                    response = requests.post(st.secrets["WEBHOOK_URL"], json=payload, timeout=10)
+                    if response.status_code == 200:
+                        st.success(f"{feedback_type} submitted successfully! A confirmation email has been sent to you.")
+                    else:
+                        st.error(f"Failed to submit. Server returned status code: {response.status_code}")
                 except Exception as e:
                     st.error(f"Failed to submit: {e}")
-            else:
-                st.warning("Please enter some text before submitting.")
 
 if st.session_state.get("needs_save", False):
     val_str = json.dumps(st.session_state.itp_data).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"')
