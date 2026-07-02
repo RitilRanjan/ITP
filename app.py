@@ -1198,9 +1198,9 @@ with tab_home:
         
     st.markdown("---")
     st.markdown("### Getting Started")
-    st.markdown("1. Head over to the **Programs** tab.")
-    st.markdown("2. Click **Create New Program** to establish a fresh workspace.")
-    st.markdown("3. Open the **Help** tab if you need a quick reference to the command syntax!")
+    st.markdown("1. Head over to the **Games** tab.")
+    st.markdown("2. Select the **basics of ITP** game.")
+    st.markdown("3. Play all the levels sequentially from Level 1 to Level 22 to master the system!")
 
 with tab_programs:
     is_in_game = st.session_state.active_game_state.get("is_playing", False)
