@@ -1,0 +1,23 @@
+{
+  "id": "level18",
+  "name": "Uniquely existing",
+  "guide_hints": [
+    "# Level 18: Uniquely existing\n\nWe introduce the `∃!` quantifier, which stands for 'there exists exactly one' or 'uniquely existing'. You can type it by entering `2203` Option+X followed by `!`, or simply copy-paste it.\n\nThe statement `∃!x P(x)` asserts that there is one and only one `x` that satisfies `P(x)`. Logically, this means: 'There is some `x` such that for any `y`, `y` satisfies `P` if and only if `y = x`'.",
+    "Because unfolding `∃!` mathematically introduces a brand new variable `y` into the logical statement (as seen in `∃x ∀y (P(y) ⇔ y=x)`), the `fold` command cannot just guess the name of this variable—it needs your explicit input to ensure it doesn't accidentally capture or collide with an existing variable!\n\nWhen you run the `fold ∃!` command, the interactive prover prompts you for a fresh variable name. You can supply it by typing it on the next line using `Shift+Enter` in the chat input box!",
+    "Let's prove a simple formula that demonstrates this: `(∃!x x=x) ⇔ (∃x ∀y (y=y ⇔ y=x))`.\n\nStep 1: First, create the variables `x` and `y` using `cv x y`.\nStep 2: Create the goal formula exactly as above using `cf goal (∃!x x=x) ⇔ (∃x ∀y (y=y ⇔ y=x))`.",
+    "Step 3: Now let's construct the left side. Create `cf f1 ∃!x x=x`.",
+    "Step 4: Finally, let's unfold it! We want to unfold `∃!` in `f1`, store the result in `f2`, and save the equivalence theorem directly into `goal`.\n\nBut wait! We need to provide the fresh variable `y` to the fold command. Type this exactly (use `Shift+Enter` to create the new line):\n```text\nfold ∃! f1 f2 goal\ny\n```\n\nThis will execute the command and answer the prompt with `y` simultaneously! The equivalence theorem will be generated, and your goal will be successfully proven!"
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "fold"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(∃!x x = x) ⇔ (∃x ∀y (y = y ⇔ y = x))",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "=",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

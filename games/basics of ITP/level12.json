@@ -1,0 +1,19 @@
+{
+  "id": "level12",
+  "name": "QR2 Inference Rule",
+  "guide_hints": [
+    "# Level 12: QR2 Inference Rule\n\nThe `QR2` rule is the existential counterpart to `QR1`. It states that if `φ ⇒ ψ` is proven, and the variable `x` is **not free** in `ψ` and **not bound** in `φ`, we can deduce `(∃x φ) ⇒ ψ`. Intuitively, if knowing `φ` about an arbitrary `x` implies a conclusion that doesn't depend on `x`, then just knowing that *some* `x` satisfies `φ` is enough to reach the same conclusion.",
+    "### Step 1:\nCreate the variables `x` and `y` using `cv x` and `cv y`.",
+    "### Step 2:\nCreate the goal formula: `cf goal (∃y y=y) ⇒ x=x`.\nHere we are quantifying over `y`.",
+    "### Step 3:\nCreate the premise formula: `cf f1 y=y ⇒ x=x`.\nProve it using `E1` and `PC1` just like you did in the previous level.",
+    "### Step 4:\nApply the `QR2` rule to prove the goal! The prover will verify the free/bounded variable conditions before applying it.\nType: `apply goal QR2 f1`.",
+    "All the axioms and inference rules we have developed so far are called *logical axioms and logical inference rules* respectively. Together, they comprise the *deductive system*. You can safely assume that the deductive system which we are currently using will be fixed from now onwards since it used in almost entire of maths, computer science, every day life and infact anywhere logic is used. There may be other equivalent versions, for example instead of PC inference rules, there will be modus ponens, modus tolens, excluded middle etc."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": ["PC1", "QR2"],
+  "goal_statement": "(∃y y = y) ⇒ x = x",
+  "default_functions": [],
+  "default_relations": [],
+  "start_env": null
+}

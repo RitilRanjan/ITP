@@ -1,0 +1,27 @@
+{
+  "id": "level14",
+  "name": "negation symbol",
+  "guide_hints": [
+    "# Level 14: Negation Symbol\n\nThe negation symbol `¬` is a unary logical connective that reverses the truth value of a formula. If `A` is true, `¬A` is false. To type it:\n- Mac: Type the hex code `00AC` while holding the Option button, or try Option + L depending on keyboard layout.\n- Windows: Use Alt + `0172`.\n- Or, simply **copy and paste** it from here: `¬`.",
+    "The goal formula appears to have been easily proved using PC inference rule if `∀` was not there. So the question is how to introduce `∀` symbol in some proved formula?",
+    "### Step 1:\nThe `QR1` rule can introduce a `∀`! Remember `QR1`? It says `ψ ⇒ φ ⊢ ψ ⇒ (∀x φ)`. We can use this to introduce the `∀` over our target formula. Let's create our variables `x` and `y` using `cv`.",
+    "### Step 2:\nCreate the goal formula: `cf goal ∀x ¬x∈x ∨ x∈x`.",
+    "### Step 3:\nWe need a tautology for `ψ` that doesn't contain `x` as a free variable so that `QR1` will legally apply. Let's use `y=y`. Create it and prove it using `E1`: `cf f1 y=y` followed by `apply f1 E1`.",
+    "### Step 4:\nNow create the implication connecting our dummy tautology `y=y` to our target formula (without the quantifier). Create `cf f2 y=y ⇒ ¬x∈x ∨ x∈x`.\nSince the right side is a tautology (the law of excluded middle), we can prove this implication directly using PC inference. Type: `apply f2 PC1`.",
+    "### Step 5:\nNow apply the `QR1` rule on `f2` to introduce the universal quantifier! Create the formula `cf f3 y=y ⇒ ∀x ¬x∈x ∨ x∈x`.\nProve it by typing: `apply f3 QR1 f2`.",
+    "### Step 6:\nFinally, we know `f1` is true and `f3` is true, so use `PC1` to deduce the goal! Type: `apply goal PC1 f1 f3`.",
+    "I hope you remember the precedence order of operands which was mentioned to you before. Quantifier symbols have the **lowest** precedence among all operators! That means their scope extends as far right as possible until bounded by parentheses. That's why `∀x ¬x∈x ∨ x∈x` is parsed with the quantifier covering the entire `∨` statement."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": ["PC1", "PC2", "QR1"],
+  "goal_statement": "∀x ¬x ∈ x ∨ x ∈ x",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

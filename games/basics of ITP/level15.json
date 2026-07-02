@@ -1,0 +1,25 @@
+{
+  "id": "level15",
+  "name": "Syllogism",
+  "guide_hints": [
+    "# Level 15: Syllogism\n\nSuppose all human beings are animals and all animals are living organisms. Can we say that all human beings are living organisms? If you have studied syllogism, you would know that the answer is true. Now we will prove it rigorously. \n\nThe goal formula is `((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (∀x x∈H ⇒ x∈L)`.",
+    "### Step 1:\nCreate the required variables: `x`, `H`, `A`, and `L` using `cv`.",
+    "### Step 2:\nCreate the goal formula: `cf goal ((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (∀x x∈H ⇒ x∈L)`.\nMake sure you copy the brackets exactly!",
+    "### Step 3:\nWe'll use Universal Instantiation (`Q1`) to unpack the premises. First, instantiate the human-to-animal premise. Create `cf f1 (∀x x∈H ⇒ x∈A) ⇒ (x∈H ⇒ x∈A)` and prove it using `Q1`: `apply f1 Q1`.",
+    "### Step 4:\nNow instantiate the animal-to-living organism premise. Create `cf f2 (∀x x∈A ⇒ x∈L) ⇒ (x∈A ⇒ x∈L)` and prove it using `Q1`: `apply f2 Q1`.",
+    "### Step 5:\nNow we chain these facts together logically using `PC1`. Create an intermediate formula linking the combined premises to the unquantified conclusion: `cf f3 ((∀x x∈H ⇒ x∈A) ∧ (∀x x∈A ⇒ x∈L)) ⇒ (x∈H ⇒ x∈L)`.\nProve it by tying `f1` and `f2` together: `apply f3 PC1 f1 f2`.",
+    "### Step 6:\nFinally, we want to generalize this back to 'for all x'. Notice that the variable `x` is *not free* in the premise (the left side of `f3`) because every instance of `x` is safely bounded by the `∀x` quantifiers! Therefore, we can safely apply the `QR1` rule to introduce `∀x` on the conclusion. Type: `apply goal QR1 f3`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["Q1"],
+  "allowed_rules": ["PC1", "PC2", "QR1"],
+  "goal_statement": "((∀x x ∈ H ⇒ x ∈ A) ∧ (∀x x ∈ A ⇒ x ∈ L)) ⇒ (∀x x ∈ H ⇒ x ∈ L)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

@@ -1,0 +1,27 @@
+{
+  "id": "level6",
+  "name": "PC inference rule 2",
+  "guide_hints": [
+    "# Level 6: PC Inference Rule 2\n\nNow we have a challenge for you to prove a complicated statement: `(x=y ∧ y=z) ⇒ ((x=x ∨ y=z) ⇒ (x=y ∨ z=z))`.",
+    "**The OR Operator:**\nThe `∨` (OR) symbol is a binary connective that evaluates to true if at least one of its subformulas is true. To type it:\n- Mac: Type the hex code `2228` while holding the Option button.\n- Windows: Use Alt + hex code, or Android long press.\n- Or, simply **copy and paste** it from here: `∨`.",
+    "**Strategy:**\nYou need to 1st prove `(x=y ∧ y=z) ⇒ (x=x ∧ x=y ∧ y=z ∧ z=z)` so that you can use E3 axiom.",
+    "### Step 1:\nFirst, create the three variables `x`, `y`, and `z` using `cv x`, `cv y`, and `cv z`.",
+    "### Step 2:\nCreate the goal formula: `cf goal (x=y ∧ y=z) ⇒ ((x=x ∨ y=z) ⇒ (x=y ∨ z=z))`.",
+    "### Step 3:\nCreate formulas `f1 x=x` and `f2 z=z`, then prove them using `apply f1 E1` and `apply f2 E1`.",
+    "### Step 4:\nNow create the intermediate formula: `cf f3 (x=y ∧ y=z) ⇒ (x=x ∧ x=y ∧ y=z ∧ z=z)`.\nProve it by applying `PC1` and passing our proven formulas `f1` and `f2` as premises: `apply f3 PC1 f1 f2`.",
+    "### Step 5:\nNow you can create the appropriate formulas using the `E3` axiom and apply `PC1` again to deduce the final goal!",
+    "**Operator Precedence:**\nSince there are a lot of operators, it is necessary to keep operator precedence in mind. It is unary function > binary function > higher arity functions > unary relation > binary relation > higher arity relations > negation symbol > binary connectives. Within the same precedence, order goes from left to right(eg:- x=x ∧ y=y ∨ z=z will mean ((x=x ∧ y=y) ∨ z=z). You can write this precedence order in some copy. This is what we usually follow in mathematics."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1", "E3"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(x = y ∧ y = z) ⇒ ((x = x ∨ y = z) ⇒ (x = y ∨ z = z))",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

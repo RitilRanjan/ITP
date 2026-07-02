@@ -1,0 +1,18 @@
+{
+  "id": "level1",
+  "name": "equality is reflexive",
+  "guide_hints": [
+    "# Level 1: Equality is Reflexive\n\nWelcome to your very first Interactive Theorem Prover level!\n\nIn logic, the most basic truth is that everything is equal to itself. Our goal today is to prove exactly that: **`x = x`**.",
+    "### Your Available Tools:\n- **`cv` (Create Variable):** Use this to create a variable object.\n- **`cf` (Create Formula):** Use this to construct a formula from variables.\n- **`apply`:** Apply a known axiom or rule to prove a formula.",
+    "### Instructions:\nFirst, create a variable named `x`. Type `cv x` in the command box and click Run.",
+    "Next, we need to create our goal formula so we can talk about it. Type `cf goal x=x`.",
+    "Finally, notice the `goal` formula appears in your Environment under 'Formulae'. Click on it to open the popup menu.\n\nSelect the **`apply`** command.",
+    "In the input box that appears, type `E1` and click Run.\n\n*(Note: `E1` is our first fundamental axiom, which states exactly what we're trying to prove: `∀A (A = A)`)*\n\nAlternatively, you can just type `apply goal E1` in the console to prove the formula.",
+    "Similarly, you can create a variable `y`, then create a formula `y=y` with some other name, and prove it using the `E1` axiom. However, if you create the formula `x=y` and try to prove it using `E1`, it will give an error (you can try that!)"
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": [],
+  "goal_statement": "x = x",
+  "start_env": null
+}

@@ -1,0 +1,24 @@
+{
+  "id": "level4",
+  "name": "variable substitution in relation",
+  "guide_hints": [
+    "# Level 4: Variable Substitution in Relation\n\nThe `E3` axiom is used to prove any formula of the format `(x₁ = y₁ ∧ x₂ = y₂ ... xₙ = yₙ) ⇒ (R(x₁, x₂, ... xₙ) ⇒ R(y₁, y₂, ... yₙ))` where `x₁`, `y₁`, ... `xₙ`, `yₙ` are variables and `R` is a **relation** of arity `n` (i.e. taking `n` terms as input). Just like in set theory, a relation is a subset of cartesian product, meaning that a relation takes a fixed number of terms as input then returns true or false depending upon whether that specific sequence of terms *belong* to the relation or not. We have been dealing with equality till now which was also a binary relation. A relation applied upon terms is what we called as an **atomic formula**, which is one type of **formula**. Truth value can only be assigned to formulas and not terms, just like in english only sentences can be true or false and not phrases themselves. That is why only formula can be proven and not terms. Just like `=`, `∈` (belongs to) is another binary relation which will be used extensively in the set theory.",
+    "**Typing Symbols:**\nTo type the `∈` (belongs to) symbol:\n- The easiest way is to use the keyboard shortcut which in Mac is to type the hex code (2208 for `∈`) while holding the Option button.\n- There are similar methods in Windows (using Alt + hex code) and Android (long press).\n- Alternatively, you can always just **copy and paste** it from here: `∈`.",
+    "### Instructions:\nFirst, create three variables named `x`, `y` and `z`. Type `cv x`, `cv y`, and `cv z`.",
+    "Next, construct the goal formula. Copy and paste the symbols from here: `cf goal (x=y ∧ x=z) ⇒ (x∈x ⇒ y∈z)`.",
+    "Finally, apply the `E3` axiom. Type `apply goal E3` to complete the level!",
+    "Similarly you can try proving `(x=y ∧ y=x) ⇒ (x∈y ⇒ y∈x)` using `E3` axiom."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E3"],
+  "allowed_rules": [],
+  "goal_statement": "(x = y ∧ x = z) ⇒ (x ∈ x ⇒ y ∈ z)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

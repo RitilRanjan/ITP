@@ -1,0 +1,24 @@
+{
+  "id": "level2",
+  "name": "Equality is reflexive 2",
+  "guide_hints": [
+    "# Level 2: Equality is Reflexive 2\n\n`E1` is not only used to prove equality of variables but equality of any **term** in general. A term is basically any variable, constant or function of other terms.",
+    "You have been provided with a **unary** function `S`. Unary means having **arity** 1 i.e. it is a function acting upon a single term.",
+    "In this level, the function `S` is acting upon the variable `x`, which is also a term. We don't know what `S` *means* here, but you can assume anything of your choice, for example, the successor function.",
+    "### Instructions:\nFirst, create a variable named `x`. Type `cv x` in the command box and click Run.",
+    "Next, we need to create our goal formula so we can talk about it. Type `cf goal S x = S x`.",
+    "Finally, apply the `E1` axiom to prove it. Type `apply goal E1` in the console.",
+    "Similarly you can create a formula `S S y = S S y` where `y` is a variable and prove it using `E1`, but you can't prove `S x = x` using `E1`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": [],
+  "goal_statement": "S x = S x",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "start_env": null
+}

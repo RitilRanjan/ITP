@@ -127,7 +127,7 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
     elif symbol in ("ε", "ι"):
         is_term = False
             
-    parsed = parse_universal_args(env, "fold", cmd_args, 1, validate_new_name, supports_equiv=True, namespace="term" if is_term else "formula")
+    parsed = parse_universal_args(env, "fold", cmd_args, 1, validate_new_name, supports_equiv=True, namespace="formula")
     if not parsed:
         return
         
@@ -251,7 +251,7 @@ def handle_simp(env: Environment, args_str: str, cmd: str) -> None:
         if f1 in env.terms and f1 not in env.formulae:
             is_term = True
             
-    parsed = parse_universal_args(env, cmd, cmd_args, 1, validate_new_name, supports_equiv=not is_term, namespace="term" if is_term else "formula")
+    parsed = parse_universal_args(env, cmd, cmd_args, 1, validate_new_name, supports_equiv=not is_term, namespace="formula")
     if not parsed: return
     _, occurrence_idx, input_name, output_name, f3_name = parsed
 

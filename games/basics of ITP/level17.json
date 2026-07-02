@@ -1,0 +1,32 @@
+{
+  "id": "level17",
+  "name": "fold command",
+  "guide_hints": [
+    "# Level 17: fold command\n\nThe `fold` command is an extremely powerful tool that allows us to expand or fold the definitions of logical operators. Most notably, the universal quantifier `∀` and existential quantifier `∃` can be transformed into each other!\n\n- `∀x P(x)` is logically equivalent to `¬∃x ¬P(x)` (Everything is P means there does not exist anything that is not P).\n- `∃x P(x)` is logically equivalent to `¬∀x ¬P(x)` (There exists something that is P means not everything is not P).\n\nThe `fold` command allows you to unfold a `∀` into a `¬∃¬` or vice-versa!",
+    "The syntax of the `fold` command is:\n`fold <symbol> [<occurrences>] <target> [<out>] [<equiv>]`\n\n- `<symbol>`: the symbol you want to unfold (e.g. `∀` or `∃`).\n- `[<occurrences>]` (optional): the index of the occurrence you want to unfold. e.g. `1`, `2`, or `1,2`. If omitted, it folds all occurrences.\n- `<target>`: the name of the formula you want to apply the fold to.\n- `[<out>]` (optional): the name of the new formula to store the result in. If omitted, it modifies the `<target>` in place.\n- `[<equiv>]` (optional): if provided, it registers a new logically proven theorem named `<equiv>` which states `<target> ⇔ <out>`!",
+    "Here are some examples to show how flexible it is:\n- `fold ∀ f1` : Modifies `f1` in place, replacing all `∀` with `¬∃¬`.\n- `fold ∃ 2 f1 f2` : Creates `f2` by replacing the 2nd occurrence of `∃` in `f1` with `¬∀¬`.\n- `fold ∀ 1 f1 f2 thm1` : Creates `f2` by replacing the 1st occurrence of `∀` in `f1`, AND creates a proven theorem named `thm1` which proves `f1 ⇔ f2`.\n\n*Alternatively, you can just click on any `∀` or `∃` symbol in a formula on the screen, and click 'Fold' in the pop-up menu!*",
+    "Now let's prove our simple goal formula: `(∀x x=x) ⇔ ¬∃x ¬(x=x)`.\n\nStep 1: Create the required variable `x` by typing `cv x`.\nStep 2: Create the goal formula `cf goal (∀x x=x) ⇔ ¬∃x ¬(x=x)`.",
+    "Step 3: Create the left side of the equivalence as our starting point. \nType `cf f1 ∀x x=x`.",
+    "Step 4: Now use the `fold` command to unfold `∀` in `f1`, output it to `f2`, and save the equivalence theorem directly into `goal`!\n\nType: `fold ∀ f1 f2 goal`\nAnd you are done! It will generate the exact theorem needed to beat the level.\n\nNote: The `⇔` symbol is the logical connective for 'if and only if' (equivalence). You can type it by entering `21d4` and pressing Option+X (on Mac) or equivalent hex-code shortcuts on other systems, or simply copy-pasting it. The `<equiv>` parameter in the `fold` command automatically generates a theorem using this `⇔` connective!"
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "fold"
+  ],
+  "allowed_axioms": [],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "(∀x x = x) ⇔ ¬∃x ¬(x = x)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "=",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

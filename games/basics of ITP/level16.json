@@ -1,0 +1,27 @@
+{
+  "id": "level16",
+  "name": "Quantifier placement matters",
+  "guide_hints": [
+    "# Level 16: Quantifier placement matters\n\nStatement 1: Every organism lives on some planet.\nStatement 2: Every organism lives on the same planet.\n\nThere is some difference in the 2 statements which will be evident if you try to convert them into 1st order logic. Try it yourself once.",
+    "Let `x` denote some organism and `y` denote some planet. Then the 1st statement is `∀x ∃y x∈y` and the 2nd statement is `∃y ∀x x∈y`. This shows that the placement of quantifiers completely changes the meaning of the sentence. From your common sense you know that the 2nd statement implies the 1st statement but not the other way around (Imagine half the organisms live on Earth and half on Mars!) Now we will prove this rigorously.\n\nThe 2nd statement `∃y ∀x x∈y` is already given as a proven theorem (called `theorem_1`). Your goal is to prove the 1st statement `∀x ∃y x∈y`.",
+    "### Step 1:\nThe variables `x` and `y` are already created for you in this level! Let's just create the goal formula: `cf goal ∀x ∃y x∈y`.",
+    "### Step 2:\nWe'll work backwards from the inner core of the goal. The inner statement is `x∈y`. If we know `∀x x∈y`, it implies `x∈y`. Let's create this and prove it with `Q1`. Create `cf f1 (∀x x∈y) ⇒ x∈y` and apply `Q1`: `apply f1 Q1`.",
+    "### Step 3:\nNow we want to introduce `∃y`. `Q2` says `x∈y ⇒ ∃y x∈y`. Let's create this and prove it with `Q2`. Create `cf f2 x∈y ⇒ ∃y x∈y` and apply `Q2`: `apply f2 Q2`.",
+    "### Step 4:\nWe can link the two implications using Propositional Calculus (`PC1`). From `f1` and `f2`, we logically deduce `(∀x x∈y) ⇒ ∃y x∈y`. Create `cf f3 (∀x x∈y) ⇒ ∃y x∈y` and prove it using `PC1`: `apply f3 PC1 f1 f2`.",
+    "### Step 5:\nNow we want to add the `∀x` to the right side of `f3`. `QR1` allows us to deduce `(∀x x∈y) ⇒ ∀x ∃y x∈y`. Notice that `x` is bound on the left side, so it is strictly not free! Create `cf f4 (∀x x∈y) ⇒ ∀x ∃y x∈y` and prove it using `QR1`: `apply f4 QR1 f3`.",
+    "### Step 6:\nFinally, we want to add `∃y` to the left side of `f4`. `QR2` allows us to deduce `(∃y ∀x x∈y) ⇒ ∀x ∃y x∈y`. Notice that `y` is safely bound on the right side! Create `cf f5 (∃y ∀x x∈y) ⇒ ∀x ∃y x∈y` and prove it using `QR2`: `apply f5 QR2 f4`.",
+    "### Step 7:\nNow we have our final implication `f5`, and we were already given the premise `theorem_1`! Apply `PC1` to logically conclude the goal: `apply goal PC1 f5 theorem_1`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["Q1", "Q2"],
+  "allowed_rules": ["PC1", "PC2", "QR1", "QR2"],
+  "goal_statement": "∀x ∃y x ∈ y",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": "level16_env.md"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "level22",
+  "name": "Iota operator",
+  "guide_hints": [
+    "# Level 22: Iota operator\n\nWe introduce the `ι` (iota) operator, also known as the definite description operator. You can type it using `03B9` Option+X or by copy-pasting it.\n\nWhile the epsilon operator `εx P(x)` means 'SOME x that satisfies P(x)', the iota operator `ιx P(x)` strictly means 'THE UNIQUE x that satisfies P(x)'. If exactly one such object exists, it represents that object. If not, its value is arbitrary.",
+    "Because it asserts uniqueness, `ι` unfolds into a slightly more complex logical expression. Specifically, substituting it into a relation `Q(ιx P(x))` expands logically to: `∃y (∀z (P(z) ⇔ y=z) ∧ Q(y))`.\n\nNotice that unfolding `ι` mathematically introduces TWO fresh variables `y` and `z`. Therefore, when you use the `fold` command on `ι`, you must provide TWO fresh variables on the next lines using `Shift+Enter`!",
+    "Let's prove the standard unfolding: `Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)`.\nWe have pre-defined two unary relations `P` and `Q` for you in this level.",
+    "Step 1: Create the variables `x`, `y`, and `z` using `cv x y z`.\nStep 2: Create the goal formula `cf goal Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)`.\nStep 3: Create the starting formula `cf f1 Q(ιx P x)`.",
+    "Step 4: Now, use the fold command! Remember that it will prompt you for the TWO fresh variables, so use `Shift+Enter` to provide `y` and then `z` on the subsequent lines:\n```text\nfold ι f1 f2 goal\ny\nz\n```\n\nThis completely unfolds the iota operator and generates your equivalence theorem!",
+    "Congratulations on completing the *Basics of ITP* game! Technically you have enough knowledge to be able to prove anything which is provable but you must have experienced that the proving experience is a bit cumbersome, requiring to type a lot even for simple proofs like this one. For such purposes, you need to use more advanced REPL commands which are covered in the next game."
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "fold"],
+  "allowed_axioms": [],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "=",
+      "arity": 2
+    },
+    {
+      "name": "P",
+      "arity": 1
+    },
+    {
+      "name": "Q",
+      "arity": 1
+    }
+  ],
+  "start_env": null
+}

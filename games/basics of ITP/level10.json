@@ -1,0 +1,30 @@
+{
+  "id": "level10",
+  "name": "Existential generalisation",
+  "guide_hints": [
+    "# Level 10: Existential Generalisation\n\nExistential generalisation (`Q2` axiom) states that if a property is true for a specific term `t`, then there exists at least one element for which the property is true: `P(t) ⇒ ∃x P(x)`. \n\n**Typing Symbols:**\nTo type the `∃` (exists) symbol:\n- Mac: Type the hex code `2203` while holding the Option button.\n- Windows: Use Alt + hex code, or Android long press.\n- Or, simply **copy and paste** it from here: `∃`.",
+    "### Step 1:\nFirst, create the two variables you will need: `x` and `y`.",
+    "### Step 2:\nCreate the goal formula: `cf goal ∃x x=x`.",
+    "### Step 3:\nWe can't prove the goal directly with `Q2` since `Q2` generates an implication. We need a fact that is true for a specific element. Create `cf f1 y=y` and prove it using `E1`: `apply f1 E1`.",
+    "### Step 4:\nNow create the implication formula using the `Q2` axiom. Since `y=y` is true, it implies `∃x x=x`. Create it: `cf f2 y=y ⇒ ∃x x=x`.\nProve it using `Q2`: `apply f2 Q2`.",
+    "### Step 5:\nFinally, apply `PC1` with your proven premises `f1` and `f2` to deduce the goal! Type: `apply goal PC1 f1 f2`.",
+    "**Substitutability Criteria:**\nWe say that a term `t` is *substitutable* for a free variable `x` in formula `φ` iff no free variable in 't' becomes accidentally a bounded variable in `φ` after substitution. If it does, it's called *variable capture* and it completely alters the meaning of the formula! The `Q1` and `Q2` axioms automatically check this and will only hold if this substitutability criteria is perfectly satisfied."
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "Q2"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "∃x x = x",
+  "default_functions": [],
+  "default_relations": [],
+  "start_env": null
+}

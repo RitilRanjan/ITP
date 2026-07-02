@@ -1,0 +1,42 @@
+Console: Unrecognized feature: 'ambient-light-sensor'.
+Console: Unrecognized feature: 'battery'.
+Console: Unrecognized feature: 'document-domain'.
+Console: Unrecognized feature: 'layout-animations'.
+Console: Unrecognized feature: 'legacy-image-formats'.
+Console: Unrecognized feature: 'oversized-images'.
+Console: Unrecognized feature: 'vr'.
+Console: Unrecognized feature: 'wake-lock'.
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:componentReady {apiVersion: 1}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:componentReady, apiVersion: 1}
+Console: streamlit:setFrameHeight {height: 73}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setFrameHeight, height: 73}
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:setComponentValue {value: cf}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf}
+Console: streamlit:setComponentValue {value: cf f}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f}
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:setComponentValue {value: cf f1 }
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f1 }
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:setComponentValue {value: cf f1 x }
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f1 x }
+Console: streamlit:setComponentValue {value: cf f1 x = }
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f1 x = }
+Console: streamlit:setComponentValue {value: cf f1 x = y}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f1 x = y}
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:setComponentValue {value: cf f1 x = y}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setComponentValue, value: cf f1 x = y}
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+Console: streamlit:componentReady {apiVersion: 1}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:componentReady, apiVersion: 1}
+Console: streamlit:setFrameHeight {height: 73}
+Console: Received component message for unregistered ComponentInstance! {isStreamlitMessage: true, type: streamlit:setFrameHeight, height: 73}
+Found 3 symbols. Clicking the first one...
+Popover props: {'rect': {'x': 707.015625, 'y': 72.765625, 'width': 205.109375, 'height': 44.796875}, 'display': 'flex', 'visibility': 'visible', 'opacity': '1', 'position': 'fixed', 'zIndex': '999999', 'top': '72.7656px', 'left': '707.016px', 'innerHTML': '<button>st</button><button>sb</button><button>sf</button><button>sp</button><button>sa</button>'}

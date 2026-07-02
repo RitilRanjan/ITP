@@ -9,7 +9,7 @@ class AutocompleteEngine:
     def __init__(self):
         pass
 
-    def get_suggestions(self, partial_command: str, env: Environment) -> List[str]:
+    def get_suggestions(self, partial_command: str, env: Environment, game_allowed_commands: List[str] = None) -> List[str]:
         """
         Given the partial command string typed by the user, return a list of suggested strings.
         If the command is invalid, return ["ERROR: INVALID REPL COMMAND"].
@@ -23,6 +23,8 @@ class AutocompleteEngine:
         if len(tokens) == 1:
             cmd_prefix = tokens[0]
             all_cmds = [cmd for cmd in registry.handlers.keys() if cmd not in excluded_cmds]
+            if game_allowed_commands is not None:
+                all_cmds = [cmd for cmd in all_cmds if cmd in game_allowed_commands]
             suggestions = [cmd for cmd in all_cmds if cmd.startswith(cmd_prefix)]
             if not suggestions and cmd_prefix:
                 return ["ERROR: INVALID REPL COMMAND"]

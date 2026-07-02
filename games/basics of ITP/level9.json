@@ -1,0 +1,25 @@
+{
+  "id": "level9",
+  "name": "universal instantiation",
+  "guide_hints": [
+    "# Level 9: Universal Instantiation\n\nUniversal Instantiation is the rule that says if a property holds for **all** elements in a domain, then it holds for any specific element you choose. The `∀` symbol means 'for all' or 'for every'. \n\n*Real-life example:* If 'For all people, they need water to survive' is true, and 'John' is a person, we can instantiate it to say 'John needs water to survive'. \n\nIn our logic, the `Q1` axiom captures this: `(∀x P(x)) ⇒ P(t)`, where `t` is some term we substitute for `x` and P is any formula in which x is a **free variable**.",
+    "**Typing Symbols:**\nTo type the `∀` (for all) symbol:\n- The easiest way is to use the keyboard shortcut which in Mac is to type the hex code (`2200` for `∀`) while holding the Option button.\n- There are similar methods in Windows (using Alt + hex code) and Android (long press).\n- Alternatively, you can always just **copy and paste** it from here: `∀`.",
+    "### Step 1:\nFirst, create the two variables you will need: `x` and `y` using `cv x` and `cv y`.",
+    "### Step 2:\nCreate the goal formula: `cf goal (∀x x=x) ⇒ y=y`.\nNotice the parentheses! We write `(∀x x=x)` to group the quantifier scope before applying the implication `⇒`.",
+    "### Step 3:\nNow, just apply the `Q1` axiom to prove it! The prover's `Q1` axiom automatically checks that replacing `x` with `y` inside `x=x` yields `y=y`, proving the implication. Type: `apply goal Q1`.",
+    "∀, ∃ and ∃! are called **quantifier symbols**. They can't be used in a term. They are always followed by a variable called quantifier variable(x in the above case). The rest of the formula written after the variable and before the closing bracket(or end of line) is called **scope** of the formula, which is another formula in itself. All the variables which appear as quantifier variables in some place in the formula are called *bounded variables*. Any other variable appearing in the formula is called *free variable*. So x is a free variable in 'x=x' but bounded in '∀x x=x'."
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply"
+  ],
+  "allowed_axioms": [
+    "Q1"
+  ],
+  "allowed_rules": [],
+  "goal_statement": "(∀x x = x) ⇒ y = y",
+  "default_functions": [],
+  "default_relations": [],
+  "start_env": null
+}

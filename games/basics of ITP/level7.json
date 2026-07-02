@@ -1,0 +1,25 @@
+{
+  "id": "level7",
+  "name": "Equality is Symmetric",
+  "guide_hints": [
+    "# Level 7: Equality is Symmetric\n\nTo prove that equality is symmetric (`x=y ⇒ y=x`), you need an essential lemma from the `E3` axiom. Remember that `=` itself is a binary relation! The `E3` axiom applied to equality gives `(x₁=y₁ ∧ x₂=y₂) ⇒ (x₁=x₂ ⇒ y₁=y₂)`. Can you figure out what to substitute for `x₁`, `y₁`, `x₂`, and `y₂` to help you prove `y=x`?\n\n*Hint:* substitute `x₁` with `x`, `y₁` with `y`, `x₂` with `x`, and `y₂` with `x` to get `(x=y ∧ x=x) ⇒ (x=x ⇒ y=x)`!",
+    "### Step 1:\nCreate the variables `x` and `y` using `cv x` and `cv y`.",
+    "### Step 2:\nCreate the goal formula: `cf goal x=y ⇒ y=x`.",
+    "### Step 3:\nCreate the essential lemma formula (you can copy-paste this): `cf f1 (x=y ∧ x=x) ⇒ (x=x ⇒ y=x)`.\nProve it using `E3` by typing: `apply f1 E3`.",
+    "### Step 4:\nYou will also need to prove that `x=x` is true since it's a condition in our lemma. Create the formula `cf f2 x=x` and prove it using `E1`: `apply f2 E1`.",
+    "### Step 5:\nFinally, use `PC1` or `PC2` to prove your goal formula using the two proven lemmas `f1` and `f2`! Type: `apply goal PC1 f1 f2`.",
+    "Similarly try to prove `S y = S x ⇒ S x = S y`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1", "E3"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "x = y ⇒ y = x",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "default_relations": [],
+  "start_env": null
+}

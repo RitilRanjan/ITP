@@ -1,0 +1,24 @@
+{
+  "id": "level13",
+  "name": "Human beings and living organisms",
+  "guide_hints": [
+    "# Level 13: Human beings and living organisms\n\nSuppose that all human beings are living organisms. Can we say that there is some human being which is a living organism? From common sense, you know the answer should be true, but we will prove it rigorously now. Suppose `H` denotes the set of all human beings and `L` denotes the set of all living organisms. Now if you translate the goal formula from english to 1st order logic, it becomes `(∀y y∈H ⇒ y∈L) ⇒ (∃x x∈H ⇒ x∈L)`. I hope you can understand the translation. Now prove it.",
+    "### Step 1:\nFirst, create the four variables we need: `x`, `y`, `H`, and `L` using `cv x`, `cv y`, `cv H`, and `cv L`.",
+    "### Step 2:\nCreate the goal formula you're trying to prove: `cf goal (∀y y∈H ⇒ y∈L) ⇒ (∃x x∈H ⇒ x∈L)`.\nMake sure to get the parentheses right! You can always copy and paste.",
+    "### Step 3:\nNow let's use the Universal Instantiation axiom (`Q1`). If the statement holds for all `y`, it must hold for `x`. Let's create this formula: `cf f1 (∀y y∈H ⇒ y∈L) ⇒ (x∈H ⇒ x∈L)`.\nProve it by typing: `apply f1 Q1`.",
+    "### Step 4:\nNext, let's use the Existential Generalization axiom (`Q2`). If the statement is true for `x`, it must be true for *some* element. Let's create this formula: `cf f2 (x∈H ⇒ x∈L) ⇒ (∃x x∈H ⇒ x∈L)`.\nProve it by typing: `apply f2 Q2`.",
+    "### Step 5:\nNotice that `f1` is essentially `A ⇒ B` and `f2` is `B ⇒ C`. By combining them, we logically deduce `A ⇒ C`, which is exactly our `goal`! Use Propositional Calculus (`PC1`) to finish the proof:\nType: `apply goal PC1 f1 f2`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["Q1", "Q2"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(∀y y ∈ H ⇒ y ∈ L) ⇒ (∃x x ∈ H ⇒ x ∈ L)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

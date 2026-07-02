@@ -1,0 +1,33 @@
+{
+  "id": "level21",
+  "name": "Epsilon operator",
+  "guide_hints": [
+    "# Level 21: Epsilon operator\n\nWe introduce the `ε` (Hilbert's epsilon) operator. You can type it using `03B5` Option+X or by copy-pasting it.\n\nThe epsilon operator is used to construct a term that represents *some* object satisfying a given property. For example, `εy (S y = x)` means 'some y such that S y = x'.",
+    "Let's define a predecessor function `P` using this! Type: `def_f 1 P x εy S y = x`.\n\n*Note*: The theoretically correct way to define this would be using the `ι` (iota) operator for definite descriptions ('THE unique y'), because otherwise `P` behaves like a multivalued function. However, using `ι` requires proving that `S` is strictly injective, which is not the case here. We will deal with the more complicated case in the next game!",
+    "Our goal is to prove: `∀x P S x = x`.\nFirst, create the variables: `cv x y`.\nThen create the goal: `cf goal ∀x P S x = x`.",
+    "Step 1: Start with the inner equality. Type: `cf f1 P S x = x`.\nStep 2: Unfold the definition of `P`. Type: `fold P f1 f2 p_def`.\n\nNow `f2` holds `(εy S y = S x) = x`.",
+    "Step 3: Unfold the `ε` operator in `f2` and store the equivalence in `e_def`. When prompted, provide `y` as the fresh variable using `Shift+Enter`:\n```text\nfold ε f2 f3 e_def\ny\n```\n\n`f3` now elegantly expands to: `∃y (S y = S x ∧ y = x)`.",
+    "Step 4: We can prove `f3` using the `Q2` existential introduction axiom! We just need to prove the property for `t = x`. Type:\n`apply q2 Q2 S y = S x ∧ y = x y x`\n\nThis generates `(S x = S x ∧ x = x) ⇒ ∃y (S y = S x ∧ y = x)`. Now we just need to prove the left side using equality axioms!",
+    "Step 5: Prove reflexivity for `x`! Type: `apply e1 E1 x=x`.\nStep 6: Prove reflexivity for `S x`! Type: `apply e2 E1 S x = S x`.\nStep 7: Combine them into a conjunction using `PC2`. Type: `apply e3 PC2 e1 e2`.",
+    "Step 8: Now apply Modus Ponens to derive our existential statement! Type: `apply f3_proven PC2 q2 e3`.\nStep 9: We have proven `f3`! Now use our unfolded equivalence `e_def` to substitute backwards into `f2`! Type: `apply f2_proven PC2 f3_proven e_def`.",
+    "Step 10: Use our `P` unfolding equivalence `p_def` to substitute backwards into `f1`! Type: `apply f1_proven PC2 f2_proven p_def`.\n\nNow you have fully proven `P S x = x`!",
+    "Step 11: Finally, apply the `QR1` Universal Generalization rule to hit your target goal! Type: `apply goal QR1 f1_proven`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply", "fold", "def_f"],
+  "allowed_axioms": ["E1", "Q2"],
+  "allowed_rules": ["PC1", "PC2", "QR1", "QR2"],
+  "goal_statement": "∀x P S x = x",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "default_relations": [
+    {
+      "name": "=",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}

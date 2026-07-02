@@ -1,0 +1,18 @@
+{
+  "id": "level11",
+  "name": "QR1 Inference Rule",
+  "guide_hints": [
+    "# Level 11: QR1 Inference Rule\n\nThe `QR1` rule relates implication and universal quantification. It states that if `ψ ⇒ φ` is a proven formula, and the variable `x` is **not free** in `ψ` and **not bound** in `φ`, then we can deduce `ψ ⇒ (∀x φ)`. Intuitively, if a condition that doesn't depend on `x` implies a statement about `x`, then it implies that the statement holds for all `x`.",
+    "### Step 1:\nCreate two variables `x` and `y` using `cv x` and `cv y`.",
+    "### Step 2:\nCreate the goal formula: `cf goal x=x ⇒ (∀y y=y)`.\nNotice that `y` is the quantifier variable we are targeting.",
+    "### Step 3:\nLet's build the premise. Create the formula `cf f1 x=x ⇒ y=y`.\nTo prove this, you can prove `x=x` and `y=y` individually using `E1` (e.g. `cf f2 x=x`, `cf f3 y=y`, then `apply f2 E1` and `apply f3 E1`), and finally use `PC1` on `f1` using those two facts (`apply f1 PC1 f2 f3`).",
+    "### Step 4:\nNow apply the `QR1` rule to prove the goal! The `QR1` rule will check that `y` is not free in the left side (`x=x`) and not bound in the right side (`y=y`) of the premise `f1`.\nType: `apply goal QR1 f1`."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1"],
+  "allowed_rules": ["PC1", "QR1"],
+  "goal_statement": "x = x ⇒ (∀y y = y)",
+  "default_functions": [],
+  "default_relations": [],
+  "start_env": null
+}

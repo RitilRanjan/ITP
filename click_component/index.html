@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.3.0/dist/streamlit.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
+    </style>
+</head>
+<body>
+    <script>
+    let isInitialized = false;
+
+    function onRender(event) {
+        if (!isInitialized) {
+            Streamlit.setFrameHeight(0);
+            
+            // The component is in an iframe. We must attach the listener to the parent window.
+            if (window.parent && window.parent.document) {
+                // Ensure we don't attach multiple times if component reloads
+                if (!window.parent.document.itpClickListenerAttached) {
+                    window.parent.document.itpClickListenerAttached = true;
+                    
+                    window.parent.document.addEventListener('click', function(e) {
+                        if (e.target.classList.contains('interactive-symbol') || e.target.classList.contains('interactive-name')) {
+                            let data = {};
+                            if (e.target.classList.contains('interactive-symbol')) {
+                                data = {
+                                    target: e.target.getAttribute('data-target'),
+                                    symbol: e.target.getAttribute('data-symbol'),
+                                    occ: e.target.getAttribute('data-occ'),
+                                    cmds: e.target.getAttribute('data-cmds') ? e.target.getAttribute('data-cmds').split(',') : []
+                                };
+                            } else {
+                                data = {
+                                    target: e.target.getAttribute('data-target'),
+                                    obj_type: e.target.getAttribute('data-obj-type')
+                                };
+                            }
+                            data._nonce = Date.now();
+                            
+                            // Send the clicked data back to Streamlit!
+                            Streamlit.setComponentValue(data);
+                        }
+                    });
+                }
+            }
+            isInitialized = true;
+        }
+    }
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    </script>
+</body>
+</html>

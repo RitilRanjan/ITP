@@ -33,6 +33,11 @@ import CommandHandlers.definition_handlers
 # Patch get_user_input to prevent hanging in Streamlit
 import CommandHandlers.utils
 def mock_get_user_input(prompt: str, command_queue: list = None, inputs_collected: list = None) -> str:
+    if command_queue:
+        ans = command_queue.pop(0)
+        if inputs_collected is not None:
+            inputs_collected.append(ans)
+        return ans
     raise NotImplementedError("Interactive prompts (e.g., for saving, loading, or variable disambiguation) are not supported in the web UI.")
 CommandHandlers.utils.get_user_input = mock_get_user_input
 
@@ -123,14 +128,1055 @@ def init_session():
         st.session_state.skip_load_env_confirm = False
     if "skip_load_hist_confirm" not in st.session_state:
         st.session_state.skip_load_hist_confirm = False
+    if "games_progress" not in st.session_state:
+        if os.path.exists("games_progress.json"):
+            with open("games_progress.json", "r") as f:
+                st.session_state.games_progress = json.load(f)
+        else:
+            st.session_state.games_progress = {}
+    if "active_game_state" not in st.session_state:
+        st.session_state.active_game_state = {
+            "is_playing": False,
+            "game_name": None,
+            "level": None,
+            "goal_ast_str": None,
+            "completed": False
+        }
         
 init_session()
 
 # --- MAIN UI ---
+def render_prover_interface(is_game_mode=False):
+    # PROVER INTERFACE
+    col_hdr1, col_env_s, col_env_l, col_hst_s, col_hst_l, col_hdr2 = st.columns([2.5, 1, 1, 1, 1, 1])
+    with col_hdr1:
+        st.subheader(f"Active: {st.session_state.active_program}")
+        
+    def toggle_action(action_name):
+        if st.session_state.active_action == action_name:
+            st.session_state.active_action = None
+        else:
+            st.session_state.active_action = action_name
+            st.session_state.selected_file = None
+            
+    with col_env_s:
+        if not is_game_mode and st.button("💾 Save Env", use_container_width=True): toggle_action("save_env")
+    with col_env_l:
+        if not is_game_mode and st.button("📂 Load Env", use_container_width=True): toggle_action("load_env")
+    with col_hst_s:
+        if not is_game_mode and st.button("💾 Save Hist", use_container_width=True): toggle_action("save_hist")
+    with col_hst_l:
+        if not is_game_mode and st.button("📂 Load Hist", use_container_width=True): toggle_action("load_hist")
+    with col_hdr2:
+        if st.button("Save & Exit" if not is_game_mode else "Exit Game", use_container_width=True):
+            if not is_game_mode:
+                save_program(st.session_state.active_program)
+                proof_logger.close()
+            else:
+                st.session_state.active_game_state["is_playing"] = False
+                st.session_state.active_game_state["level"] = None
+                
+            st.session_state.active_program = None
+            st.session_state.active_action = None
+            st.rerun()
+
+    # Render Active Action Container directly below the buttons
+    if st.session_state.active_action:
+        with st.container(border=True):
+            if st.session_state.active_action in ["save_env", "save_hist"]:
+                is_env = (st.session_state.active_action == "save_env")
+                title = "Save Environment State" if is_env else "Save Command History"
+                st.write(f"**{title}**")
+                col_input, col_btn = st.columns([4, 1])
+                with col_input:
+                    save_name = st.text_input("Enter filename:", key="save_filename_input", label_visibility="collapsed", placeholder="Enter filename...")
+                with col_btn:
+                    if st.button("Confirm Save", use_container_width=True):
+                        if not save_name:
+                            st.error("Filename cannot be empty.")
+                        else:
+                            folder = "save_files" if is_env else "history_files"
+                            os.makedirs(folder, exist_ok=True)
+                            filepath = os.path.join(folder, save_name)
+                            if os.path.exists(filepath) or os.path.exists(filepath + ".md"):
+                                st.error("A file with that name already exists.")
+                            else:
+                                if is_env:
+                                    save_environment_state(st.session_state.env_chain[-1], filepath)
+                                    st.success(f"Successfully saved environment state to {save_name}!")
+                                else:
+                                    clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in st.session_state.command_history]
+                                    save_history(clean_history, filepath)
+                                    st.success(f"Successfully saved command history to {save_name}!")
+                                st.session_state.active_action = None
+                                st.rerun()
+                                
+            elif st.session_state.active_action in ["load_env", "load_hist"]:
+                is_env = (st.session_state.active_action == "load_env")
+                title = "Load Environment State" if is_env else "Load Command History"
+                
+                if st.session_state.selected_file:
+                    # Confirmation View
+                    st.write(f"**Confirm {title}**")
+                    st.warning(f"Are you sure you want to load `{st.session_state.selected_file}`? The current {'environment state' if is_env else 'command history'} will be lost.")
+                    
+                    skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
+                    skip_checked = st.checkbox("Don't open this confirmation dialog box from next time", value=st.session_state[skip_key])
+                    if skip_checked != st.session_state[skip_key]:
+                        st.session_state[skip_key] = skip_checked
+                        
+                    col_y, col_n = st.columns([1, 6])
+                    with col_y:
+                        if st.button("Yes, Load It", type="primary", use_container_width=True):
+                            filepath = os.path.join("save_files" if is_env else "history_files", st.session_state.selected_file)
+                            if is_env:
+                                new_env = load_environment_state(filepath, get_default_env)
+                                chain = []
+                                curr = new_env
+                                while curr is not None:
+                                    chain.append(curr)
+                                    curr = curr.parent
+                                chain.reverse()
+                                st.session_state.env_chain = chain
+                            else:
+                                st.session_state.command_history = load_history(filepath)
+                                
+                            st.session_state.active_action = None
+                            st.session_state.selected_file = None
+                            st.rerun()
+                    with col_n:
+                        if st.button("Cancel (X)", use_container_width=False):
+                            st.session_state.selected_file = None
+                            st.rerun()
+                else:
+                    # List View
+                    st.write(f"**{title}**")
+                    folder = "save_files" if is_env else "history_files"
+                    os.makedirs(folder, exist_ok=True)
+                    files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+                    if not files:
+                        st.info("No saved files found.")
+                    else:
+                        import datetime
+                        file_data = []
+                        for f in files:
+                            path = os.path.join(folder, f)
+                            ctime = os.path.getctime(path)
+                            file_data.append({"name": f, "ctime": ctime})
+                            
+                        sort_by = st.selectbox("Sort By", ["Name (A-Z)", "Name (Z-A)", "Date (Newest First)", "Date (Oldest First)"], label_visibility="collapsed")
+                        if sort_by == "Name (A-Z)":
+                            file_data.sort(key=lambda x: x["name"].lower())
+                        elif sort_by == "Name (Z-A)":
+                            file_data.sort(key=lambda x: x["name"].lower(), reverse=True)
+                        elif sort_by == "Date (Newest First)":
+                            file_data.sort(key=lambda x: x["ctime"], reverse=True)
+                        else:
+                            file_data.sort(key=lambda x: x["ctime"])
+                            
+                        # Display files in a mini scrollable area if there are many
+                        if len(file_data) > 5:
+                            scroll_container = st.container(height=250)
+                        else:
+                            scroll_container = st.container()
+                            
+                        with scroll_container:
+                            for fd in file_data:
+                                col_f, col_d, col_b, col_del = st.columns([5, 3, 2, 1])
+                                with col_f:
+                                    st.write(f"📄 `{fd['name']}`")
+                                with col_d:
+                                    dt_str = datetime.datetime.fromtimestamp(fd["ctime"]).strftime("%Y-%m-%d %H:%M:%S")
+                                    st.write(f"*{dt_str}*")
+                                with col_b:
+                                    if st.button("Load", key=f"btn_load_{fd['name']}_{is_env}", use_container_width=True):
+                                        skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
+                                        if st.session_state[skip_key]:
+                                            # Skip confirmation
+                                            filepath = os.path.join(folder, fd['name'])
+                                            if is_env:
+                                                new_env = load_environment_state(filepath, get_default_env)
+                                                chain = []
+                                                curr = new_env
+                                                while curr is not None:
+                                                    chain.append(curr)
+                                                    curr = curr.parent
+                                                chain.reverse()
+                                                st.session_state.env_chain = chain
+                                            else:
+                                                st.session_state.command_history = load_history(filepath)
+                                            st.session_state.active_action = None
+                                            st.rerun()
+                                        else:
+                                            st.session_state.selected_file = fd['name']
+                                            st.rerun()
+                                with col_del:
+                                    if st.button("🗑️", key=f"btn_del_{fd['name']}_{is_env}", help="Delete this file", use_container_width=True):
+                                        filepath = os.path.join(folder, fd['name'])
+                                        try:
+                                            os.remove(filepath)
+                                        except OSError:
+                                            pass
+                                        st.rerun()
+
+
+    col_top1, col_top2 = st.columns(2)
+    with col_top1:
+        with st.expander("Current Command History"):
+            if st.session_state.command_history:
+                st.code("\n".join(st.session_state.command_history), language="text")
+            else:
+                st.write("No commands executed yet.")
+
+    with col_top2:
+        with st.expander("proofs.html"):
+            p_dir = get_program_dir(st.session_state.active_program)
+            proofs_path = os.path.join(p_dir, "proofs.html")
+            try:
+                with open(proofs_path, "r") as f:
+                    proof_html = f.read()
+                st.components.v1.html(proof_html, height=400, scrolling=True)
+                
+                with open(proofs_path, "rb") as f:
+                    st.download_button(
+                        label="Export proofs.html", 
+                        data=f, 
+                        file_name=f"{st.session_state.active_program}_proofs.html", 
+                        mime="text/html"
+                    )
+            except FileNotFoundError:
+                st.write("No proofs generated yet. Prove a theorem to generate the log!")
+
+    st.divider()
+
+    # Display the environment
+    current_env = st.session_state.env_chain[-1]
+    ground_env = st.session_state.env_chain[0]
+
+    col_env1, col_env2 = st.columns([1, 1])
+
+    with col_env1:
+        st.subheader("Global Environment Objects")
+        with st.expander("Variables"):
+            for name in ground_env.variables:
+                st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+                
+        with st.expander("Propositional Variables"):
+            for name in ground_env.propositional_variables:
+                st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+                
+        with st.expander("Dummy Variables"):
+            for name in ground_env.dummy_variables:
+                st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+                
+        with st.expander("Functions"):
+            for name, term in ground_env.terms.items():
+                if isinstance(term, Function) and name == term.name:
+                    st.markdown(f'<span style="color: #6495ED">{name}</span> : {term.arity}', unsafe_allow_html=True)
+                    
+        with st.expander("Relations"):
+            for name, formula in ground_env.formulae.items():
+                if isinstance(formula, Relation) and name == formula.name:
+                    st.markdown(f'<span style="color: #6495ED">{name}</span> : {formula.arity}', unsafe_allow_html=True)
+
+    with col_env2:
+        st.subheader("Environments")
+        with st.expander("Active Environments Chain", expanded=True):
+            for i, env in enumerate(st.session_state.env_chain):
+                with st.expander(f"Environment Level {i} {'(Ground)' if i==0 else '(Mission)'}", expanded=(i == len(st.session_state.env_chain)-1)):
+                    if i > 0 and env.target_goal:
+                        goal_name = env.goal_formula_name
+                        goal_html = reconstruct_string(env.target_goal, color_mode="html", target_name=goal_name, target_type="fol")
+                        st.markdown(f'**Goal**: <span class="interactive-name itp-tooltip" data-obj-type="goal" data-target="{goal_name}" data-tooltip="Goal Formula" style="color: #FFA500; font-weight: bold;">{goal_name}</span> : {goal_html}', unsafe_allow_html=True)
+                        
+                    st.markdown("**Terms**")
+                    has_terms = False
+                    for name, term in env.local_terms.items():
+                        if isinstance(term, Function) and name == term.name:
+                            continue
+                        term_html = reconstruct_string(term, color_mode="html", target_name=name, target_type="term")
+                        st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
+                        has_terms = True
+                    if not has_terms:
+                        st.markdown("*(None)*")
+                    
+                    st.markdown("**Formulae**")
+                    has_formulae = False
+                    for name, formula in env.local_formulae.items():
+                        if isinstance(formula, Relation) and name == formula.name:
+                            continue
+                        
+                        is_proven = name in env.local_theorems
+                        is_goal = (i > 0 and name == env.goal_formula_name)
+                        
+                        if is_goal:
+                            obj_type = "goal"
+                            color = "#FFA500"
+                        elif is_proven:
+                            obj_type = "proven"
+                            color = "#00FF00"
+                        else:
+                            obj_type = "unproven"
+                            color = "#6495ED"
+                            
+                        prefix = "<strong>[Proven]</strong> " if is_proven else ""
+                        
+                        form_html = reconstruct_string(formula, color_mode="html", target_name=name, target_type="fol")
+                        name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="{obj_type}" data-target="{name}" data-tooltip="Formula Definition" style="color: {color}">{name}</span>'
+                        
+                        st.markdown(f'{prefix}{name_span} : {form_html}', unsafe_allow_html=True)
+                        has_formulae = True
+                    if not has_formulae:
+                        st.markdown("*(None)*")
+
+    st.divider()
+    st.subheader("Console")
+    chat_container = st.container()
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            st.markdown(msg, unsafe_allow_html=True)
+
+    # --- INTERACTIVE CLICK HANDLING ---
+    import json
+    import streamlit.components.v1 as components
+    
+    # Hide the text input completely and style the popover
+    st.markdown("""
+    <style>
+    div[data-testid="stElementContainer"]:has(input[aria-label="itp_click_data"]) {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0.01 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        z-index: -1 !important;
+    }
+    .itp-popover {
+        position: absolute;
+        z-index: 10000;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        padding: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 300px;
+    }
+    .itp-popover button {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        color: #374151;
+        transition: all 0.1s;
+    }
+    .itp-popover button:hover {
+        background: #e5e7eb;
+        border-color: #d1d5db;
+    }
+    .itp-popover-input {
+        width: 100%;
+        padding: 4px 6px;
+        margin-bottom: 4px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 13px;
+        box-sizing: border-box;
+        outline: none;
+    }
+    .itp-popover-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    clicked_payload_raw = st.text_input("itp_click_data", key="itp_click_data", label_visibility="collapsed")
+
+    if clicked_payload_raw and clicked_payload_raw != st.session_state.get("last_clicked_payload"):
+        print(f"BACKEND RECEIVED CLICK DATA: {clicked_payload_raw}", flush=True)
+        st.session_state.last_clicked_payload = clicked_payload_raw
+        try:
+            data = json.loads(clicked_payload_raw)
+            selected_cmd = data.get("cmd")
+            target = data.get("target")
+            occ = data.get("occ")
+            symbol = data.get("symbol")
+            
+            args = data.get("args", [])
+            
+            if selected_cmd:
+                if selected_cmd in ["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi"]:
+                    parts = [selected_cmd]
+                    if len(args) > 0: parts.append(args[0])
+                    if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                    parts.append(target)
+                elif selected_cmd in ["apply", "apply2", "apply3", "intro2"]:
+                    parts = [selected_cmd, target]
+                    if len(args) > 0: parts.append(args[0])
+                elif selected_cmd == "intro":
+                    parts = [selected_cmd, target]
+                    if len(args) > 0: parts.append(args[0])
+                    if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                elif selected_cmd in ["st", "sb", "sf", "sp"]:
+                    parts = [selected_cmd, symbol]
+                    if len(args) > 0: parts.append(args[0])
+                    parts.extend([str(occ), target])
+                elif selected_cmd == "fold all":
+                    parts = ["fold", "all", target]
+                elif selected_cmd == "fold":
+                    parts = ["fold", symbol, str(occ), target]
+                elif selected_cmd == "sa":
+                    parts = [selected_cmd, symbol]
+                    if len(args) > 0: parts.append(args[0])
+                    parts.append(target)
+                elif selected_cmd == "contra":
+                    parts = [selected_cmd, target]
+                    if len(args) > 0: parts.append(args[0])
+                    if len(args) > 1: parts.append(args[1])
+                elif selected_cmd in ["dt", "and", "imply"]:
+                    parts = [selected_cmd, target]
+                    if len(args) > 0: parts.append(args[0])
+                    if len(args) > 1: parts.append(args[1])
+                elif selected_cmd in ["neg-", "neg+", "left", "right"]:
+                    parts = [selected_cmd, target]
+                    if len(args) > 0: parts.append(args[0])
+                elif selected_cmd == "rw":
+                    parts = [selected_cmd]
+                    if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                    if len(args) > 2 and args[2].strip(): parts.append(args[2])
+                    parts.append(target)
+                    if len(args) > 0 and args[0].strip(): parts.append(args[0])
+                elif selected_cmd in ["mission", "auto", "search", "backward_search", "advanced_search"]:
+                    parts = [selected_cmd, target]
+                else:
+                    parts = [selected_cmd, target, str(occ)]
+                
+                final_cmd = " ".join([p for p in parts if p])
+                
+                # Run immediately now that arguments are collected in the popup!
+                print(f"BACKEND SETTING COMMAND TO: {final_cmd}", flush=True)
+                st.session_state.interactive_cmd_to_run = final_cmd
+        except Exception as e:
+            print(f"Error parsing click data: {e}")
+        st.rerun()
+
+    allowed_commands_js = "null"
+    if is_game_mode:
+        allowed_cmds = st.session_state.active_game_state["level"].get("allowed_commands", [])
+        allowed_commands_js = json.dumps(allowed_cmds)
+
+    components.html("""
+    <script>
+        let existing = window.parent.document.getElementById('itp-click-script');
+        if (existing) {
+            existing.remove();
+        }
+        let script = window.parent.document.createElement('script');
+        script.id = 'itp-click-script';
+        script.innerHTML = `
+        window.ITPAllowedCommands = __ALLOWED_COMMANDS_PLACEHOLDER__;
+        if (window.itpClickListener) {
+            window.document.removeEventListener('click', window.itpClickListener);
+        }
+        window.itpClickListener = function(e) {
+            try {
+                if (e.target.classList && (e.target.classList.contains('interactive-symbol') || e.target.classList.contains('interactive-name'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    let oldPopover = window.document.getElementById('itp-custom-popover');
+                    if (oldPopover) {
+                        oldPopover.remove();
+                    }
+                    
+                    let targetElement = e.target;
+                    let target_name = targetElement.getAttribute('data-target');
+                    let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
+                    let occ = targetElement.getAttribute('data-occ') || 1;
+                    let cmds = [];
+                    
+                    if (targetElement.classList.contains('interactive-symbol')) {
+                        let isLogical = ['∀', '∃', '∃!', 'ε', 'ι', '∨', '∧', '¬', '⇒', '⇔', '=', '∈'].includes(symbol);
+                        cmds = ['st', 'sb', 'sf', 'sp', 'sa'];
+                        if (isLogical) {
+                            cmds = []; // No substitution for logical symbols
+                        }
+                        // fold command for quantifiers, choice ops, or user-defined symbols
+                        if (['∀', '∃', '∃!', 'ε', 'ι'].includes(symbol) || !isLogical) {
+                            cmds.push('fold');
+                        }
+                    } else {
+                        let obj_type = targetElement.getAttribute('data-obj-type');
+                        if (obj_type === 'unproven') {
+                            cmds = ["mission", "contra", "apply", "auto", "search", "backward_search", "advanced_search", "fold all"];
+                        } else if (obj_type === 'goal') {
+                            cmds = ["intro2", "apply", "apply2", "apply3", "auto", "search", "backward_search", "advanced_search", "fold all", 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw'];
+                        } else if (obj_type === 'proven') {
+                            cmds = ['intro', 'apply', 'apply2', 'apply3', 'dt', 'and', 'left', 'right', 'imply', 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'fold all'];
+                        } else {
+                            cmds = ['fold all'];
+                        }
+                    }
+                    
+                    
+                    if (window.ITPAllowedCommands !== null) {
+                        cmds = cmds.filter(cmd => window.ITPAllowedCommands.includes(cmd));
+                    }
+                    
+                    if (cmds.length === 0) {
+                        return;
+                    }
+                    
+                    let popover = window.document.createElement('div');
+                    popover.id = 'itp-custom-popover';
+                    popover.className = 'itp-popover';
+                    
+                    let rect = e.target.getBoundingClientRect();
+                    
+                    cmds.forEach(cmd => {
+                        let btn = window.document.createElement('button');
+                        btn.innerText = cmd;
+                        btn.onclick = function(ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            
+                            let needsArgs = 0;
+                            let arg1Label = "Argument";
+                            let arg2Label = "Argument 2";
+                            
+                            if (["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi", "apply", "apply2", "apply3", "st", "sb", "sf", "sa", "sp", "intro2"].includes(cmd)) {
+                                needsArgs = 1;
+                                if (["st", "sb", "sf", "sa", "sp"].includes(cmd)) arg1Label = "Formula/Term";
+                                else arg1Label = "Theorem Name";
+                                
+                                if (cmd.startsWith("simp_")) {
+                                    needsArgs = 2;
+                                    arg2Label = "Occurrences (optional)";
+                                }
+                            } else if (cmd === "contra") {
+                                needsArgs = 2;
+                                arg1Label = "Formula 1";
+                                arg2Label = "Formula 2";
+                            } else if (cmd === "intro") {
+                                needsArgs = 2;
+                                arg1Label = "Variable/Term";
+                                arg2Label = "New Formula Name (optional for goals)";
+                            } else if (["neg-", "neg+", "left", "right"].includes(cmd)) {
+                                needsArgs = 1;
+                                arg1Label = "New Formula Name";
+                            } else if (["dt", "and", "imply"].includes(cmd)) {
+                                needsArgs = 2;
+                                arg1Label = "New Formula Name(s)";
+                                arg2Label = "Variables/Theorems";
+                                if (cmd === "and") { arg1Label = "Left Formula"; arg2Label = "Right Formula"; }
+                            } else if (cmd === "rw") {
+                                needsArgs = 3;
+                                arg1Label = "New Formula";
+                                arg2Label = "Rewrite Theorem";
+                            }
+                            
+                            let submitCmd = function(argsList) {
+                                let data = {
+                                    target: target_name,
+                                    symbol: symbol,
+                                    occ: occ,
+                                    cmd: cmd,
+                                    args: argsList,
+                                    _nonce: Date.now()
+                                };
+                                let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
+                                if (input) {
+                                    input.focus();
+                                    setTimeout(() => {
+                                        let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                        nativeSetter.call(input, JSON.stringify(data));
+                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                                        setTimeout(() => {
+                                            input.blur();
+                                        }, 50);
+                                    }, 50);
+                                }
+                                popover.remove();
+                            };
+
+                            if (needsArgs === 0) {
+                                submitCmd([]);
+                                return;
+                            }
+                            
+                            // Show secondary form inline
+                            popover.innerHTML = '';
+                            popover.style.flexDirection = 'column';
+                            
+                            let title = window.document.createElement('div');
+                            title.innerText = "Command: " + cmd;
+                            title.style.fontWeight = 'bold';
+                            title.style.marginBottom = '6px';
+                            title.style.fontSize = '14px';
+                            popover.appendChild(title);
+                            
+                            let input1 = null;
+                            let input2 = null;
+                            
+                            if (needsArgs >= 1) {
+                                input1 = window.document.createElement('input');
+                                input1.type = 'text';
+                                input1.placeholder = arg1Label;
+                                input1.className = 'itp-popover-input';
+                                popover.appendChild(input1);
+                            }
+                            if (needsArgs >= 2) {
+                                input2 = window.document.createElement('input');
+                                input2.type = 'text';
+                                input2.placeholder = arg2Label;
+                                input2.className = 'itp-popover-input';
+                                popover.appendChild(input2);
+                            }
+                            
+                            let input3 = null;
+                            if (needsArgs >= 3) {
+                                input3 = window.document.createElement('input');
+                                input3.type = 'text';
+                                input3.placeholder = "Occurrences (optional)";
+                                input3.className = 'itp-popover-input';
+                                popover.appendChild(input3);
+                            }
+                            
+                            let btnContainer = window.document.createElement('div');
+                            btnContainer.style.display = 'flex';
+                            btnContainer.style.gap = '6px';
+                            btnContainer.style.width = '100%';
+                            
+                            let runBtn = window.document.createElement('button');
+                            runBtn.innerText = 'Run';
+                            runBtn.style.flex = '1';
+                            runBtn.style.background = '#3b82f6';
+                            runBtn.style.color = 'white';
+                            runBtn.style.borderColor = '#2563eb';
+                            
+                            runBtn.onclick = function(eRun) {
+                                eRun.preventDefault(); eRun.stopPropagation();
+                                
+                                let val1 = input1 ? input1.value : "";
+                                let val2 = input2 ? input2.value : "";
+                                let val3 = input3 ? input3.value : "";
+                                
+                                let occ = targetElement.getAttribute('data-occ') || 1;
+                                let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
+                                
+                                let argsArr = [];
+                                if (needsArgs >= 1) argsArr.push(val1);
+                                if (needsArgs >= 2) argsArr.push(val2);
+                                if (needsArgs >= 3) argsArr.push(val3);
+                                
+                                let payload = JSON.stringify({
+                                    cmd: cmd,
+                                    target: target_name,
+                                    occ: parseInt(occ),
+                                    symbol: symbol,
+                                    args: argsArr,
+                                    _nonce: Date.now()
+                                });
+                                
+                                let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
+                                if (input) {
+                                    input.focus();
+                                    setTimeout(() => {
+                                        let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                                        nativeSetter.call(input, payload);
+                                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                                        setTimeout(() => {
+                                            input.blur();
+                                        }, 50);
+                                    }, 50);
+                                }
+                                popover.remove();
+                            };
+                            
+                            let cancelBtn = window.document.createElement('button');
+                            cancelBtn.innerText = 'Cancel';
+                            cancelBtn.style.flex = '1';
+                            cancelBtn.onclick = function(eCancel) {
+                                eCancel.preventDefault(); eCancel.stopPropagation();
+                                popover.remove();
+                            };
+                            
+                            btnContainer.appendChild(runBtn);
+                            btnContainer.appendChild(cancelBtn);
+                            popover.appendChild(btnContainer);
+                            
+                            if (input1) setTimeout(() => input1.focus(), 50);
+                            
+                            let handleEnter = function(eKey) {
+                                if (eKey.key === 'Enter') runBtn.click();
+                            };
+                            if (input1) input1.addEventListener('keydown', handleEnter);
+                            if (input2) input2.addEventListener('keydown', handleEnter);
+                        };
+                        popover.appendChild(btn);
+                    });
+                    
+                    
+                    window.document.body.appendChild(popover);
+                    popover.style.position = 'fixed';
+                    popover.style.zIndex = '999999';
+                    
+                    let updatePosition = function() {
+                        let rect = targetElement.getBoundingClientRect();
+                        let pHeight = popover.offsetHeight;
+                        let topPos = rect.top - pHeight - 8;
+                        if (topPos < 0) {
+                            topPos = rect.bottom + 8;
+                        }
+                        popover.style.top = topPos + 'px';
+                        popover.style.left = rect.left + 'px';
+                    };
+                    updatePosition();
+                    
+                    let scrollListener = function() {
+                        if (window.document.body.contains(popover)) {
+                            updatePosition();
+                        } else {
+                            window.parent.removeEventListener('scroll', scrollListener, true);
+                        }
+                    };
+                    window.parent.addEventListener('scroll', scrollListener, true);
+                    
+                    const observer = new ResizeObserver(() => {
+                        if (window.document.body.contains(popover)) {
+                            updatePosition();
+                        } else {
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(popover);
+                    
+                } else {
+                    let popover = window.document.getElementById('itp-custom-popover');
+                    if (popover && !popover.contains(e.target)) {
+                        popover.remove();
+                    }
+                }
+            } catch(err) {
+                console.error(err);
+            }
+        };
+        window.document.addEventListener('click', window.itpClickListener);
+        `;
+        window.parent.document.body.appendChild(script);
+    </script>
+    """.replace("__ALLOWED_COMMANDS_PLACEHOLDER__", allowed_commands_js), height=0, width=0)
+    if st.session_state.get("interactive_cmd_to_run"):
+        command = st.session_state.interactive_cmd_to_run
+        st.session_state.interactive_cmd_to_run = None
+        interactive_submit = True
+    else:
+        command = None
+        interactive_submit = False
+
+    prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
+    
+    # Real-time Autocomplete UI
+    if st_keyup is not None:
+        # We need a clear button or form to submit, but st_keyup doesn't natively submit on enter unless we use a button
+        # We'll use two columns: input and submit button
+        st.markdown("### Command Input")
+        
+        # Use session state to hold the partial input so suggestions can update it
+        if "current_cmd" not in st.session_state:
+            st.session_state.current_cmd = ""
+        if "keyup_key" not in st.session_state:
+            st.session_state.keyup_key = 0
+            
+        # If the user clicks a suggestion, it updates st.session_state.current_cmd
+        
+        col_input, col_btn = st.columns([5, 1])
+        with col_input:
+            partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key=f"live_input_{st.session_state.keyup_key}", debounce=0)
+        with col_btn:
+            # Add some vertical margin so button aligns with input
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            btn_clicked = st.button("Run Command", use_container_width=True)
+            submit_clicked = btn_clicked or interactive_submit
+            
+        # Compute and render suggestions
+        if partial_command is not None and not submit_clicked:
+            if is_game_mode:
+                game_allowed = st.session_state.active_game_state["level"].get("allowed_commands", [])
+                suggestions = autocomplete_engine.get_suggestions(partial_command, current_env, game_allowed)
+            else:
+                suggestions = autocomplete_engine.get_suggestions(partial_command, current_env)
+            
+            if suggestions == ["ERROR: INVALID REPL COMMAND"]:
+                st.markdown("<span style='color:red;'>❌ Invalid REPL Command</span>", unsafe_allow_html=True)
+            elif suggestions:
+                st.markdown("**Suggestions:**")
+                # Render chips inside a scrollable container
+                with st.container(height=180):
+                    max_sugs = min(len(suggestions), 50)
+                    
+                    selection = st.pills(
+                        "Suggestions",
+                        options=suggestions[:max_sugs],
+                        label_visibility="collapsed",
+                        key=f"sug_pills_{st.session_state.keyup_key}"
+                    )
+                    
+                    if selection:
+                        tokens = partial_command.lstrip().split(" ")
+                        tokens[-1] = selection
+                        new_cmd = " ".join(tokens) + " "
+                        st.session_state.current_cmd = new_cmd
+                        st.session_state.keyup_key += 1
+                        st.rerun()
+            else:
+                st.write("*(No suggestions)*")
+        elif not submit_clicked:
+            submit_clicked = False
+            
+        if not command:
+            command = partial_command if submit_clicked else None
+        
+        # Clear input after run
+        if submit_clicked:
+            st.session_state.current_cmd = ""
+            st.session_state.keyup_key += 1
+            
+        # Disable native browser autocomplete and add button CSS
+        st.components.v1.html(
+            """<script>
+            window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));
+            
+            let oldCss = window.parent.document.getElementById('custom-button-css');
+            if (oldCss) oldCss.remove();
+            
+            window.parent.document.head.insertAdjacentHTML("beforeend", `<style id='custom-button-css'>
+            .stButton > button { transition: all 0.1s ease !important; }
+                .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
+                .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
+                
+                /* Increase font size for the suggestions in the st.pills component */
+                div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] span,
+                div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] p {
+                    font-size: 1.2rem !important;
+                    padding: 0.2rem 0 !important;
+                }
+                
+                /* Tooltip CSS */
+                .itp-tooltip {
+                    position: relative;
+                    cursor: help;
+                    display: inline-block;
+                    padding: 0 1px;
+                    border-radius: 2px;
+                }
+                .itp-tooltip:hover {
+                    outline: 1px solid rgba(100, 149, 237, 0.6);
+                    background-color: rgba(100, 149, 237, 0.1);
+                }
+                .interactive-symbol, .interactive-name {
+                    cursor: pointer;
+                    border-bottom: 1px dashed rgba(100, 149, 237, 0.5);
+                }
+                .interactive-symbol:hover, .interactive-name:hover {
+                    background-color: rgba(255, 165, 0, 0.2);
+                    outline: 1px solid rgba(255, 165, 0, 0.8);
+                }
+                
+                /* Hide custom click listener component */
+                iframe[title="click_listener"] {
+                    position: absolute !important;
+                    width: 0px !important;
+                    height: 0px !important;
+                    border: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                }
+                div[data-testid="stElementContainer"]:has(iframe[title="click_listener"]) {
+                    height: 0px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                }
+                .itp-tooltip::after {
+                    content: attr(data-tooltip);
+                    position: absolute;
+                    bottom: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: #333;
+                    color: #fff;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    white-space: nowrap;
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity 0.2s;
+                    z-index: 1000;
+                    font-family: sans-serif;
+                }
+                .itp-tooltip:hover::after {
+                    opacity: 1;
+                }
+                </style>`);
+            
+            let oldScript = window.parent.document.getElementById('itp-enter-script');
+            if (oldScript) oldScript.remove();
+            
+            setInterval(() => {
+                // Inject a script directly into the parent window to escape the iframe sandbox
+                if (!window.parent.document.getElementById('itp-enter-script')) {
+                    const script = window.parent.document.createElement('script');
+                    script.id = 'itp-enter-script';
+                    script.innerHTML = `
+                        setInterval(() => {
+                            const iframes = document.querySelectorAll('iframe');
+                            iframes.forEach(iframe => {
+                                try {
+                                    const input = iframe.contentWindow.document.querySelector('input');
+                                    if (input && !input.dataset.enterListenerAdded) {
+                                        input.setAttribute('autocomplete', 'new-password');
+                                        input.setAttribute('name', 'itp_cmd_' + Math.random());
+                                        input.setAttribute('spellcheck', 'false');
+                                        input.setAttribute('autocorrect', 'off');
+                                        
+                                        input.addEventListener('keydown', function(e) {
+                                            if (e.key === 'Enter') {
+                                                input.blur();
+                                                
+                                                let clickAttempts = 0;
+                                                function tryClick() {
+                                                    const btns = window.parent.document.querySelectorAll('button');
+                                                    let found = null;
+                                                    for(let i=0; i<btns.length; i++) {
+                                                        if (btns[i].innerText && btns[i].innerText.toLowerCase().includes('run command')) {
+                                                            found = btns[i];
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (found && !found.disabled) {
+                                                        found.click();
+                                                    } else if (clickAttempts < 10) {
+                                                        clickAttempts++;
+                                                        setTimeout(tryClick, 50);
+                                                    }
+                                                }
+                                                // Wait 150ms for st_keyup debounce to sync value to backend
+                                                setTimeout(tryClick, 150);
+                                            }
+                                        }, true);
+                                        input.dataset.enterListenerAdded = "true";
+                                    }
+                                } catch(e) {}
+                            });
+                        }, 500);
+                    `;
+                    window.parent.document.body.appendChild(script);
+                }
+            }, 1000);
+            </script>
+            """,
+            height=0, width=0
+        )
+    else:
+        # Fallback if streamlit-keyup is not installed
+        command = st.chat_input("Enter command here (install streamlit-keyup for autocomplete)")
+
+    if command:
+        command_lines = command.strip().splitlines()
+        first_line = command_lines[0]
+        command_queue = command_lines[1:] if len(command_lines) > 1 else []
+        parts = first_line.strip().split(maxsplit=1)
+        cmd = parts[0]
+        args_str = parts[1] if len(parts) > 1 else ""
+        
+        st.session_state.chat_history.append(f'<strong>{prompt_str}{command}</strong>')
+        st.session_state.command_history.append(command)
+        
+        f = io.StringIO()
+        with contextlib.redirect_stdout(f):
+            if cmd == "exit":
+                if len(st.session_state.env_chain) > 1:
+                    st.session_state.env_chain.pop()
+                    print("Exited child environment.")
+                else:
+                    print("Already at ground environment.")
+            elif registry.is_registered(cmd):
+                try:
+                    if is_game_mode:
+                        level = st.session_state.active_game_state["level"]
+                        if cmd not in level.get("allowed_commands", []):
+                            raise Exception(f"Command '{cmd}' is not allowed in this level.")
+                        if cmd.startswith("apply"):
+                            # The first argument is target formula, second is the rule/axiom name
+                            parts = args_str.strip().split()
+                            if len(parts) > 1:
+                                rule_name = parts[1]
+                            else:
+                                rule_name = parts[0]
+                            allowed_axioms = level.get("allowed_axioms", [])
+                            allowed_rules = level.get("allowed_rules", [])
+                            if rule_name not in allowed_axioms and rule_name not in allowed_rules:
+                                if rule_name not in current_env.theorems:
+                                    raise Exception(f"Rule/Axiom '{rule_name}' is not allowed in this level.")
+
+                    new_env = registry.dispatch(cmd, current_env, args_str, get_default_env=get_default_env, command_queue=command_queue)
+                    if new_env is not None and new_env is not current_env:
+                        st.session_state.env_chain.append(new_env)
+                        
+                    # Goal checking for game mode
+                    if is_game_mode and not st.session_state.active_game_state["completed"]:
+                        goal_str = st.session_state.active_game_state["level"]["goal_statement"]
+                        from Frontend import Parser
+                        parser = Parser(current_env)
+                        goal_node = parser.parse(goal_str, "goal")
+                        
+                        # Check if any theorem matches goal_node
+                        for thm_name in current_env.theorems:
+                            if current_env.formulae[thm_name].is_structurally_equal(goal_node):
+                                st.session_state.active_game_state["completed"] = True
+                                level_id = st.session_state.active_game_state["level_id"]
+                                st.session_state.games_progress[level_id] = True
+                                with open("games_progress.json", "w") as f_prog:
+                                    json.dump(st.session_state.games_progress, f_prog)
+                                break
+                except Exception as e:
+                    print(f"Error: {e}")
+            elif cmd == "clear":
+                st.session_state.chat_history.clear()
+            else:
+                print(f"Unknown command '{cmd}'.")
+                
+        output = f.getvalue()
+        if output:
+            # Add CSS styling for errors if output contains "Error:"
+            formatted_output = []
+            for line in output.split('\\n'):
+                if line.startswith('Error:'):
+                    formatted_output.append(f"<span style='color:red;'>{line}</span>")
+                else:
+                    formatted_output.append(ansi_to_html(line))
+            
+            output_str = "<br>".join(formatted_output)
+            st.session_state.chat_history.append(f"<div style='font-family: monospace; white-space: pre-wrap;'>{output_str}</div>")
+            
+        st.rerun()
+
 st.title("Interactive Theorem Prover")
 
-tab_home, tab_programs, tab_help, tab_about, tab_contact = st.tabs([
-    "🏠 Home", "💻 Programs", "❓ Help", "ℹ️ About", "📧 Contact Us"
+tab_home, tab_programs, tab_games, tab_help, tab_about, tab_contact = st.tabs([
+    "🏠 Home", "💻 Programs", "🎮 Games", "❓ Help", "ℹ️ About", "📧 Contact Us"
 ])
 
 with tab_home:
@@ -157,8 +1203,11 @@ with tab_home:
     st.markdown("3. Open the **Help** tab if you need a quick reference to the command syntax!")
 
 with tab_programs:
-    if st.session_state.active_program is None:
+    is_in_game = st.session_state.active_game_state.get("is_playing", False)
+    if st.session_state.active_program is None or is_in_game:
         st.subheader("📁 Saved Programs")
+        if is_in_game:
+            st.info("You are currently in Game Mode. Return to the Games tab to continue playing, or exit the game to load a different program.")
         
         programs = [d for d in os.listdir(PROGRAMS_DIR) if os.path.isdir(os.path.join(PROGRAMS_DIR, d))]
         if not programs:
@@ -169,14 +1218,14 @@ with tab_programs:
                 with col_name:
                     st.write(f"**{p}**")
                 with col_btn:
-                    if st.button("Load", key=f"load_{p}"):
+                    if st.button("Load", key=f"load_{p}", disabled=is_in_game):
                         load_program(p)
                         st.rerun()
                         
         st.divider()
         st.subheader("✨ Create New Program")
-        new_prog_name = st.text_input("Program Name")
-        if st.button("Create"):
+        new_prog_name = st.text_input("Program Name", disabled=is_in_game)
+        if st.button("Create", disabled=is_in_game):
             if new_prog_name:
                 if new_prog_name in programs:
                     st.error("Program already exists!")
@@ -194,975 +1243,140 @@ with tab_programs:
             else:
                 st.error("Please enter a valid name.")
     else:
-        # PROVER INTERFACE
-        col_hdr1, col_env_s, col_env_l, col_hst_s, col_hst_l, col_hdr2 = st.columns([2.5, 1, 1, 1, 1, 1])
-        with col_hdr1:
-            st.subheader(f"Active: {st.session_state.active_program}")
-            
-        def toggle_action(action_name):
-            if st.session_state.active_action == action_name:
-                st.session_state.active_action = None
-            else:
-                st.session_state.active_action = action_name
-                st.session_state.selected_file = None
-                
-        with col_env_s:
-            if st.button("💾 Save Env", use_container_width=True): toggle_action("save_env")
-        with col_env_l:
-            if st.button("📂 Load Env", use_container_width=True): toggle_action("load_env")
-        with col_hst_s:
-            if st.button("💾 Save Hist", use_container_width=True): toggle_action("save_hist")
-        with col_hst_l:
-            if st.button("📂 Load Hist", use_container_width=True): toggle_action("load_hist")
-        with col_hdr2:
-            if st.button("Save & Exit", use_container_width=True):
-                save_program(st.session_state.active_program)
-                proof_logger.close()
+        render_prover_interface(is_game_mode=False)
+
+with tab_games:
+    st.header("🎮 Games")
+    games_dir = "games"
+    if not os.path.exists(games_dir):
+        os.makedirs(games_dir, exist_ok=True)
+    
+    games = [d for d in os.listdir(games_dir) if os.path.isdir(os.path.join(games_dir, d))]
+    
+    if not games:
+        st.info("No games available.")
+    else:
+        # Check if currently playing a level
+        if st.session_state.active_game_state["is_playing"]:
+            if st.button("⬅️ Back to Levels"):
+                st.session_state.active_game_state["is_playing"] = False
+                st.session_state.active_game_state["level"] = None
                 st.session_state.active_program = None
-                st.session_state.active_action = None
                 st.rerun()
-
-        # Render Active Action Container directly below the buttons
-        if st.session_state.active_action:
-            with st.container(border=True):
-                if st.session_state.active_action in ["save_env", "save_hist"]:
-                    is_env = (st.session_state.active_action == "save_env")
-                    title = "Save Environment State" if is_env else "Save Command History"
-                    st.write(f"**{title}**")
-                    col_input, col_btn = st.columns([4, 1])
-                    with col_input:
-                        save_name = st.text_input("Enter filename:", key="save_filename_input", label_visibility="collapsed", placeholder="Enter filename...")
-                    with col_btn:
-                        if st.button("Confirm Save", use_container_width=True):
-                            if not save_name:
-                                st.error("Filename cannot be empty.")
-                            else:
-                                folder = "save_files" if is_env else "history_files"
-                                os.makedirs(folder, exist_ok=True)
-                                filepath = os.path.join(folder, save_name)
-                                if os.path.exists(filepath) or os.path.exists(filepath + ".md"):
-                                    st.error("A file with that name already exists.")
-                                else:
-                                    if is_env:
-                                        save_environment_state(st.session_state.env_chain[-1], filepath)
-                                        st.success(f"Successfully saved environment state to {save_name}!")
-                                    else:
-                                        clean_history = [cmd[0] if isinstance(cmd, tuple) else cmd for cmd in st.session_state.command_history]
-                                        save_history(clean_history, filepath)
-                                        st.success(f"Successfully saved command history to {save_name}!")
-                                    st.session_state.active_action = None
-                                    st.rerun()
-                                    
-                elif st.session_state.active_action in ["load_env", "load_hist"]:
-                    is_env = (st.session_state.active_action == "load_env")
-                    title = "Load Environment State" if is_env else "Load Command History"
-                    
-                    if st.session_state.selected_file:
-                        # Confirmation View
-                        st.write(f"**Confirm {title}**")
-                        st.warning(f"Are you sure you want to load `{st.session_state.selected_file}`? The current {'environment state' if is_env else 'command history'} will be lost.")
-                        
-                        skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
-                        skip_checked = st.checkbox("Don't open this confirmation dialog box from next time", value=st.session_state[skip_key])
-                        if skip_checked != st.session_state[skip_key]:
-                            st.session_state[skip_key] = skip_checked
-                            
-                        col_y, col_n = st.columns([1, 6])
-                        with col_y:
-                            if st.button("Yes, Load It", type="primary", use_container_width=True):
-                                filepath = os.path.join("save_files" if is_env else "history_files", st.session_state.selected_file)
-                                if is_env:
-                                    new_env = load_environment_state(filepath, get_default_env)
-                                    chain = []
-                                    curr = new_env
-                                    while curr is not None:
-                                        chain.append(curr)
-                                        curr = curr.parent
-                                    chain.reverse()
-                                    st.session_state.env_chain = chain
-                                else:
-                                    st.session_state.command_history = load_history(filepath)
-                                    
-                                st.session_state.active_action = None
-                                st.session_state.selected_file = None
-                                st.rerun()
-                        with col_n:
-                            if st.button("Cancel (X)", use_container_width=False):
-                                st.session_state.selected_file = None
-                                st.rerun()
-                    else:
-                        # List View
-                        st.write(f"**{title}**")
-                        folder = "save_files" if is_env else "history_files"
-                        os.makedirs(folder, exist_ok=True)
-                        files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-                        if not files:
-                            st.info("No saved files found.")
-                        else:
-                            import datetime
-                            file_data = []
-                            for f in files:
-                                path = os.path.join(folder, f)
-                                ctime = os.path.getctime(path)
-                                file_data.append({"name": f, "ctime": ctime})
-                                
-                            sort_by = st.selectbox("Sort By", ["Name (A-Z)", "Name (Z-A)", "Date (Newest First)", "Date (Oldest First)"], label_visibility="collapsed")
-                            if sort_by == "Name (A-Z)":
-                                file_data.sort(key=lambda x: x["name"].lower())
-                            elif sort_by == "Name (Z-A)":
-                                file_data.sort(key=lambda x: x["name"].lower(), reverse=True)
-                            elif sort_by == "Date (Newest First)":
-                                file_data.sort(key=lambda x: x["ctime"], reverse=True)
-                            else:
-                                file_data.sort(key=lambda x: x["ctime"])
-                                
-                            # Display files in a mini scrollable area if there are many
-                            if len(file_data) > 5:
-                                scroll_container = st.container(height=250)
-                            else:
-                                scroll_container = st.container()
-                                
-                            with scroll_container:
-                                for fd in file_data:
-                                    col_f, col_d, col_b, col_del = st.columns([5, 3, 2, 1])
-                                    with col_f:
-                                        st.write(f"📄 `{fd['name']}`")
-                                    with col_d:
-                                        dt_str = datetime.datetime.fromtimestamp(fd["ctime"]).strftime("%Y-%m-%d %H:%M:%S")
-                                        st.write(f"*{dt_str}*")
-                                    with col_b:
-                                        if st.button("Load", key=f"btn_load_{fd['name']}_{is_env}", use_container_width=True):
-                                            skip_key = "skip_load_env_confirm" if is_env else "skip_load_hist_confirm"
-                                            if st.session_state[skip_key]:
-                                                # Skip confirmation
-                                                filepath = os.path.join(folder, fd['name'])
-                                                if is_env:
-                                                    new_env = load_environment_state(filepath, get_default_env)
-                                                    chain = []
-                                                    curr = new_env
-                                                    while curr is not None:
-                                                        chain.append(curr)
-                                                        curr = curr.parent
-                                                    chain.reverse()
-                                                    st.session_state.env_chain = chain
-                                                else:
-                                                    st.session_state.command_history = load_history(filepath)
-                                                st.session_state.active_action = None
-                                                st.rerun()
-                                            else:
-                                                st.session_state.selected_file = fd['name']
-                                                st.rerun()
-                                    with col_del:
-                                        if st.button("🗑️", key=f"btn_del_{fd['name']}_{is_env}", help="Delete this file", use_container_width=True):
-                                            filepath = os.path.join(folder, fd['name'])
-                                            try:
-                                                os.remove(filepath)
-                                            except OSError:
-                                                pass
-                                            st.rerun()
-
-
-        col_top1, col_top2 = st.columns(2)
-        with col_top1:
-            with st.expander("Current Command History"):
-                if st.session_state.command_history:
-                    st.code("\n".join(st.session_state.command_history), language="text")
-                else:
-                    st.write("No commands executed yet.")
-
-        with col_top2:
-            with st.expander("proofs.html"):
-                p_dir = get_program_dir(st.session_state.active_program)
-                proofs_path = os.path.join(p_dir, "proofs.html")
-                try:
-                    with open(proofs_path, "r") as f:
-                        proof_html = f.read()
-                    st.components.v1.html(proof_html, height=400, scrolling=True)
-                    
-                    with open(proofs_path, "rb") as f:
-                        st.download_button(
-                            label="Export proofs.html", 
-                            data=f, 
-                            file_name=f"{st.session_state.active_program}_proofs.html", 
-                            mime="text/html"
-                        )
-                except FileNotFoundError:
-                    st.write("No proofs generated yet. Prove a theorem to generate the log!")
-
-        st.divider()
-
-        # Display the environment
-        current_env = st.session_state.env_chain[-1]
-        ground_env = st.session_state.env_chain[0]
-
-        col_env1, col_env2 = st.columns([1, 1])
-
-        with col_env1:
-            st.subheader("Global Environment Objects")
-            with st.expander("Variables"):
-                for name in ground_env.variables:
-                    st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
-                    
-            with st.expander("Propositional Variables"):
-                for name in ground_env.propositional_variables:
-                    st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
-                    
-            with st.expander("Dummy Variables"):
-                for name in ground_env.dummy_variables:
-                    st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
-                    
-            with st.expander("Functions"):
-                for name, term in ground_env.terms.items():
-                    if isinstance(term, Function) and name == term.name:
-                        st.markdown(f'<span style="color: #6495ED">{name}</span> : {term.arity}', unsafe_allow_html=True)
-                        
-            with st.expander("Relations"):
-                for name, formula in ground_env.formulae.items():
-                    if isinstance(formula, Relation) and name == formula.name:
-                        st.markdown(f'<span style="color: #6495ED">{name}</span> : {formula.arity}', unsafe_allow_html=True)
-
-        with col_env2:
-            st.subheader("Environments")
-            with st.expander("Active Environments Chain", expanded=True):
-                for i, env in enumerate(st.session_state.env_chain):
-                    with st.expander(f"Environment Level {i} {'(Ground)' if i==0 else '(Mission)'}", expanded=(i == len(st.session_state.env_chain)-1)):
-                        if i > 0 and env.target_goal:
-                            goal_name = env.goal_formula_name
-                            goal_html = reconstruct_string(env.target_goal, color_mode="html", target_name=goal_name, target_type="fol")
-                            st.markdown(f'**Goal**: <span class="interactive-name itp-tooltip" data-obj-type="goal" data-target="{goal_name}" data-tooltip="Goal Formula" style="color: #FFA500; font-weight: bold;">{goal_name}</span> : {goal_html}', unsafe_allow_html=True)
-                            
-                        st.markdown("**Terms**")
-                        has_terms = False
-                        for name, term in env.local_terms.items():
-                            if isinstance(term, Function) and name == term.name:
-                                continue
-                            term_html = reconstruct_string(term, color_mode="html", target_name=name, target_type="term")
-                            st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
-                            has_terms = True
-                        if not has_terms:
-                            st.markdown("*(None)*")
-                        
-                        st.markdown("**Formulae**")
-                        has_formulae = False
-                        for name, formula in env.local_formulae.items():
-                            if isinstance(formula, Relation) and name == formula.name:
-                                continue
-                            
-                            is_proven = name in env.local_theorems
-                            is_goal = (i > 0 and name == env.goal_formula_name)
-                            
-                            if is_goal:
-                                obj_type = "goal"
-                                color = "#FFA500"
-                            elif is_proven:
-                                obj_type = "proven"
-                                color = "#00FF00"
-                            else:
-                                obj_type = "unproven"
-                                color = "#6495ED"
-                                
-                            prefix = "<strong>[Proven]</strong> " if is_proven else ""
-                            
-                            form_html = reconstruct_string(formula, color_mode="html", target_name=name, target_type="fol")
-                            name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="{obj_type}" data-target="{name}" data-tooltip="Formula Definition" style="color: {color}">{name}</span>'
-                            
-                            st.markdown(f'{prefix}{name_span} : {form_html}', unsafe_allow_html=True)
-                            has_formulae = True
-                        if not has_formulae:
-                            st.markdown("*(None)*")
-
-        st.divider()
-        st.subheader("Console")
-        chat_container = st.container()
-        with chat_container:
-            for msg in st.session_state.chat_history:
-                st.markdown(msg, unsafe_allow_html=True)
-
-        # --- INTERACTIVE CLICK HANDLING ---
-        import json
-        import streamlit.components.v1 as components
-        
-        # Hide the text input completely and style the popover
-        st.markdown("""
-        <style>
-        div[data-testid="stElementContainer"]:has(input[aria-label="itp_click_data"]) {
-            position: absolute !important;
-            width: 1px !important;
-            height: 1px !important;
-            opacity: 0.01 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            z-index: -1 !important;
-        }
-        .itp-popover {
-            position: absolute;
-            z-index: 10000;
-            background: #ffffff;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 6px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            max-width: 300px;
-        }
-        .itp-popover button {
-            background: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
-            padding: 4px 10px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            color: #374151;
-            transition: all 0.1s;
-        }
-        .itp-popover button:hover {
-            background: #e5e7eb;
-            border-color: #d1d5db;
-        }
-        .itp-popover-input {
-            width: 100%;
-            padding: 4px 6px;
-            margin-bottom: 4px;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
-            font-size: 13px;
-            box-sizing: border-box;
-            outline: none;
-        }
-        .itp-popover-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 1px #3b82f6;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        clicked_payload_raw = st.text_input("itp_click_data", key="itp_click_data", label_visibility="collapsed")
-
-        if clicked_payload_raw and clicked_payload_raw != st.session_state.get("last_clicked_payload"):
-            print(f"BACKEND RECEIVED CLICK DATA: {clicked_payload_raw}", flush=True)
-            st.session_state.last_clicked_payload = clicked_payload_raw
-            try:
-                data = json.loads(clicked_payload_raw)
-                selected_cmd = data.get("cmd")
-                target = data.get("target")
-                occ = data.get("occ")
-                symbol = data.get("symbol")
                 
-                args = data.get("args", [])
+            st.divider()
+            col_guide, col_prover = st.columns([1, 2.5])
+            with col_guide:
+                level_data = st.session_state.active_game_state["level"]
                 
-                if selected_cmd:
-                    if selected_cmd in ["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi"]:
-                        parts = [selected_cmd]
-                        if len(args) > 0: parts.append(args[0])
-                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
-                        parts.append(target)
-                    elif selected_cmd in ["apply", "apply2", "apply3", "intro2"]:
-                        parts = [selected_cmd, target]
-                        if len(args) > 0: parts.append(args[0])
-                    elif selected_cmd == "intro":
-                        parts = [selected_cmd, target]
-                        if len(args) > 0: parts.append(args[0])
-                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
-                    elif selected_cmd in ["st", "sb", "sf", "sp"]:
-                        parts = [selected_cmd, symbol]
-                        if len(args) > 0: parts.append(args[0])
-                        parts.extend([str(occ), target])
-                    elif selected_cmd == "fold all":
-                        parts = ["fold", "all", target]
-                    elif selected_cmd == "fold":
-                        parts = ["fold", symbol, str(occ), target]
-                    elif selected_cmd == "sa":
-                        parts = [selected_cmd, symbol]
-                        if len(args) > 0: parts.append(args[0])
-                        parts.append(target)
-                    elif selected_cmd == "contra":
-                        parts = [selected_cmd, target]
-                        if len(args) > 0: parts.append(args[0])
-                        if len(args) > 1: parts.append(args[1])
-                    elif selected_cmd in ["dt", "and", "imply"]:
-                        parts = [selected_cmd, target]
-                        if len(args) > 0: parts.append(args[0])
-                        if len(args) > 1: parts.append(args[1])
-                    elif selected_cmd in ["neg-", "neg+", "left", "right"]:
-                        parts = [selected_cmd, target]
-                        if len(args) > 0: parts.append(args[0])
-                    elif selected_cmd == "rw":
-                        parts = [selected_cmd]
-                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
-                        if len(args) > 2 and args[2].strip(): parts.append(args[2])
-                        parts.append(target)
-                        if len(args) > 0 and args[0].strip(): parts.append(args[0])
-                    elif selected_cmd in ["mission", "auto", "search", "backward_search", "advanced_search"]:
-                        parts = [selected_cmd, target]
-                    else:
-                        parts = [selected_cmd, target, str(occ)]
+                if "guide_hints" in level_data:
+                    if "hint_index" not in st.session_state.active_game_state:
+                        st.session_state.active_game_state["hint_index"] = 0
+                        
+                    hint_idx = st.session_state.active_game_state["hint_index"]
+                    hints = level_data["guide_hints"]
                     
-                    final_cmd = " ".join([p for p in parts if p])
-                    
-                    # Run immediately now that arguments are collected in the popup!
-                    print(f"BACKEND SETTING COMMAND TO: {final_cmd}", flush=True)
-                    st.session_state.interactive_cmd_to_run = final_cmd
-            except Exception as e:
-                print(f"Error parsing click data: {e}")
-            st.rerun()
-
-        components.html("""
-        <script>
-            let existing = window.parent.document.getElementById('itp-click-script');
-            if (existing) {
-                existing.remove();
-            }
-            let script = window.parent.document.createElement('script');
-            script.id = 'itp-click-script';
-            script.innerHTML = `
-            if (window.itpClickListener) {
-                window.document.removeEventListener('click', window.itpClickListener);
-            }
-            window.itpClickListener = function(e) {
-                try {
-                    if (e.target.classList && (e.target.classList.contains('interactive-symbol') || e.target.classList.contains('interactive-name'))) {
-                        e.preventDefault();
-                        e.stopPropagation();
+                    for i in range(min(hint_idx + 1, len(hints))):
+                        st.markdown(hints[i])
                         
-                        let oldPopover = window.document.getElementById('itp-custom-popover');
-                        if (oldPopover) {
-                            oldPopover.remove();
-                        }
-                        
-                        let targetElement = e.target;
-                        let target_name = targetElement.getAttribute('data-target');
-                        let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
-                        let occ = targetElement.getAttribute('data-occ') || 1;
-                        let cmds = [];
-                        
-                        if (targetElement.classList.contains('interactive-symbol')) {
-                            let isLogical = ['∀', '∃', '∃!', 'ε', 'ι', '∨', '∧', '¬', '⇒', '⇔', '=', '∈'].includes(symbol);
-                            cmds = ['st', 'sb', 'sf', 'sp', 'sa'];
-                            if (isLogical) {
-                                cmds = []; // No substitution for logical symbols
-                            }
-                            // fold command for quantifiers, choice ops, or user-defined symbols
-                            if (['∀', '∃', '∃!', 'ε', 'ι'].includes(symbol) || !isLogical) {
-                                cmds.push('fold');
-                            }
-                        } else {
-                            let obj_type = targetElement.getAttribute('data-obj-type');
-                            if (obj_type === 'unproven') {
-                                cmds = ["mission", "contra", "apply", "auto", "search", "backward_search", "advanced_search", "fold all"];
-                            } else if (obj_type === 'goal') {
-                                cmds = ["intro2", "apply", "apply2", "apply3", "auto", "search", "backward_search", "advanced_search", "fold all", 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw'];
-                            } else if (obj_type === 'proven') {
-                                cmds = ['intro', 'apply', 'apply2', 'apply3', 'dt', 'and', 'left', 'right', 'imply', 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'fold all'];
-                            } else {
-                                cmds = ['fold all'];
-                            }
-                        }
-                        
-                        
-                        if (cmds.length === 0) {
-                            return;
-                        }
-                        
-                        let popover = window.document.createElement('div');
-                        popover.id = 'itp-custom-popover';
-                        popover.className = 'itp-popover';
-                        
-                        let rect = e.target.getBoundingClientRect();
-                        
-                        cmds.forEach(cmd => {
-                            let btn = window.document.createElement('button');
-                            btn.innerText = cmd;
-                            btn.onclick = function(ev) {
-                                ev.preventDefault();
-                                ev.stopPropagation();
-                                
-                                let needsArgs = 0;
-                                let arg1Label = "Argument";
-                                let arg2Label = "Argument 2";
-                                
-                                if (["simp_l_eq", "simp_r_eq", "simp_l_bi", "simp_r_bi", "apply", "apply2", "apply3", "st", "sb", "sf", "sa", "sp", "intro2"].includes(cmd)) {
-                                    needsArgs = 1;
-                                    if (["st", "sb", "sf", "sa", "sp"].includes(cmd)) arg1Label = "Formula/Term";
-                                    else arg1Label = "Theorem Name";
-                                    
-                                    if (cmd.startsWith("simp_")) {
-                                        needsArgs = 2;
-                                        arg2Label = "Occurrences (optional)";
-                                    }
-                                } else if (cmd === "contra") {
-                                    needsArgs = 2;
-                                    arg1Label = "Formula 1";
-                                    arg2Label = "Formula 2";
-                                } else if (cmd === "intro") {
-                                    needsArgs = 2;
-                                    arg1Label = "Variable/Term";
-                                    arg2Label = "New Formula Name (optional for goals)";
-                                } else if (["neg-", "neg+", "left", "right"].includes(cmd)) {
-                                    needsArgs = 1;
-                                    arg1Label = "New Formula Name";
-                                } else if (["dt", "and", "imply"].includes(cmd)) {
-                                    needsArgs = 2;
-                                    arg1Label = "New Formula Name(s)";
-                                    arg2Label = "Variables/Theorems";
-                                    if (cmd === "and") { arg1Label = "Left Formula"; arg2Label = "Right Formula"; }
-                                } else if (cmd === "rw") {
-                                    needsArgs = 3;
-                                    arg1Label = "New Formula";
-                                    arg2Label = "Rewrite Theorem";
-                                }
-                                
-                                let submitCmd = function(argsList) {
-                                    let data = {
-                                        target: target_name,
-                                        symbol: symbol,
-                                        occ: occ,
-                                        cmd: cmd,
-                                        args: argsList,
-                                        _nonce: Date.now()
-                                    };
-                                    let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
-                                    if (input) {
-                                        input.focus();
-                                        setTimeout(() => {
-                                            let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                                            nativeSetter.call(input, JSON.stringify(data));
-                                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                                            setTimeout(() => {
-                                                input.blur();
-                                            }, 50);
-                                        }, 50);
-                                    }
-                                    popover.remove();
-                                };
-
-                                if (needsArgs === 0) {
-                                    submitCmd([]);
-                                    return;
-                                }
-                                
-                                // Show secondary form inline
-                                popover.innerHTML = '';
-                                popover.style.flexDirection = 'column';
-                                
-                                let title = window.document.createElement('div');
-                                title.innerText = "Command: " + cmd;
-                                title.style.fontWeight = 'bold';
-                                title.style.marginBottom = '6px';
-                                title.style.fontSize = '14px';
-                                popover.appendChild(title);
-                                
-                                let input1 = null;
-                                let input2 = null;
-                                
-                                if (needsArgs >= 1) {
-                                    input1 = window.document.createElement('input');
-                                    input1.type = 'text';
-                                    input1.placeholder = arg1Label;
-                                    input1.className = 'itp-popover-input';
-                                    popover.appendChild(input1);
-                                }
-                                if (needsArgs >= 2) {
-                                    input2 = window.document.createElement('input');
-                                    input2.type = 'text';
-                                    input2.placeholder = arg2Label;
-                                    input2.className = 'itp-popover-input';
-                                    popover.appendChild(input2);
-                                }
-                                
-                                let input3 = null;
-                                if (needsArgs >= 3) {
-                                    input3 = window.document.createElement('input');
-                                    input3.type = 'text';
-                                    input3.placeholder = "Occurrences (optional)";
-                                    input3.className = 'itp-popover-input';
-                                    popover.appendChild(input3);
-                                }
-                                
-                                let btnContainer = window.document.createElement('div');
-                                btnContainer.style.display = 'flex';
-                                btnContainer.style.gap = '6px';
-                                btnContainer.style.width = '100%';
-                                
-                                let runBtn = window.document.createElement('button');
-                                runBtn.innerText = 'Run';
-                                runBtn.style.flex = '1';
-                                runBtn.style.background = '#3b82f6';
-                                runBtn.style.color = 'white';
-                                runBtn.style.borderColor = '#2563eb';
-                                
-                                runBtn.onclick = function(eRun) {
-                                    eRun.preventDefault(); eRun.stopPropagation();
-                                    
-                                    let val1 = input1 ? input1.value : "";
-                                    let val2 = input2 ? input2.value : "";
-                                    let val3 = input3 ? input3.value : "";
-                                    
-                                    let occ = targetElement.getAttribute('data-occ') || 1;
-                                    let symbol = targetElement.getAttribute('data-symbol') || targetElement.innerText;
-                                    
-                                    let argsArr = [];
-                                    if (needsArgs >= 1) argsArr.push(val1);
-                                    if (needsArgs >= 2) argsArr.push(val2);
-                                    if (needsArgs >= 3) argsArr.push(val3);
-                                    
-                                    let payload = JSON.stringify({
-                                        cmd: cmd,
-                                        target: target_name,
-                                        occ: parseInt(occ),
-                                        symbol: symbol,
-                                        args: argsArr,
-                                        _nonce: Date.now()
-                                    });
-                                    
-                                    let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');
-                                    if (input) {
-                                        input.focus();
-                                        setTimeout(() => {
-                                            let nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                                            nativeSetter.call(input, payload);
-                                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                                            setTimeout(() => {
-                                                input.blur();
-                                            }, 50);
-                                        }, 50);
-                                    }
-                                    popover.remove();
-                                };
-                                
-                                let cancelBtn = window.document.createElement('button');
-                                cancelBtn.innerText = 'Cancel';
-                                cancelBtn.style.flex = '1';
-                                cancelBtn.onclick = function(eCancel) {
-                                    eCancel.preventDefault(); eCancel.stopPropagation();
-                                    popover.remove();
-                                };
-                                
-                                btnContainer.appendChild(runBtn);
-                                btnContainer.appendChild(cancelBtn);
-                                popover.appendChild(btnContainer);
-                                
-                                if (input1) setTimeout(() => input1.focus(), 50);
-                                
-                                let handleEnter = function(eKey) {
-                                    if (eKey.key === 'Enter') runBtn.click();
-                                };
-                                if (input1) input1.addEventListener('keydown', handleEnter);
-                                if (input2) input2.addEventListener('keydown', handleEnter);
-                            };
-                            popover.appendChild(btn);
-                        });
-                        
-                        
-                        window.document.body.appendChild(popover);
-                        popover.style.position = 'fixed';
-                        popover.style.zIndex = '999999';
-                        
-                        let updatePosition = function() {
-                            let rect = targetElement.getBoundingClientRect();
-                            let pHeight = popover.offsetHeight;
-                            let topPos = rect.top - pHeight - 8;
-                            if (topPos < 0) {
-                                topPos = rect.bottom + 8;
-                            }
-                            popover.style.top = topPos + 'px';
-                            popover.style.left = rect.left + 'px';
-                        };
-                        updatePosition();
-                        
-                        let scrollListener = function() {
-                            if (window.document.body.contains(popover)) {
-                                updatePosition();
-                            } else {
-                                window.parent.removeEventListener('scroll', scrollListener, true);
-                            }
-                        };
-                        window.parent.addEventListener('scroll', scrollListener, true);
-                        
-                        const observer = new ResizeObserver(() => {
-                            if (window.document.body.contains(popover)) {
-                                updatePosition();
-                            } else {
-                                observer.disconnect();
-                            }
-                        });
-                        observer.observe(popover);
-                        
-                    } else {
-                        let popover = window.document.getElementById('itp-custom-popover');
-                        if (popover && !popover.contains(e.target)) {
-                            popover.remove();
-                        }
-                    }
-                } catch (error) {
-                    console.error("ITP JS Error", error);
-                }
-            };
-            window.document.addEventListener('click', window.itpClickListener);
-            `;
-            window.parent.document.head.appendChild(script);
-        </script>
-        """, height=0, width=0)
-        if st.session_state.get("interactive_cmd_to_run"):
-            command = st.session_state.interactive_cmd_to_run
-            st.session_state.interactive_cmd_to_run = None
-            interactive_submit = True
-        else:
-            command = None
-            interactive_submit = False
-
-        prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
-        
-        # Real-time Autocomplete UI
-        if st_keyup is not None:
-            # We need a clear button or form to submit, but st_keyup doesn't natively submit on enter unless we use a button
-            # We'll use two columns: input and submit button
-            st.markdown("### Command Input")
-            
-            # Use session state to hold the partial input so suggestions can update it
-            if "current_cmd" not in st.session_state:
-                st.session_state.current_cmd = ""
-            if "keyup_key" not in st.session_state:
-                st.session_state.keyup_key = 0
-                
-            # If the user clicks a suggestion, it updates st.session_state.current_cmd
-            
-            col_input, col_btn = st.columns([5, 1])
-            with col_input:
-                partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key=f"live_input_{st.session_state.keyup_key}", debounce=100)
-            with col_btn:
-                # Add some vertical margin so button aligns with input
-                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                btn_clicked = st.button("Run Command", use_container_width=True)
-                submit_clicked = btn_clicked or interactive_submit
-                
-            # Compute and render suggestions
-            if partial_command is not None and not submit_clicked:
-                suggestions = autocomplete_engine.get_suggestions(partial_command, current_env)
-                
-                if suggestions == ["ERROR: INVALID REPL COMMAND"]:
-                    st.markdown("<span style='color:red;'>❌ Invalid REPL Command</span>", unsafe_allow_html=True)
-                elif suggestions:
-                    st.markdown("**Suggestions:**")
-                    # Render chips inside a scrollable container
-                    with st.container(height=180):
-                        max_sugs = min(len(suggestions), 50)
-                        
-                        selection = st.pills(
-                            "Suggestions",
-                            options=suggestions[:max_sugs],
-                            label_visibility="collapsed",
-                            key=f"sug_pills_{st.session_state.keyup_key}"
-                        )
-                        
-                        if selection:
-                            tokens = partial_command.lstrip().split(" ")
-                            tokens[-1] = selection
-                            new_cmd = " ".join(tokens) + " "
-                            st.session_state.current_cmd = new_cmd
-                            st.session_state.keyup_key += 1
+                    if hint_idx < len(hints) - 1:
+                        if st.button("Next Hint"):
+                            st.session_state.active_game_state["hint_index"] += 1
                             st.rerun()
                 else:
-                    st.write("*(No suggestions)*")
-            elif not submit_clicked:
-                submit_clicked = False
+                    st.markdown(level_data.get("guide_markdown", ""))
                 
-            if not command:
-                command = partial_command if submit_clicked else None
-            
-            # Clear input after run
-            if submit_clicked:
-                st.session_state.current_cmd = ""
-                st.session_state.keyup_key += 1
-                
-            # Disable native browser autocomplete and add button CSS
-            st.components.v1.html(
-                """<script>
-                window.parent.document.querySelectorAll('input').forEach(i => i.setAttribute('autocomplete', 'off'));
-                
-                let oldCss = window.parent.document.getElementById('custom-button-css');
-                if (oldCss) oldCss.remove();
-                
-                window.parent.document.head.insertAdjacentHTML("beforeend", `<style id='custom-button-css'>
-                .stButton > button { transition: all 0.1s ease !important; }
-                    .stButton > button:hover { background-color: #f0f8ff !important; border-color: #1e90ff !important; color: #1e90ff !important; }
-                    .stButton > button:active { background-color: #e6f2ff !important; transform: scale(0.95) !important; border-color: #0066cc !important; color: #0066cc !important; }
-                    
-                    /* Increase font size for the suggestions in the st.pills component */
-                    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] span,
-                    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPills"] p {
-                        font-size: 1.2rem !important;
-                        padding: 0.2rem 0 !important;
-                    }
-                    
-                    /* Tooltip CSS */
-                    .itp-tooltip {
-                        position: relative;
-                        cursor: help;
-                        display: inline-block;
-                        padding: 0 1px;
-                        border-radius: 2px;
-                    }
-                    .itp-tooltip:hover {
-                        outline: 1px solid rgba(100, 149, 237, 0.6);
-                        background-color: rgba(100, 149, 237, 0.1);
-                    }
-                    .interactive-symbol, .interactive-name {
-                        cursor: pointer;
-                        border-bottom: 1px dashed rgba(100, 149, 237, 0.5);
-                    }
-                    .interactive-symbol:hover, .interactive-name:hover {
-                        background-color: rgba(255, 165, 0, 0.2);
-                        outline: 1px solid rgba(255, 165, 0, 0.8);
-                    }
-                    
-                    /* Hide custom click listener component */
-                    iframe[title="click_listener"] {
-                        position: absolute !important;
-                        width: 0px !important;
-                        height: 0px !important;
-                        border: none !important;
-                        visibility: hidden !important;
-                        opacity: 0 !important;
-                    }
-                    div[data-testid="stElementContainer"]:has(iframe[title="click_listener"]) {
-                        height: 0px !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow: hidden !important;
-                    }
-                    .itp-tooltip::after {
-                        content: attr(data-tooltip);
-                        position: absolute;
-                        bottom: 100%;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        background-color: #333;
-                        color: #fff;
-                        padding: 4px 8px;
-                        border-radius: 4px;
-                        font-size: 12px;
-                        white-space: nowrap;
-                        opacity: 0;
-                        pointer-events: none;
-                        transition: opacity 0.2s;
-                        z-index: 1000;
-                        font-family: sans-serif;
-                    }
-                    .itp-tooltip:hover::after {
-                        opacity: 1;
-                    }
-                    </style>`);
-                
-                let oldScript = window.parent.document.getElementById('itp-enter-script');
-                if (oldScript) oldScript.remove();
-                
-                setInterval(() => {
-                    // Inject a script directly into the parent window to escape the iframe sandbox
-                    if (!window.parent.document.getElementById('itp-enter-script')) {
-                        const script = window.parent.document.createElement('script');
-                        script.id = 'itp-enter-script';
-                        script.innerHTML = `
-                            setInterval(() => {
-                                const iframes = document.querySelectorAll('iframe');
-                                iframes.forEach(iframe => {
-                                    try {
-                                        const input = iframe.contentWindow.document.querySelector('input');
-                                        if (input && !input.dataset.enterListenerAdded) {
-                                            input.setAttribute('autocomplete', 'new-password');
-                                            input.setAttribute('name', 'itp_cmd_' + Math.random());
-                                            input.setAttribute('spellcheck', 'false');
-                                            input.setAttribute('autocorrect', 'off');
-                                            
-                                            input.addEventListener('keydown', function(e) {
-                                                if (e.key === 'Enter') {
-                                                    input.blur();
-                                                    
-                                                    let clickAttempts = 0;
-                                                    function tryClick() {
-                                                        const btns = document.querySelectorAll('button');
-                                                        let found = null;
-                                                        for(let i=0; i<btns.length; i++) {
-                                                            if (btns[i].innerText && btns[i].innerText.toLowerCase().includes('run command')) {
-                                                                found = btns[i];
-                                                                break;
-                                                            }
-                                                        }
-                                                        if (found && !found.disabled) {
-                                                            // Use a full MouseEvent for maximum compatibility
-                                                            found.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                                                        } else if (clickAttempts < 10) {
-                                                            clickAttempts++;
-                                                            setTimeout(tryClick, 150);
-                                                        }
-                                                    }
-                                                    setTimeout(tryClick, 150);
-                                                }
-                                            }, true);
-                                            input.dataset.enterListenerAdded = "true";
-                                        }
-                                    } catch(e) {}
-                                });
-                            }, 500);
-                        `;
-                        window.parent.document.body.appendChild(script);
-                    }
-                }, 1000);
-                </script>
-                """,
-                height=0, width=0
-            )
+                if st.session_state.active_game_state["completed"]:
+                    st.success("🎉 **LEVEL COMPLETE!** 🎉")
+                    st.markdown(level_data.get("completion_message", ""))
+                    if st.button("Next / Return"):
+                        st.session_state.active_game_state["is_playing"] = False
+                        st.session_state.active_game_state["level"] = None
+                        st.session_state.active_program = None
+                        st.rerun()
+            with col_prover:
+                render_prover_interface(is_game_mode=True)
         else:
-            # Fallback if streamlit-keyup is not installed
-            command = st.chat_input("Enter command here (install streamlit-keyup for autocomplete)")
-
-        if command:
-            parts = command.strip().split(maxsplit=1)
-            cmd = parts[0]
-            args_str = parts[1] if len(parts) > 1 else ""
+            st.subheader("Select a Game")
+            selected_game = st.selectbox("Available Games", games)
             
-            st.session_state.chat_history.append(f'<strong>{prompt_str}{command}</strong>')
-            st.session_state.command_history.append(command)
-            
-            f = io.StringIO()
-            with contextlib.redirect_stdout(f):
-                if cmd == "exit":
-                    if len(st.session_state.env_chain) > 1:
-                        st.session_state.env_chain.pop()
-                        print("Exited child environment.")
-                    else:
-                        print("Already at ground environment.")
-                elif registry.is_registered(cmd):
-                    try:
-                        new_env = registry.dispatch(cmd, current_env, args_str, get_default_env=get_default_env)
-                        if new_env is not None and new_env is not current_env:
-                            st.session_state.env_chain.append(new_env)
-                    except Exception as e:
-                        print(f"Error: {e}")
-                elif cmd == "clear":
-                    st.session_state.chat_history.clear()
+            if selected_game:
+                st.divider()
+                st.subheader(f"Levels for: {selected_game}")
+                game_path = os.path.join(games_dir, selected_game)
+                levels = [f for f in os.listdir(game_path) if f.endswith(".json")]
+                
+                if not levels:
+                    st.info("No levels found yet.")
                 else:
-                    print(f"Unknown command '{cmd}'.")
+                    import re
+                    def extract_level_num(filename):
+                        match = re.search(r'\d+', filename)
+                        return int(match.group()) if match else 0
+                        
+                    # Sort levels numerically
+                    levels.sort(key=extract_level_num)
                     
-            output = f.getvalue()
-            if output:
-                # Add CSS styling for errors if output contains "Error:"
-                formatted_output = []
-                for line in output.split('\\n'):
-                    if line.startswith('Error:'):
-                        formatted_output.append(f"<span style='color:red;'>{line}</span>")
-                    else:
-                        formatted_output.append(ansi_to_html(line))
-                
-                output_str = "<br>".join(formatted_output)
-                st.session_state.chat_history.append(f"<div style='font-family: monospace; white-space: pre-wrap;'>{output_str}</div>")
-                
-            st.rerun()
+                    # Check if all levels are completed to show tick on game
+                    all_completed = True
+                    for level in levels:
+                        level_id = f"{selected_game}/{level}"
+                        if not st.session_state.games_progress.get(level_id, False):
+                            all_completed = False
+                            
+                    if all_completed and len(levels) > 0:
+                        st.success(f"🏆 You have completed all levels in **{selected_game}**!")
+                    
+                    for level in levels:
+                        level_path = os.path.join(game_path, level)
+                        with open(level_path, "r") as f:
+                            level_data = json.load(f)
+                        
+                        level_id = f"{selected_game}/{level}"
+                        is_completed = st.session_state.games_progress.get(level_id, False)
+                        
+                        col_text, col_btn = st.columns([4, 1])
+                        with col_text:
+                            status = "✅ " if is_completed else ""
+                            level_num = extract_level_num(level)
+                            level_name = level_data.get('name', level)
+                            st.write(f"#### {status}Level {level_num}: {level_name}")
+                        with col_btn:
+                            if st.button("Play", key=f"play_{level_id}"):
+                                st.session_state.active_game_state["is_playing"] = True
+                                st.session_state.active_game_state["game_name"] = selected_game
+                                st.session_state.active_game_state["level"] = level_data
+                                st.session_state.active_game_state["level_id"] = level_id
+                                st.session_state.active_game_state["completed"] = False
+                                st.session_state.active_game_state["hint_index"] = 0
+                                st.session_state.active_program = f"game_{selected_game}_{level_data['id']}"
+                                
+                                # Setup environment
+                                p_dir = get_program_dir(st.session_state.active_program)
+                                os.makedirs(p_dir, exist_ok=True)
+                                proof_logger.open(os.path.join(p_dir, "proofs.html"))
+                                
+                                # Clear existing environment to load fresh
+                                env = Environment()
+                                from AST import RelationType, FunctionType, DummyVariable, Relation, Function
+                                dummy = DummyVariable("x")
+                                env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
+                                
+                                for f_def in level_data.get("default_functions", []):
+                                    env.add_term(Function(name=f_def["name"], arity=f_def["arity"], func_type=FunctionType.PRE_DEFINED, arguments=[dummy]*f_def["arity"]))
+                                for r_def in level_data.get("default_relations", []):
+                                    env.add_formula(Relation(name=r_def["name"], arity=r_def["arity"], rel_type=RelationType.PRE_DEFINED, arguments=[dummy]*r_def["arity"]))
+                                if level_data.get("start_env"):
+                                    # load the start env from the game directory
+                                    start_env_path = os.path.join(game_path, level_data["start_env"])
+                                    if os.path.exists(start_env_path):
+                                        env.load_state(start_env_path)
+                                st.session_state.env_chain = [env]
+                                st.session_state.chat_history = []
+                                st.session_state.command_history = []
+                                
+                                st.rerun()
+                        st.divider()
 
 with tab_help:
     st.header("Command Reference")

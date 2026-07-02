@@ -1,0 +1,23 @@
+{
+  "id": "level3",
+  "name": "variable substitution in function",
+  "guide_hints": [
+    "# Level 3: Variable Substitution in Function\n\nThe `E2` axiom is used to prove any formula of the format `(x₁ = y₁ ∧ x₂ = y₂ ... xₙ = yₙ) ⇒ f(x₁, x₂, ... xₙ) = f(y₁, y₂, ... yₙ)` where `x₁`, `y₁`, ... `xₙ`, `yₙ` are variables and `f` is a function of arity `n` (i.e. taking `n` terms as input).",
+    "**Typing Symbols & Logic:**\nThe `∧` (AND) and `⇒` (IMPLIES) symbols are called **binary connectives** because they act over two formulas to create a larger formula.\n- **AND (`∧`)** means both formulas must be true.\n- **IMPLIES (`⇒`)** means if the first formula is true, the second must also be true.\n\n*How to type them:*\nSince these are Unicode characters, the easiest way is to use the keyboard shortcut which in Mac is to type the hex code (e.g., 2227 for `∧`, 21D2 for `⇒`) while holding the Option button. There are similar methods in Windows (using Alt + hex code) and Android (long press). Alternatively, you can always just **copy and paste** them from here.",
+    "### Instructions:\nFirst, create two variables named `x` and `y`. Type `cv x` and then `cv y` in the command box.",
+    "Next, create the goal formula. You can copy the symbols from here: `cf goal x=y ⇒ S x = S y`.",
+    "Finally, apply the `E2` axiom to prove it. Notice how `E2` substitutes `x` with `y` inside the function `S`! Type `apply goal E2` in the console.",
+    "Similarly you can try proving `(y=x) ⇒ (S S y = S S x)` or `(x=x) ⇒ (S x = S x)` using `E2` axiom."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E2"],
+  "allowed_rules": [],
+  "goal_statement": "x = y ⇒ S x = S y",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "start_env": null
+}

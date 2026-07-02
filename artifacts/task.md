@@ -1,0 +1,3 @@
+- [x] Update Frontend.py AST rendering
+- [x] Update app.py rendering
+- [x] Update app.py UI logic

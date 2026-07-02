@@ -1,0 +1,20 @@
+{
+  "id": "level8",
+  "name": "Equality is Transitive",
+  "guide_hints": [
+    "# Level 8: Equality is Transitive\n\nTo prove that equality is transitive (`(x=y ∧ y=z) ⇒ x=z`), you again need an essential lemma from the `E3` axiom. The `E3` axiom applied to equality gives `(x₁=y₁ ∧ x₂=y₂) ⇒ (x₁=x₂ ⇒ y₁=y₂)`. Can you figure out what to substitute for `x₁`, `y₁`, `x₂`, and `y₂`?\n\n*Hint:* substitute `x₁` with `x`, `y₁` with `x`, `x₂` with `y`, and `y₂` with `z` to get `(x=x ∧ y=z) ⇒ (x=y ⇒ x=z)`!",
+    "### Step 1:\nCreate the three variables `x`, `y`, and `z` using `cv x`, `cv y`, and `cv z`.",
+    "### Step 2:\nCreate the goal formula: `cf goal (x=y ∧ y=z) ⇒ x=z`.",
+    "### Step 3:\nCreate the essential lemma formula (you can copy-paste this): `cf f1 (x=x ∧ y=z) ⇒ (x=y ⇒ x=z)`.\nProve it using `E3`: `apply f1 E3`.",
+    "### Step 4:\nJust like in the previous level, you need to prove that `x=x` is true since it's a required condition. Create the formula `cf f2 x=x` and prove it using `E1`: `apply f2 E1`.",
+    "### Step 5:\nFinally, apply `PC1` to prove your goal formula using the two proven lemmas `f1` and `f2`! Type: `apply goal PC1 f1 f2`.",
+    "Congratulations, you have proved that `=` is an equivalence relation!"
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1", "E3"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "(x = y ∧ y = z) ⇒ x = z",
+  "default_functions": [],
+  "default_relations": [],
+  "start_env": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "level5",
+  "name": "Propositional Calculus Inference rules",
+  "guide_hints": [
+    "# Level 5: Propositional Calculus Inference rules\n\n**Inference Rules:** An inference rule is a logical tool that allows us to derive a new true formula from one or more already proven true formulas (called premises). While axioms are unconditionally true, inference rules represent valid steps of reasoning. Their general syntax in this prover is `apply <target_formula> <rule_name> <premise_1> <premise_2> ...`.",
+    "The `PC1` and `PC2` inference rules break down every atomic subformula in the **1st order formula** into **propositional variables**, thus creating a **propositional formula** such that similar atomic subformulas become similar propositional variables.",
+    "**Internal Mechanism:** When you apply `PC1` or `PC2`, the prover replaces each unique atomic formula with a boolean variable (like `p`, `q`, `r`). Then, it checks if `(Premise_1 ∧ Premise_2 ...) ⇒ Target` is a *tautology* (always true) using truth tables or SAT solvers. If it is, the target formula is successfully proven!",
+    "### Instructions:\nFirst, create the variables `x` and `y` using `cv x` and `cv y`.\nThen, construct our goal formula: `cf goal x=y ⇒ (x∈x ⇒ y∈y)`.\nBut wait! We cannot prove this directly using `E3` because `E3` requires two pairs of equalities for a binary relation. For the relation `∈`, `E3` provides `(x=y ∧ x=y) ⇒ (x∈x ⇒ y∈y)`. So, let's create this intermediate formula: `cf f1 (x=y ∧ x=y) ⇒ (x∈x ⇒ y∈y)`.",
+    "Now, prove the intermediate formula by applying `E3`: `apply f1 E3`.\nFinally, use `PC1` or `PC2` to prove the goal formula from our proven premise `f1`: `apply goal PC1 f1`.\n*Explanation:* The prover breaks this down into propositional logic: does `((p ∧ p) ⇒ (q ⇒ r))` imply `(p ⇒ (q ⇒ r))`? Yes, it's a tautology! So `PC1` succeeds.",
+    "**PC1 vs PC2:** Since `PC1` and `PC2` serve the same purpose, in which scenario is which one more efficient? `PC1` uses a complete Truth Table evaluation, which is fast for a small number of unique atomic formulas. `PC2` uses **Gentzen's Sequent Calculus** instead, making it much more efficient when the formula is large and contains many different atomic subformulas.",
+    "**Grammar Rules:** You must have noticed that the syntax of creating terms and formulas is a bit complicated. The rule is that for unary operators (functions, relations, **negation symbol** (which will come later)), the argument is written just after the symbol whereas for binary operators (functions, relations, logical connectives), the 1st operand is written before it and 2nd is written after this. For higher arity operators (functions and relations), all arguments are written after it in sequence. The sequence definitely matters here."
+  ],
+  "allowed_commands": ["cv", "cf", "apply"],
+  "allowed_axioms": ["E1", "E3"],
+  "allowed_rules": ["PC1", "PC2"],
+  "goal_statement": "x = y ⇒ (x ∈ x ⇒ y ∈ y)",
+  "default_functions": [],
+  "default_relations": [
+    {
+      "name": "∈",
+      "arity": 2
+    }
+  ],
+  "start_env": null
+}
