@@ -122,11 +122,14 @@ def load_program(name: str):
 # --- SESSION INITIALIZATION ---
 def init_session():
     if "itp_data" not in st.session_state:
-        ls_str = st_javascript("localStorage.getItem('itp_data');")
+        # Wrap in single-line IIFE with try/catch to prevent st_javascript from hanging on SecurityErrors (Streamlit Cloud cross-origin iframes)
+        ls_code = "(function(){ try { var ls = null; try { ls = window.parent.localStorage; } catch(e) { ls = window.localStorage; } return ls.getItem('itp_data') || 'null'; } catch(e) { return 'null'; } })();"
+        ls_str = st_javascript(ls_code)
+        
         if ls_str == 0:
             st.write("Loading from Local Storage...")
             st.stop()
-        elif ls_str is None:
+        elif ls_str == "null" or ls_str is None:
             st.session_state.itp_data = {"programs": {}, "games_progress": {}}
         else:
             try:
@@ -1504,6 +1507,6 @@ with tab_contact:
 
 if st.session_state.get("needs_save", False):
     val_str = json.dumps(st.session_state.itp_data).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"')
-    js = f"<script>window.parent.localStorage.setItem('itp_data', \"{val_str}\");</script>"
-    components.html(js, height=0, width=0)
+    js = f"(function(){{ try {{ var ls = null; try {{ ls = window.parent.localStorage; }} catch(e) {{ ls = window.localStorage; }} ls.setItem('itp_data', '{val_str}'); return 'ok'; }} catch(e) {{ return 'error'; }} }})();"
+    st_javascript(js)
     st.session_state.needs_save = False
