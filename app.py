@@ -1475,12 +1475,6 @@ with tab_contact:
     st.write("Email: **ritilranjan5@gmail.com**")
     st.markdown("We value your feedback! Whether you want to suggest an improvement, report a bug, or give general advice, please leave your comments below.")
     
-    with st.expander("Provide Advice"):
-        advice_text = st.text_area("Your Advice / Suggestions:", key="advice_text")
-        if st.button("Submit Advice"):
-            if advice_text.strip():
-                try:
-                    import datetime
     with st.expander("Contact Us (Feedback & Suggestions)"):
         st.write("We'd love to hear from you! Please let us know about any bugs, or share your suggestions for the game.")
         
