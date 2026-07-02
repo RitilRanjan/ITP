@@ -96,6 +96,12 @@ def load_program(name: str):
         st.session_state.command_history = prog_data.get("command_history", [])
         st.session_state.proofs_html = prog_data.get("proofs_html", "")
         
+        st.session_state.rb_manager.cleanup()
+        st.session_state.rb_manager.history_commands.clear()
+        st.session_state.rb_manager.permanent_recycle_bin.clear()
+        st.session_state.rb_manager.temporary_recycle_bin.clear()
+        st.session_state.rb_manager.history_pointer = None
+        
         st.session_state.active_program = name
         proof_logger.open()
 
@@ -145,8 +151,14 @@ def init_session():
         }
     if "proofs_html" not in st.session_state:
         st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
-
         
+    if "session_id" not in st.session_state:
+        import uuid
+        st.session_state.session_id = uuid.uuid4().hex
+        
+    if "rb_manager" not in st.session_state:
+        from RecycleBinManager import RecycleBinManager
+        st.session_state.rb_manager = RecycleBinManager(swap_dir=f"/tmp/swap_files_{st.session_state.session_id}")
 init_session()
 
 # --- MAIN UI ---
@@ -1030,8 +1042,58 @@ def render_prover_interface(is_game_mode=False):
                     print("Exited child environment.")
                 else:
                     print("Already at ground environment.")
+            elif cmd == "undo":
+                success, env, msg = st.session_state.rb_manager.undo(current_env)
+                print(msg)
+                if success:
+                    chain = []
+                    curr = env
+                    while curr is not None:
+                        chain.append(curr)
+                        curr = curr.parent
+                    chain.reverse()
+                    st.session_state.env_chain = chain
+            elif cmd == "redo":
+                success, env, msg = st.session_state.rb_manager.redo(current_env)
+                print(msg)
+                if success:
+                    chain = []
+                    curr = env
+                    while curr is not None:
+                        chain.append(curr)
+                        curr = curr.parent
+                    chain.reverse()
+                    st.session_state.env_chain = chain
+            elif cmd == "rb_stat":
+                print(st.session_state.rb_manager.stat())
+            elif cmd == "rb_empty":
+                sub_args = args_str.split()
+                target = sub_args[0] if len(sub_args) > 0 else "all"
+                try:
+                    count = int(sub_args[1]) if len(sub_args) > 1 else None
+                except ValueError:
+                    print("Error: Count must be an integer.")
+                    count = None
+                if count is not None or len(sub_args) <= 1:
+                    print(st.session_state.rb_manager.empty(target, count))
+            elif cmd == "rb_swap":
+                sub_args = args_str.split()
+                if len(sub_args) < 2:
+                    print("Error: Usage: rb_swap <perm|temp> <count>")
+                else:
+                    target = sub_args[0]
+                    try:
+                        count = int(sub_args[1])
+                        print(st.session_state.rb_manager.swap(target, count))
+                    except ValueError:
+                        print("Error: Count must be an integer.")
             elif registry.is_registered(cmd):
                 try:
+                    st.session_state.rb_manager.truncate_history_if_needed(cmd)
+                    mission_entered = False
+                    mission_resolved = False
+                    old_env_ref = current_env
+                    
                     if is_game_mode:
                         level = st.session_state.active_game_state["level"]
                         if cmd not in level.get("allowed_commands", []):
@@ -1051,7 +1113,17 @@ def render_prover_interface(is_game_mode=False):
 
                     new_env = registry.dispatch(cmd, current_env, args_str, get_default_env=get_default_env, command_queue=command_queue)
                     if new_env is not None and new_env is not current_env:
-                        st.session_state.env_chain.append(new_env)
+                        if new_env.parent is current_env:
+                            st.session_state.env_chain.append(new_env)
+                            mission_entered = True
+                        elif current_env.parent is new_env:
+                            st.session_state.env_chain.pop()
+                            mission_resolved = True
+                        
+                    current_env = st.session_state.env_chain[-1]
+                    
+                    if cmd not in {"save", "save_h", "load", "load_h", "help", "guide", "clear", "rb_stat", "rb_empty", "rb_swap"}:
+                        st.session_state.rb_manager.record_command(first_line, old_env_ref, current_env, mission_entered, mission_resolved)
                         
                     # Goal checking for game mode
                     if is_game_mode and not st.session_state.active_game_state["completed"]:
@@ -1153,6 +1225,12 @@ with tab_programs:
                     st.session_state.chat_history = []
                     st.session_state.command_history = []
                     st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
+                    
+                    st.session_state.rb_manager.cleanup()
+                    st.session_state.rb_manager.history_commands.clear()
+                    st.session_state.rb_manager.permanent_recycle_bin.clear()
+                    st.session_state.rb_manager.temporary_recycle_bin.clear()
+                    st.session_state.rb_manager.history_pointer = None
                     
                     proof_logger.open()
                     save_program(new_prog_name)

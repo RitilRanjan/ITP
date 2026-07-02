@@ -140,45 +140,7 @@ def snapshot_env_keys(env: Environment) -> dict:
         "user_relations": set(env.local_user_relations.keys())
     }
 
-def compute_env_delta(before: dict, after: dict) -> dict:
-    delta = {"added": {}, "removed": {}}
-    for k in before.keys():
-        if k == "id":
-            continue
-        added = after[k] - before[k]
-        removed = before[k] - after[k]
-        if added:
-            delta["added"][k] = added
-        if removed:
-            delta["removed"][k] = removed
-    return delta
-
-import uuid
-import pickle
-import shutil
-
-class SwapRef:
-    def __init__(self, obj):
-        os.makedirs("swap_files", exist_ok=True)
-        self.filename = os.path.join("swap_files", f"swap_{uuid.uuid4().hex}.pkl")
-        with open(self.filename, "wb") as f:
-            pickle.dump(obj, f)
-            
-    def load(self):
-        if not os.path.exists(self.filename):
-            raise FileNotFoundError(f"Swap file {self.filename} missing.")
-        with open(self.filename, "rb") as f:
-            obj = pickle.load(f)
-        os.remove(self.filename)
-        return obj
-        
-    def delete(self):
-        if os.path.exists(self.filename):
-            os.remove(self.filename)
-
-def cleanup_swap_files():
-    if os.path.exists("swap_files"):
-        shutil.rmtree("swap_files", ignore_errors=True)
+from RecycleBinManager import RecycleBinManager
 
 def main():
     # Ensure directories exist
@@ -200,16 +162,12 @@ def main():
     else:
         print("Proof logging disabled.")
     
+    rb = RecycleBinManager(swap_dir="swap_files_cli")
+    
     import atexit
     atexit.register(proof_logger.close)
-    atexit.register(cleanup_swap_files)
-    # Wipe swap files on start just in case previous session crashed
-    cleanup_swap_files()
-    
-    history_commands = [] # List of tuples (line, delta)
-    permanent_recycle_bin = []
-    temporary_recycle_bin = []
-    history_pointer = None
+    atexit.register(rb.cleanup)
+    rb.cleanup()
     command_queue = []
     
     while True:
@@ -243,140 +201,17 @@ def main():
         args_str = parts[1] if len(parts) > 1 else ""
         
         if cmd == "undo":
-            if not history_commands:
-                print("Error: Nothing to undo.")
-                continue
-            if history_pointer is None:
-                history_pointer = len(history_commands) - 1
-            elif history_pointer < 0:
-                print("Error: Already at the oldest command. Nothing more to undo.")
-                continue
-                
-            line_str, delta = history_commands[history_pointer]
-            
-            # 1. Added objects -> Temporary recycle bin
-            undone_added = {}
-            for k, names in delta.get("added", {}).items():
-                if k == "theorems":
-                    undone_added[k] = set()
-                    for name in names:
-                        if name in env.local_theorems:
-                            env.local_theorems.remove(name)
-                            undone_added[k].add(name)
-                else:
-                    undone_added[k] = {}
-                    dict_ref = getattr(env, f"local_{k}")
-                    for name in names:
-                        if name in dict_ref:
-                            undone_added[k][name] = dict_ref.pop(name)
-                        
-            # 2. Revert mission entries/resolves
-            if delta.get("mission_entered"):
-                undone_added["child_env"] = env
-                env = env.parent
-            elif delta.get("mission_resolved"):
-                if not permanent_recycle_bin:
-                    print("Error: Memory wiped. The required objects were permanently deleted from the permanent recycle bin.")
-                    continue
-                perm_item = permanent_recycle_bin.pop()
-                if isinstance(perm_item, SwapRef): perm_item = perm_item.load()
-                env = perm_item["closed_env"]
-            
-            # 3. Restored objects -> Pop from Permanent recycle bin
-            if "removed_objects" in delta:
-                if not delta.get("mission_resolved"):
-                    if not permanent_recycle_bin:
-                        print("Error: Memory wiped. The required objects were permanently deleted from the permanent recycle bin.")
-                        continue
-                    perm_item = permanent_recycle_bin.pop()
-                    if isinstance(perm_item, SwapRef): perm_item = perm_item.load()
-                removed_objects = perm_item["removed_objects"]
-                for k, objs in removed_objects.items():
-                    if k == "theorems":
-                        env.local_theorems.update(objs)
-                    else:
-                        dict_ref = getattr(env, f"local_{k}")
-                        dict_ref.update(objs)
-            
-            # Push to temporary recycle bin
-            # Always append an item to keep the stacks synced, even if empty
-            temporary_recycle_bin.append(undone_added)
-                
-            history_pointer -= 1
-            print(f"Undid: {line_str}")
+            success, env, msg = rb.undo(env)
+            print(msg)
             continue
             
         if cmd == "redo":
-            if not history_commands:
-                print("Error: Nothing to redo.")
-                continue
-            if history_pointer is None or history_pointer == len(history_commands) - 1:
-                print("Error: Already at the newest command. Nothing more to redo.")
-                continue
-                
-            if not temporary_recycle_bin:
-                print("Error: Memory wiped. The required objects were deleted from the temporary recycle bin.")
-                continue
-                
-            history_pointer += 1
-            line_str, delta = history_commands[history_pointer]
-            
-            undone_added = temporary_recycle_bin.pop()
-            if isinstance(undone_added, SwapRef): undone_added = undone_added.load()
-            
-            # 1. Restore added objects from temporary recycle bin
-            for k, objs in undone_added.items():
-                if k == "child_env":
-                    continue
-                if k == "theorems":
-                    env.local_theorems.update(objs)
-                else:
-                    dict_ref = getattr(env, f"local_{k}")
-                    dict_ref.update(objs)
-            
-            # 2. Re-apply mission entries/resolves
-            if delta.get("mission_entered"):
-                env = undone_added["child_env"]
-            elif delta.get("mission_resolved"):
-                closed_env = env
-                env = env.parent
-                
-            # 3. Remove objects and push to permanent recycle bin
-            if "removed_objects" in delta or delta.get("mission_resolved"):
-                perm_item = {}
-                if delta.get("mission_resolved"):
-                    perm_item["closed_env"] = closed_env
-                if "removed_objects" in delta:
-                    removed_objects = {}
-                    for k, names in delta.get("removed", {}).items():
-                        if k == "theorems":
-                            removed_objects[k] = set()
-                            for name in names:
-                                if name in env.local_theorems:
-                                    env.local_theorems.remove(name)
-                                    removed_objects[k].add(name)
-                        else:
-                            removed_objects[k] = {}
-                            dict_ref = getattr(env, f"local_{k}")
-                            for name in names:
-                                if name in dict_ref:
-                                    removed_objects[k][name] = dict_ref.pop(name)
-                    perm_item["removed_objects"] = removed_objects
-                permanent_recycle_bin.append(perm_item)
-                
-            print(f"Redid: {line_str}")
-            
-            # If we reached the end, reset pointer
-            if history_pointer == len(history_commands) - 1:
-                history_pointer = None
+            success, env, msg = rb.redo(env)
+            print(msg)
             continue
             
         if cmd == "rb_stat":
-            perm_count = sum(len(item.get("removed_objects", {})) + (1 if item.get("closed_env") else 0) for item in permanent_recycle_bin)
-            temp_count = sum(len(item) for item in temporary_recycle_bin)
-            print(f"Recycle Bin Status:")
-            print(f"  Permanent Bin: {perm_count} operations containing deleted objects/environments.")
-            print(f"  Temporary Bin: {temp_count} operations containing undone created objects.")
+            print(rb.stat())
             continue
             
         if cmd == "rb_empty":
@@ -387,21 +222,7 @@ def main():
             except ValueError:
                 print("Error: Count must be an integer.")
                 continue
-            
-            def clear_bin(bin_list, c):
-                if c is None or c >= len(bin_list):
-                    for item in bin_list:
-                        if isinstance(item, SwapRef): item.delete()
-                    bin_list.clear()
-                else:
-                    for item in bin_list[:c]:
-                        if isinstance(item, SwapRef): item.delete()
-                    del bin_list[:c]
-                    
-            if target in {"all", "perm"}: clear_bin(permanent_recycle_bin, count)
-            if target in {"all", "temp"}: clear_bin(temporary_recycle_bin, count)
-            
-            print(f"Recycle bins emptied successfully ({target}{' ' + str(count) if count else ''}).")
+            print(rb.empty(target, count))
             continue
             
         if cmd == "rb_swap":
@@ -415,29 +236,14 @@ def main():
             except ValueError:
                 print("Error: Count must be an integer.")
                 continue
-                
-            target_bin = permanent_recycle_bin if target == "perm" else (temporary_recycle_bin if target == "temp" else None)
-            if target_bin is None:
-                print("Error: Target must be 'perm' or 'temp'.")
-                continue
-                
-            swapped = 0
-            for i in range(min(count, len(target_bin))):
-                if not isinstance(target_bin[i], SwapRef):
-                    target_bin[i] = SwapRef(target_bin[i])
-                    swapped += 1
-            print(f"Successfully swapped {swapped} items from {target} bin to disk.")
+            print(rb.swap(target, count))
             continue
             
-        # If a normal command is executed while pointer is active, truncate history
-        if history_pointer is not None and cmd not in {"save", "save_h", "load", "load_h", "help", "guide"}:
-            history_commands = history_commands[:history_pointer + 1]
-            temporary_recycle_bin.clear()
-            history_pointer = None
-            
-        # Snapshot before command
-        env_before = snapshot_env_keys(env)
+        rb.truncate_history_if_needed(cmd)
+        
         old_env_ref = env
+        mission_entered = False
+        mission_resolved = False
         
         # Dispatch the command via registry
         from CommandHandlers.CommandRegistry import registry
@@ -448,68 +254,33 @@ def main():
             # Handlers will lex() it internally.
             inputs_collected = []
             kwargs = {
-                "get_default_env": get_default_env,
-                "history_commands": history_commands,
                 "command_queue": command_queue,
                 "inputs_collected": inputs_collected
             }
+            if cmd in {"load", "load_h"}:
+                kwargs["get_default_env"] = get_default_env
+            if cmd in {"save_h", "load_h"}:
+                kwargs["history_commands"] = rb.history_commands
+                
             new_env = registry.dispatch(cmd, env, args_str, **kwargs)
             if new_env is not None and isinstance(new_env, Environment):
                 env = new_env
                 
             if cmd in {"load", "load_h"} and not has_error:
-                history_commands.clear()
-                permanent_recycle_bin.clear()
-                temporary_recycle_bin.clear()
-                history_pointer = None
-                cleanup_swap_files()
+                rb.history_commands.clear()
+                rb.permanent_recycle_bin.clear()
+                rb.temporary_recycle_bin.clear()
+                rb.history_pointer = None
+                rb.cleanup()
         else:
             print(f"Unknown command '{cmd}'. Supported commands: " + ", ".join(sorted(registry.handlers.keys())))
 
         # Record command in history if it succeeded and was entered by the user
         if not is_from_queue and not has_error:
-            if cmd not in {"exit", "load", "load_h", "save", "save_h", "help", "guide"}:
-                env_after = snapshot_env_keys(env)
-                delta = compute_env_delta(env_before, env_after)
-                
-                # Extract actual removed objects from old_env_ref and store them in the delta
-                # so we can push them to the permanent recycle bin
-                removed_objects = {}
-                for k, names in delta.get("removed", {}).items():
-                    if k == "theorems":
-                        removed_objects[k] = set(names)
-                    else:
-                        removed_objects[k] = {}
-                        dict_ref = getattr(old_env_ref, f"local_{k}", {})
-                        for name in names:
-                            if name in dict_ref:
-                                removed_objects[k][name] = dict_ref[name]
-                
-                if removed_objects:
-                    delta["removed_objects"] = removed_objects
-                
-                closed_env = None
-                
-                # Check for closed mission / entered mission
-                if env_before["id"] != env_after["id"]:
-                    if getattr(env, "parent", None) and id(env.parent) == env_before["id"]:
-                        delta["mission_entered"] = True
-                    else:
-                        delta["mission_resolved"] = True
-                        closed_env = old_env_ref
-                        delta["closed_env"] = closed_env
-                
-                # Push removed items / closed environments to the permanent recycle bin
-                if removed_objects or closed_env:
-                    permanent_recycle_bin.append({
-                        "removed_objects": removed_objects,
-                        "closed_env": closed_env
-                    })
-                
+            if cmd not in {"exit", "load", "load_h", "save", "save_h", "help", "guide", "rb_stat", "rb_empty", "rb_swap"}:
                 if inputs_collected:
                     line = line + "\n" + "\n".join(inputs_collected)
-                
-                history_commands.append((line, delta))
+                rb.record_command(line, old_env_ref, env, mission_entered, mission_resolved)
 
         # Check if the goal in the current child environment is proven
         while env.goal_formula_name is not None and env.goal_formula_name in env.theorems:
