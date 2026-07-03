@@ -496,11 +496,14 @@ def render_prover_interface(is_game_mode=False):
                     parts = [selected_cmd, target]
                     if len(args) > 0: parts.append(args[0])
                 elif selected_cmd == "rw":
-                    parts = [selected_cmd]
-                    if len(args) > 1 and args[1].strip(): parts.append(args[1])
-                    if len(args) > 2 and args[2].strip(): parts.append(args[2])
-                    parts.append(target)
-                    if len(args) > 0 and args[0].strip(): parts.append(args[0])
+                    if data.get("is_symbol"):
+                        parts = ["rw", symbol, str(occ), target]
+                    else:
+                        parts = [selected_cmd]
+                        if len(args) > 1 and args[1].strip(): parts.append(args[1])
+                        if len(args) > 2 and args[2].strip(): parts.append(args[2])
+                        parts.append(target)
+                        if len(args) > 0 and args[0].strip(): parts.append(args[0])
                 elif selected_cmd in ["mission", "auto", "search", "backward_search", "advanced_search"]:
                     parts = [selected_cmd, target]
                 else:
@@ -556,9 +559,12 @@ def render_prover_interface(is_game_mode=False):
                         if (isLogical) {
                             cmds = []; // No substitution for logical symbols
                         }
-                        // fold command for quantifiers, choice ops, or user-defined symbols
-                        if (['∀', '∃', '∃!', 'ε', 'ι'].includes(symbol) || !isLogical) {
+                        // fold and rw command for quantifiers, choice ops, or user-defined symbols
+                        if (['∀', '∃', '∃!', 'ε', 'ι'].includes(symbol)) {
                             cmds.push('fold');
+                        } else if (!isLogical) {
+                            cmds.push('fold');
+                            cmds.push('rw');
                         }
                     } else {
                         let obj_type = targetElement.getAttribute('data-obj-type');
@@ -625,9 +631,13 @@ def render_prover_interface(is_game_mode=False):
                                 arg2Label = "Variables/Theorems";
                                 if (cmd === "and") { arg1Label = "Left Formula"; arg2Label = "Right Formula"; }
                             } else if (cmd === "rw") {
-                                needsArgs = 3;
-                                arg1Label = "New Formula";
-                                arg2Label = "Rewrite Theorem";
+                                if (targetElement.classList.contains('interactive-symbol')) {
+                                    needsArgs = 0;
+                                } else {
+                                    needsArgs = 3;
+                                    arg1Label = "New Formula";
+                                    arg2Label = "Rewrite Theorem";
+                                }
                             }
                             
                             let submitCmd = function(argsList) {
@@ -637,6 +647,7 @@ def render_prover_interface(is_game_mode=False):
                                     occ: occ,
                                     cmd: cmd,
                                     args: argsList,
+                                    is_symbol: targetElement.classList.contains('interactive-symbol'),
                                     _nonce: Date.now()
                                 };
                                 let input = window.parent.document.querySelector('input[aria-label="itp_click_data"]');

@@ -503,6 +503,7 @@ def reconstruct_string_html(node: Node, depth_ref: list, target_name: str = None
     elif isinstance(node, (Iota, Epsilon)): tooltip = "Choice Operator"
     elif isinstance(node, Connective): tooltip = "Connective"
     elif isinstance(node, SetBuilder): tooltip = "Set Builder"
+    elif isinstance(node, Constant): tooltip = "Constant / Macro"
     elif isinstance(node, Function):
         type_str = node.func_type.value.replace("_", "-").title()
         tooltip = f"{type_str} Function"
