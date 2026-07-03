@@ -30,6 +30,9 @@ def snapshot_env_keys(env) -> dict:
     return {
         "id": id(env),
         "variables": set(env.local_variables.keys()),
+        "dummy_variables": set(env.local_dummy_variables.keys()),
+        "meta_variables": set(env.local_meta_variables.keys()),
+        "propositional_variables": set(env.local_propositional_variables.keys()),
         "terms": set(env.local_terms.keys()),
         "formulae": set(env.local_formulae.keys()),
         "theorems": set(env.local_theorems),
@@ -62,8 +65,8 @@ class RecycleBinManager:
         if os.path.exists(self.swap_dir):
             shutil.rmtree(self.swap_dir, ignore_errors=True)
             
-    def record_command(self, line_str: str, before_env: Any, after_env: Any, mission_entered: bool, mission_resolved: bool):
-        delta = compute_env_delta(snapshot_env_keys(before_env), snapshot_env_keys(after_env))
+    def record_command(self, line_str: str, before_snapshot: dict, before_env: Any, after_env: Any, mission_entered: bool, mission_resolved: bool):
+        delta = compute_env_delta(before_snapshot, snapshot_env_keys(after_env))
         if mission_entered:
             delta["mission_entered"] = True
         if mission_resolved:

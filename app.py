@@ -1120,7 +1120,9 @@ def render_prover_interface(is_game_mode=False):
                     st.session_state.rb_manager.truncate_history_if_needed(cmd)
                     mission_entered = False
                     mission_resolved = False
+                    from RecycleBinManager import snapshot_env_keys
                     old_env_ref = current_env
+                    before_snapshot = snapshot_env_keys(current_env)
                     
                     if is_game_mode:
                         level = st.session_state.active_game_state["level"]
@@ -1151,7 +1153,7 @@ def render_prover_interface(is_game_mode=False):
                     current_env = st.session_state.env_chain[-1]
                     
                     if cmd not in {"save", "save_h", "load", "load_h", "help", "guide", "clear", "rb_stat", "rb_empty", "rb_swap"}:
-                        st.session_state.rb_manager.record_command(first_line, old_env_ref, current_env, mission_entered, mission_resolved)
+                        st.session_state.rb_manager.record_command(first_line, before_snapshot, old_env_ref, current_env, mission_entered, mission_resolved)
                         
                     # Goal checking for game mode
                     if is_game_mode and not st.session_state.active_game_state["completed"]:

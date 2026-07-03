@@ -246,7 +246,9 @@ def main():
             
         rb.truncate_history_if_needed(cmd)
         
+        from RecycleBinManager import snapshot_env_keys
         old_env_ref = env
+        before_snapshot = snapshot_env_keys(env)
         mission_entered = False
         mission_resolved = False
         
@@ -285,7 +287,7 @@ def main():
             if cmd not in {"exit", "load", "load_h", "save", "save_h", "help", "guide", "rb_stat", "rb_empty", "rb_swap"}:
                 if inputs_collected:
                     line = line + "\n" + "\n".join(inputs_collected)
-                rb.record_command(line, old_env_ref, env, mission_entered, mission_resolved)
+                rb.record_command(line, before_snapshot, old_env_ref, env, mission_entered, mission_resolved)
 
         # Check if the goal in the current child environment is proven
         while env.goal_formula_name is not None and env.goal_formula_name in env.theorems:
