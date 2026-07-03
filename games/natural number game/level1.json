@@ -14,5 +14,6 @@
   "allowed_axioms": ["E1", "E2", "E3", "E4", "P1", "P2", "P3", "P4"],
   "allowed_rules": ["MP", "Gen"],
   "goal_statement": "1 = S 0",
-  "start_env": null
+  "start_env": null,
+  "theory": "NT"
 }

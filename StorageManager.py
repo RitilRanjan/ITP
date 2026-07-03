@@ -69,6 +69,7 @@ def serialize_environment_state(env: Environment) -> str:
         f.write(f"Original Goal: {e.original_goal_formula_name}\n")
         f.write(f"And Right: {e.and_right_formula_name}\n")
         f.write(f"Target Proven: {e.target_proven_formula_name}\n")
+        f.write(f"Theory: {e.theory}\n")
         
         is_ground = (idx == 0)
         
@@ -165,6 +166,7 @@ def deserialize_environment_state(full_content: str, get_default_env_func) -> En
                 "original_goal": None,
                 "and_right": None,
                 "target_proven_formula_name": None,
+                "theory": "ZFC",
                 "variables": [],
                 "dummy_variables": [],
                 "meta_variables": [],
@@ -196,9 +198,11 @@ def deserialize_environment_state(full_content: str, get_default_env_func) -> En
             curr_config["and_right"] = None if ar_val == "None" or not ar_val else ar_val
             curr_section = None
         elif line_stripped.startswith("Target Proven:"):
-            target_val = line_stripped.split(":", 1)[1].strip()
-            curr_config["target_proven_formula_name"] = None if target_val == "None" or not target_val else target_val
-            curr_section = None
+            curr_config["target_proven_formula_name"] = line_stripped.split("Target Proven:", 1)[1].strip()
+            if curr_config["target_proven_formula_name"] == "None":
+                curr_config["target_proven_formula_name"] = None
+        elif line_stripped.startswith("Theory:"):
+            curr_config["theory"] = line_stripped.split("Theory:", 1)[1].strip()
         elif line_stripped.startswith("Variables:"):
             val = line_stripped.split(":", 1)[1].strip()
             curr_config["variables"] = [v.strip() for v in val.split(",") if v.strip()]
@@ -253,14 +257,16 @@ def deserialize_environment_state(full_content: str, get_default_env_func) -> En
     
     for idx, config in enumerate(env_configs):
         if idx == 0:
-            env = get_default_env_func()
-            # Restore ground level target_proven_formula_name if any
+            theory = config["theory"]
+            env = get_default_env_func(theory=theory)
             env.target_proven_formula_name = config.get("target_proven_formula_name")
         else:
+            theory = config["theory"]
             env = Environment(
                 parent=active_env,
                 goal_formula_name=config["goal"],
-                target_proven_formula_name=config.get("target_proven_formula_name")
+                target_proven_formula_name=config.get("target_proven_formula_name"),
+                theory=theory
             )
             # Restore original goal and and_right if present
             if config.get("original_goal") is not None:

@@ -63,7 +63,8 @@ class Environment:
         self,
         parent: Optional['Environment'] = None,
         goal_formula_name: Optional[str] = None,
-        target_proven_formula_name: Optional[str] = None
+        target_proven_formula_name: Optional[str] = None,
+        theory: str = "ZFC"
     ) -> None:
         self.parent: Optional['Environment'] = parent
         self.goal_formula_name: Optional[str] = goal_formula_name
@@ -72,6 +73,7 @@ class Environment:
         self.target_proven_formula_name: Optional[str] = target_proven_formula_name
         # Tracks the right-hand sub-goal name when goal was split by 'and' command
         self.and_right_formula_name: Optional[str] = None
+        self.theory: str = theory
         self.target_goal = None
         
         self.local_variables: Dict[str, Variable] = {}

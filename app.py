@@ -1244,13 +1244,15 @@ with tab_programs:
         st.divider()
         st.subheader("✨ Create New Program")
         new_prog_name = st.text_input("Program Name", disabled=is_in_game)
+        new_prog_theory = st.radio("Formal Theory", ["ZFC (Set Theory)", "NT (Number Theory)"], disabled=is_in_game)
         if st.button("Create", disabled=is_in_game):
             if new_prog_name:
                 if new_prog_name in programs:
                     st.error("Program already exists!")
                 else:
                     st.session_state.active_program = new_prog_name
-                    st.session_state.env_chain = [get_default_env()]
+                    theory_code = "ZFC" if "ZFC" in new_prog_theory else "NT"
+                    st.session_state.env_chain = [get_default_env(theory=theory_code)]
                     st.session_state.chat_history = []
                     st.session_state.command_history = []
                     st.session_state.proofs_html = "# Foundational Proof Log\n**Format**: `premise1: def, ... ⊢ conclusion: def  (justification)`\n\n---\n"
@@ -1378,7 +1380,8 @@ with tab_games:
                                 proof_logger.open(use_streamlit=True)
                                 
                                 # Clear existing environment to load fresh
-                                env = Environment()
+                                game_theory = level_data.get("theory", "ZFC")
+                                env = Environment(theory=game_theory)
                                 from AST import RelationType, FunctionType, DummyVariable, Relation, Function
                                 dummy = DummyVariable("x")
                                 env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))

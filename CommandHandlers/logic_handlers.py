@@ -4,7 +4,7 @@ from AST import Variable, Quantifier, Connective, Node
 from Environment import Environment
 from Frontend import lex, reconstruct_string
 from SubstitutionManager import clone_ast, substitute_free, check_free, check_bound
-from Registry import AXIOMS, RULES
+from Registry import AXIOMS, RULES, THEORY_AXIOMS, LOGICAL_AXIOMS
 from ProofLogger import proof_logger
 from CommandHandlers.CommandRegistry import registry
 from CommandHandlers.utils import validate_new_name, parse_universal_args, resolve_term
@@ -578,6 +578,12 @@ def handle_apply(env: Environment, args_str: str) -> None:
     target_node = env.formulae[target_name]
 
     if rule_or_ax in AXIOMS:
+        # Enforce formal theory
+        theory_axioms = THEORY_AXIOMS.get(env.theory, set())
+        if rule_or_ax not in LOGICAL_AXIOMS and rule_or_ax not in theory_axioms:
+            print(f"Error: Axiom '{rule_or_ax}' is not available in the '{env.theory}' formal theory.")
+            return
+
         if len(premise_names) != 0:
             print(f"Error: Axiom '{rule_or_ax}' takes no premises.")
             return

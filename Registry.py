@@ -43,6 +43,21 @@ AXIOMS = {
     "induction": is_induction,
 }
 
+LOGICAL_AXIOMS = {"E1", "E2", "E3", "Q1", "Q2", "P1", "P2", "P3", "P4"}
+
+THEORY_AXIOMS = {
+    "ZFC": {
+        "extension", "pairing", "union", "power_set",
+        "regularity", "infinity", "choice", "specification",
+        "replacement"
+    },
+    "NT": {
+        "S_injective", "0_pred", "add_base", "add_induction",
+        "multiply_base", "multiply_induction", "power_base",
+        "power_induction", "induction"
+    }
+}
+
 RULES = {
     "QR1": rule_QR1,
     "QR2": rule_QR2,

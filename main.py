@@ -64,7 +64,7 @@ builtins.print = custom_print
 from Environment import Environment
 from AST import (
     Node, SetBuilder, Variable, DummyVariable, PropositionalVariable, Function, FunctionType,
-    Relation, RelationType, Quantifier, Connective, MetaVariable
+    Relation, RelationType, Quantifier, Connective, MetaVariable, Constant
 )
 from Frontend import (
     parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string,
@@ -98,27 +98,23 @@ from DefinitionExpander import (
     VariableCaptureError
 )
 
-def get_default_env() -> Environment:
-    """Initializes the environment with default testing data."""
-    env = Environment()
+def get_default_env(theory: str = "ZFC") -> Environment:
+    env = Environment(theory=theory)
     
-    # Pre-defined variables
-    env.add_variable(Variable(name="x"))
-    env.add_variable(Variable(name="y"))
-    
-    # Pre-defined function symbol S (successor, arity 1)
-    # Satisfies arity with a dummy variable argument
     dummy = Variable("x")
-    env.add_term(Function(name="S", arity=1, func_type=FunctionType.PRE_DEFINED, arguments=[dummy]))
-    
-    # Pre-defined function symbol + (arity 2)
-    env.add_term(Function(name="+", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
-    
     # Pre-defined relation symbol = (equality, arity 2)
     env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
     
-    # Pre-defined relation symbol ∈ (membership, arity 2)
-    env.add_formula(Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
+    if theory == "ZFC":
+        env.add_term(Constant("∅"))
+        env.add_term(Constant("U"))
+        env.add_formula(Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
+    elif theory == "NT":
+        env.add_term(Constant("0"))
+        env.add_term(Function(name="S", arity=1, func_type=FunctionType.PRE_DEFINED, arguments=[dummy]))
+        env.add_term(Function(name="+", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
+        env.add_term(Function(name="*", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
+        env.add_term(Function(name="^", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
     
     # Pre-defined propositional variables
     env.add_propositional_variable(PropositionalVariable("p"))
@@ -147,8 +143,17 @@ def main():
     os.makedirs("save_files", exist_ok=True)
     os.makedirs("history_files", exist_ok=True)
 
-    env = get_default_env()
     print("Interactive Theorem Prover REPL")
+    print("Available formal theories: ZFC, NT (Number Theory)")
+    try:
+        theory = input("Choose theory (default ZFC): ").strip().upper()
+        if theory not in ["ZFC", "NT"]:
+            theory = "ZFC"
+    except (KeyboardInterrupt, EOFError):
+        theory = "ZFC"
+    
+    env = get_default_env(theory=theory)
+    print(f"Started session in {theory} theory.")
     print("Enter a command or 'exit' to quit. Use 'show' to view the environment.")
     
     # Ask user whether to enable foundational proof logging
