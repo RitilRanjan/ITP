@@ -1062,7 +1062,10 @@ def render_prover_interface(is_game_mode=False):
         command = st.chat_input("Enter command here (install streamlit-keyup for autocomplete)")
 
     if command:
-        command_lines = command.strip().splitlines()
+        if ';' in command:
+            command_lines = [cmd.strip() for cmd in command.split(';')]
+        else:
+            command_lines = command.strip().splitlines()
         first_line = command_lines[0]
         command_queue = command_lines[1:] if len(command_lines) > 1 else []
         parts = first_line.strip().split(maxsplit=1)

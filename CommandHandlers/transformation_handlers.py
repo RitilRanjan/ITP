@@ -47,14 +47,12 @@ def handle_fold(env: Environment, args_str: str, command_queue: list = None, inp
         f_clone = clone_ast(env.formulae[f1_name])
     
         def find_first_expandable(node: Node, env) -> Optional[Tuple[Node, str, str]]:
-            if isinstance(node, Quantifier) and node.name == "∃": return node, "∃", "∃"
-            if isinstance(node, Quantifier) and node.name == "∃!": return node, "∃!", "∃!"
-            if isinstance(node, SetBuilder) and node.name == "{": return node, "{", "{"
             if isinstance(node, Relation) and node.name in env.user_relations: return node, "user_relation", node.name
             if isinstance(node, Function) and node.name in env.user_functions: return node, "user_function", node.name
-            if hasattr(node, 'name'):
-                if node.name == "ε": return node, "epsilon", "ε"
-                if node.name == "ι": return node, "iota", "ι"
+            
+            # For 'fold all', we only want to unfold macros (user_relations and user_functions)
+            # Expanding primitives like ∃, ∃!, ε, ι requires fresh variables and shouldn't be done automatically.
+            
             if hasattr(node, 'arguments'):
                 for arg in node.arguments:
                     res = find_first_expandable(arg, env)

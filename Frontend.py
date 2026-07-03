@@ -434,11 +434,18 @@ def reconstruct_string_raw(node: Node) -> str:
     
     if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable, Constant)):
         res += node.name
-    elif isinstance(node, (Quantifier, Iota, Epsilon)):
+    elif isinstance(node, (Quantifier)):
         res += node.name
         res += reconstruct_string_raw(node.variable)
         res += " "
         res += reconstruct_string_raw(node.formula)
+    elif isinstance(node, (Epsilon, Iota)):
+        res += "("
+        res += node.name + " "
+        res += reconstruct_string_raw(node.variable)
+        res += " "
+        res += reconstruct_string_raw(node.formula)
+        res += ")"
     elif isinstance(node, SetBuilder):
         res += node.name
         res += reconstruct_string_raw(node.variable)
@@ -533,12 +540,26 @@ def reconstruct_string_html(node: Node, depth_ref: list, target_name: str = None
 
     if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable, Constant)):
         res += wrap(node.name, True)
-    elif isinstance(node, (Quantifier, Iota, Epsilon)):
+    elif isinstance(node, Quantifier):
         op_str = wrap(node.name, True)
         res += op_str
         res += reconstruct_string_html(node.variable, depth_ref, target_name, target_type, occ_map)
         res += " "
         res += reconstruct_string_html(node.formula, depth_ref, target_name, target_type, occ_map)
+    elif isinstance(node, (Iota, Epsilon)):
+        color = colors[depth_ref[0] % len(colors)]
+        res += f'<span style="color: {color}">(</span>'
+        depth_ref[0] += 1
+        
+        op_str = wrap(node.name, True)
+        res += op_str
+        res += reconstruct_string_html(node.variable, depth_ref, target_name, target_type, occ_map)
+        res += " "
+        res += reconstruct_string_html(node.formula, depth_ref, target_name, target_type, occ_map)
+        
+        depth_ref[0] = max(0, depth_ref[0] - 1)
+        color = colors[depth_ref[0] % len(colors)]
+        res += f'<span style="color: {color}">)</span>'
     elif isinstance(node, SetBuilder):
         op_str = wrap(node.name, True)
         res += op_str
