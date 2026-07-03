@@ -457,6 +457,7 @@ def render_prover_interface(is_game_mode=False):
     </style>
     """, unsafe_allow_html=True)
     
+    st.markdown('<div id="itp_click_marker" style="display:none;"></div>', unsafe_allow_html=True)
     clicked_payload_raw = st.text_input("itp_click_data", key="itp_click_data", label_visibility="collapsed")
 
     if clicked_payload_raw and clicked_payload_raw != st.session_state.get("last_clicked_payload"):
@@ -1008,6 +1009,21 @@ def render_prover_interface(is_game_mode=False):
                     script.id = 'itp-enter-script';
                     script.innerHTML = `
                         setInterval(() => {
+                            let marker = window.parent.document.getElementById("itp_click_marker");
+                            if (marker) {
+                                let markerContainer = marker.closest('div[data-testid="stElementContainer"]');
+                                if (markerContainer) {
+                                    let inputContainer = markerContainer.nextElementSibling;
+                                    if (inputContainer) {
+                                        inputContainer.style.display = 'none';
+                                        inputContainer.style.height = '0px';
+                                        inputContainer.style.margin = '0px';
+                                        inputContainer.style.padding = '0px';
+                                        inputContainer.style.overflow = 'hidden';
+                                    }
+                                }
+                            }
+                            
                             const iframes = document.querySelectorAll('iframe');
                             iframes.forEach(iframe => {
                                 try {
