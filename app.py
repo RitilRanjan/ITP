@@ -351,6 +351,8 @@ def render_prover_interface(is_game_mode=False):
                     for name, term in env.local_terms.items():
                         if isinstance(term, Function) and name == term.name:
                             continue
+                        if isinstance(term, Constant) and name == term.name:
+                            continue
                         term_html = reconstruct_string(term, color_mode="html", target_name=name, target_type="term")
                         st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
                         has_terms = True
@@ -893,20 +895,17 @@ def render_prover_interface(is_game_mode=False):
                 with st.container(height=180):
                     max_sugs = min(len(suggestions), 50)
                     
-                    selection = st.pills(
-                        "Suggestions",
-                        options=suggestions[:max_sugs],
-                        label_visibility="collapsed",
-                        key=f"sug_pills_{st.session_state.keyup_key}"
-                    )
-                    
-                    if selection:
-                        tokens = partial_command.lstrip().split(" ")
-                        tokens[-1] = selection
-                        new_cmd = " ".join(tokens) + " "
-                        st.session_state.current_cmd = new_cmd
-                        st.session_state.keyup_key += 1
-                        st.rerun()
+                    # Use columns to render small buttons like pills
+                    cols = st.columns(4)
+                    for idx, sug in enumerate(suggestions[:max_sugs]):
+                        with cols[idx % 4]:
+                            if st.button(sug, key=f"sug_btn_{st.session_state.keyup_key}_{idx}", use_container_width=True):
+                                tokens = partial_command.lstrip().split(" ")
+                                tokens[-1] = sug
+                                new_cmd = " ".join(tokens) + " "
+                                st.session_state.current_cmd = new_cmd
+                                st.session_state.keyup_key += 1
+                                st.rerun()
             else:
                 st.write("*(No suggestions)*")
         elif not submit_clicked:
@@ -1208,11 +1207,10 @@ def render_prover_interface(is_game_mode=False):
 
 st.title("Interactive Theorem Prover")
 
-tab_home, tab_programs, tab_games, tab_help, tab_about, tab_contact = st.tabs([
-    "🏠 Home", "💻 Programs", "🎮 Games", "❓ Help", "ℹ️ About", "📧 Contact Us"
-])
+st.sidebar.title("Navigation")
+active_page = st.sidebar.radio("Go to", ["🏠 Home", "💻 Programs", "🎮 Games", "❓ Help", "ℹ️ About", "📧 Contact Us"])
 
-with tab_home:
+if active_page == "🏠 Home":
     st.markdown("""
     <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 10px; color: white;">
         <h1>Welcome to the Interactive Theorem Prover!</h1>
@@ -1247,7 +1245,7 @@ with tab_home:
         mime="application/zip"
     )
 
-with tab_programs:
+elif active_page == "💻 Programs":
     is_in_game = st.session_state.active_game_state.get("is_playing", False)
     if st.session_state.active_program is None or is_in_game:
         st.subheader("📁 Saved Programs")
@@ -1296,7 +1294,7 @@ with tab_programs:
     else:
         render_prover_interface(is_game_mode=False)
 
-with tab_games:
+elif active_page == "🎮 Games":
     st.header("🎮 Games")
     games_dir = "games"
     if not os.path.exists(games_dir):
@@ -1445,7 +1443,7 @@ with tab_games:
                                 st.rerun()
                         st.divider()
 
-with tab_help:
+elif active_page == "❓ Help":
     st.header("Command Reference")
     st.markdown("This section contains all syntax and variants for the commands available in the Interactive Theorem Prover.")
 
@@ -1505,7 +1503,7 @@ with tab_help:
         - **`backward_search <formula>`**: Trigger deep backward proof-search using Resolution refutation.
         """)
 
-with tab_about:
+elif active_page == "ℹ️ About":
     st.header("About the Application")
     try:
         with open("README.md", "r") as f:
@@ -1514,7 +1512,7 @@ with tab_about:
     except FileNotFoundError:
         st.write("README.md not found. The codebase is missing the primary documentation file.")
 
-with tab_contact:
+elif active_page == "📧 Contact Us":
     st.header("Contact Us")
     st.write("Email: **ritilranjan5@gmail.com**")
     st.markdown("We value your feedback! Whether you want to suggest an improvement, report a bug, or give general advice, please leave your comments below.")
