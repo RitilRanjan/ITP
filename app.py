@@ -328,7 +328,8 @@ def render_prover_interface(is_game_mode=False):
 
     with col_env2:
         st.subheader("Environments")
-        with st.expander("Active Environments Chain", expanded=True):
+        with st.container(border=True):
+            st.markdown("#### Active Environments Chain")
             for i, env in enumerate(st.session_state.env_chain):
                 with st.expander(f"Environment Level {i} {'(Ground)' if i==0 else '(Mission)'}", expanded=(i == len(st.session_state.env_chain)-1)):
                     if i > 0 and env.target_goal:
