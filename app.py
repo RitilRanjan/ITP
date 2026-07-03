@@ -25,7 +25,7 @@ st.set_page_config(page_title="Interactive Theorem Prover", layout="wide")
 from Environment import Environment
 from CommandHandlers.CommandRegistry import registry
 from Frontend import reconstruct_string
-from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation
+from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation, Constant
 from main import get_default_env
 from ProofLogger import proof_logger
 from StorageManager import serialize_environment_state, deserialize_environment_state, serialize_history, deserialize_history
@@ -315,6 +315,15 @@ def render_prover_interface(is_game_mode=False):
         with st.expander("Dummy Variables"):
             for name in ground_env.dummy_variables:
                 st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+                
+        with st.expander("Constants"):
+            has_constants = False
+            for name, term in ground_env.terms.items():
+                if isinstance(term, Constant) and name == term.name:
+                    st.markdown(f'<span style="color: #6495ED">{name}</span>', unsafe_allow_html=True)
+                    has_constants = True
+            if not has_constants:
+                st.markdown("*(None)*")
                 
         with st.expander("Functions"):
             for name, term in ground_env.terms.items():
