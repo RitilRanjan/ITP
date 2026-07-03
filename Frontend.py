@@ -309,23 +309,30 @@ class Parser:
                 return Constant(name=t)
             elif isinstance(term_def, Function):
                 f_def = term_def
-                if f_def.arity == 0:
-                    return Function(name=t, arity=0, func_type=f_def.func_type, arguments=[])
-                elif f_def.arity == 1:
-                    fmt = self.consume_formatting()
-                    right = self.parse_expr(80, "term")
-                    right.prefix_formatting = fmt + right.prefix_formatting
-                    return Function(name=t, arity=1, func_type=f_def.func_type, arguments=[right])
-                elif f_def.arity > 2:
-                    args = []
-                    for _ in range(f_def.arity):
+                # If the name matches, it's a predefined function
+                if t == f_def.name:
+                    if f_def.arity == 0:
+                        return Function(name=t, arity=0, func_type=f_def.func_type, arguments=[])
+                    elif f_def.arity == 1:
                         fmt = self.consume_formatting()
-                        arg = self.parse_expr(0, "term")
-                        arg.prefix_formatting = fmt + arg.prefix_formatting
-                        args.append(arg)
-                    return Function(name=t, arity=f_def.arity, func_type=f_def.func_type, arguments=args)
-                elif f_def.arity == 2:
-                    raise ParserError(f"Binary function '{t}' cannot be used as prefix.")
+                        right = self.parse_expr(80, "term")
+                        right.prefix_formatting = fmt + right.prefix_formatting
+                        return Function(name=t, arity=1, func_type=f_def.func_type, arguments=[right])
+                    elif f_def.arity > 2:
+                        args = []
+                        for _ in range(f_def.arity):
+                            fmt = self.consume_formatting()
+                            arg = self.parse_expr(0, "term")
+                            arg.prefix_formatting = fmt + arg.prefix_formatting
+                            args.append(arg)
+                        return Function(name=t, arity=f_def.arity, func_type=f_def.func_type, arguments=args)
+                    elif f_def.arity == 2:
+                        raise ParserError(f"Binary function '{t}' cannot be used as prefix.")
+                else:
+                    # It is a user-defined macro term, treat it as a constant
+                    return Constant(name=t)
+            else:
+                return Constant(name=t)
         elif t in self.env.formulae and isinstance(self.env.formulae[t], Relation) and self.env.formulae[t].name == t:
             r_def = self.env.formulae[t]
             if r_def.arity == 0:
@@ -425,7 +432,7 @@ def reconstruct_string_raw(node: Node) -> str:
     """Reconstructs the exact input string from the AST without colors."""
     res = "".join(f.name for f in node.prefix_formatting)
     
-    if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
+    if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable, Constant)):
         res += node.name
     elif isinstance(node, (Quantifier, Iota, Epsilon)):
         res += node.name
@@ -523,7 +530,7 @@ def reconstruct_string_html(node: Node, depth_ref: list, target_name: str = None
                 return f'<span class="{classes.strip()}" data-tooltip="{tooltip}">{text}</span>'
             return text
 
-    if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable)):
+    if isinstance(node, (Variable, DummyVariable, PropositionalVariable, MetaVariable, Constant)):
         res += wrap(node.name, True)
     elif isinstance(node, (Quantifier, Iota, Epsilon)):
         op_str = wrap(node.name, True)

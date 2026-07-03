@@ -1,0 +1,18 @@
+{
+  "id": "level1",
+  "name": "one is successor of zero",
+  "guide_hints": [
+    "# Level 1: One is Successor of Zero\n\nAlthough this program was developed to deal with ZFC, but natural numbers were the 1st thing we studied. We will revisit what we have been studying since 3 years of age. This game was largely inspired from [Lean's natural number game](https://adam.math.hhu.de/#/g/hhu-adam/NNG4). So I also advice you to check that out then compare your experiences here and there then submit suggestion.",
+    "It is highly advised that you complete 'basics of ITP' and 'advanced REPL commands' game before this. If you felt that advanced REPL commands look unnecessarily complicated, you will understand here how useful they are.",
+    "### Instructions:\nFirst, we need to create the number 1. In our formal system, all numbers are constructed using `0` and the successor function `S`.\n\nType `ct 1 S 0` to define `1` as the successor of `0`.",
+    "Now we need to create our goal formula. Type `cf goal 1 = S 0`.",
+    "Next, create a mission to prove this goal. Type `mission goal`.",
+    "Since our current goal uses the macro `1`, we must rewrite it to its definition `S 0` before we can use our axioms.\n\nType `rw 1` to substitute `1` with `S 0`. Your sub-goal will become `S 0 = S 0`.",
+    "Now that the equation is identical on both sides (`S 0 = S 0`), you can finish the proof!\n\nType `apply E1`."
+  ],
+  "allowed_commands": ["ct", "cf", "mission", "rw", "apply", "show", "help"],
+  "allowed_axioms": ["E1", "E2", "E3", "E4", "P1", "P2", "P3", "P4"],
+  "allowed_rules": ["MP", "Gen"],
+  "goal_statement": "1 = S 0",
+  "start_env": null
+}
