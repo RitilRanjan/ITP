@@ -457,7 +457,6 @@ def render_prover_interface(is_game_mode=False):
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<div id="itp_click_marker" style="display:none;"></div>', unsafe_allow_html=True)
     clicked_payload_raw = st.text_input("itp_click_data", key="itp_click_data", label_visibility="collapsed")
 
     if clicked_payload_raw and clicked_payload_raw != st.session_state.get("last_clicked_payload"):
@@ -874,6 +873,8 @@ def render_prover_interface(is_game_mode=False):
         col_input, col_btn = st.columns([5, 1])
         with col_input:
             partial_command = st_keyup("Type your command:", value=st.session_state.current_cmd, key=f"live_input_{st.session_state.keyup_key}", debounce=0)
+            if partial_command is not None:
+                st.session_state.current_cmd = partial_command
         with col_btn:
             # Add some vertical margin so button aligns with input
             st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
@@ -1008,22 +1009,30 @@ def render_prover_interface(is_game_mode=False):
                     const script = window.parent.document.createElement('script');
                     script.id = 'itp-enter-script';
                     script.innerHTML = `
-                        setInterval(() => {
-                            let marker = window.parent.document.getElementById("itp_click_marker");
-                            if (marker) {
-                                let markerContainer = marker.closest('div[data-testid="stElementContainer"]');
-                                if (markerContainer) {
-                                    let inputContainer = markerContainer.nextElementSibling;
-                                    if (inputContainer) {
-                                        inputContainer.style.display = 'none';
-                                        inputContainer.style.height = '0px';
-                                        inputContainer.style.margin = '0px';
-                                        inputContainer.style.padding = '0px';
-                                        inputContainer.style.overflow = 'hidden';
+                        function hideClickInput() {
+                            const inputs = window.parent.document.querySelectorAll('input[aria-label="itp_click_data"]');
+                            inputs.forEach(clickInput => {
+                                let curr = clickInput;
+                                while (curr && curr.tagName !== 'BODY') {
+                                    if (curr.getAttribute('data-testid') === 'stElementContainer' || curr.classList.contains('stTextInput')) {
+                                        curr.style.display = 'none';
+                                        curr.style.position = 'absolute';
+                                        curr.style.height = '0px';
+                                        curr.style.width = '0px';
+                                        curr.style.margin = '0px';
+                                        curr.style.padding = '0px';
+                                        curr.style.overflow = 'hidden';
+                                        curr.style.opacity = '0';
+                                        curr.style.border = 'none';
                                     }
+                                    curr = curr.parentElement;
                                 }
-                            }
-                            
+                            });
+                        }
+                        hideClickInput();
+                        setInterval(hideClickInput, 100);
+                        
+                        setInterval(() => {
                             const iframes = document.querySelectorAll('iframe');
                             iframes.forEach(iframe => {
                                 try {
