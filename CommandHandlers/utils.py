@@ -117,24 +117,36 @@ def handle_variable_capture_interactive(env: Environment, e: Exception, f_clone,
     return f_clone
 def parse_occurrences(args: List[str], start_idx: int) -> Tuple[Optional[List[int]], int]:
     if start_idx >= len(args): return None, start_idx
-    if not args[start_idx].isdigit(): return None, start_idx
+    if args[start_idx] != '(': return None, start_idx
+    
     occs = []
-    idx = start_idx
+    idx = start_idx + 1
     expect_number = True
     while idx < len(args):
         token = args[idx]
+        if token == ')':
+            idx += 1
+            break
+            
         if expect_number:
             if token.isdigit():
                 occs.append(int(token))
                 expect_number = False
-                idx += 1
-            else: break
+            else:
+                # Invalid syntax inside parentheses
+                return None, start_idx
         else:
             if token == ',':
                 expect_number = True
-                idx += 1
-            else: break
-    if expect_number and len(occs) > 0: idx -= 1
+            else:
+                # Invalid syntax inside parentheses
+                return None, start_idx
+        idx += 1
+        
+    if not occs:
+        # Empty parentheses () are treated as no occurrences provided
+        return None, start_idx
+        
     return occs, idx
 
 def parse_universal_args(
@@ -148,7 +160,7 @@ def parse_universal_args(
 ) -> Optional[Tuple[List[str], Optional[List[int]], str, str, Optional[str]]]:
     """
     Parses a command that follows the universal fold syntax:
-    command <fixed_args...> [occurrences] [<target>] [<out>] [<equiv>]
+    command <fixed_args...> (occurrences) [<target>] [<out>] [<equiv>]
     
     If successful, returns:
     (fixed_args, occs, target_name, out_name, equiv_name)
@@ -156,7 +168,7 @@ def parse_universal_args(
     """
     if len(cmd_args) < fixed_args_count:
         args_format = " ".join([f"<arg{i+1}>" for i in range(fixed_args_count)])
-        print(f"Error: Usage: {cmd_name} {args_format} [occurrences] [<target>] [<out>]" + (" [<equiv>]" if supports_equiv else ""))
+        print(f"Error: Usage: {cmd_name} {args_format} (occurrences) [<target>] [<out>]" + (" [<equiv>]" if supports_equiv else ""))
         return None
         
     fixed_args = cmd_args[:fixed_args_count]
@@ -181,15 +193,7 @@ def parse_universal_args(
         local_dict = env.local_formulae
         default_target = env.goal_formula_name
         
-    # Anti-greedy rollback for ambiguity resolution
-    if occs is not None and len(remaining) == 0 and default_target is None:
-        if len(occs) == 1:
-            # The only parsed occurrence was actually the target term
-            remaining.append(str(occs.pop()))
-            occs = None
-        elif len(occs) > 1:
-            # The last parsed occurrence was the target term
-            remaining.append(str(occs.pop()))
+    # No ambiguity rollback needed anymore because occurrences are strictly enclosed in parentheses ()
     
     if len(remaining) == 0:
         if default_target is None:

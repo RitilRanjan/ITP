@@ -475,11 +475,11 @@ def render_prover_interface(is_game_mode=False):
                 elif selected_cmd in ["st", "sb", "sf", "sp"]:
                     parts = [selected_cmd, symbol]
                     if len(args) > 0: parts.append(args[0])
-                    parts.extend([str(occ), target])
+                    parts.extend([f"({occ})", target])
                 elif selected_cmd == "fold all":
                     parts = ["fold", "all", target]
                 elif selected_cmd == "fold":
-                    parts = ["fold", symbol, str(occ), target]
+                    parts = ["fold", symbol, f"({occ})", target]
                 elif selected_cmd == "sa":
                     parts = [selected_cmd, symbol]
                     if len(args) > 0: parts.append(args[0])
@@ -497,7 +497,7 @@ def render_prover_interface(is_game_mode=False):
                     if len(args) > 0: parts.append(args[0])
                 elif selected_cmd == "rw":
                     if data.get("is_symbol"):
-                        parts = ["rw", symbol, str(occ), target]
+                        parts = ["rw", symbol, f"({occ})", target]
                     else:
                         parts = [selected_cmd]
                         if len(args) > 1 and args[1].strip(): parts.append(args[1])
@@ -507,7 +507,7 @@ def render_prover_interface(is_game_mode=False):
                 elif selected_cmd in ["mission", "auto", "search", "backward_search", "advanced_search"]:
                     parts = [selected_cmd, target]
                 else:
-                    parts = [selected_cmd, target, str(occ)]
+                    parts = [selected_cmd, target, f"({occ})"]
                 
                 final_cmd = " ".join([p for p in parts if p])
                 
