@@ -1322,12 +1322,27 @@ with tab_games:
             with col_prover:
                 render_prover_interface(is_game_mode=True)
         else:
-            st.subheader("Select a Game")
-            selected_game = st.selectbox("Available Games", games)
+            selected_game = st.session_state.get("selected_game_menu", None)
             
-            if selected_game:
+            if not selected_game:
+                st.subheader("Select a Game")
+                cols = st.columns(3)
+                for idx, g in enumerate(games):
+                    with cols[idx % 3]:
+                        st.markdown(f"### 🎮 {g}")
+                        if st.button("View Levels", key=f"view_game_{g}"):
+                            st.session_state["selected_game_menu"] = g
+                            st.rerun()
+            else:
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.subheader(f"Levels for: {selected_game}")
+                with col2:
+                    if st.button("⬅️ Back to Games"):
+                        st.session_state["selected_game_menu"] = None
+                        st.rerun()
+                        
                 st.divider()
-                st.subheader(f"Levels for: {selected_game}")
                 game_path = os.path.join(games_dir, selected_game)
                 levels = [f for f in os.listdir(game_path) if f.endswith(".json")]
                 
