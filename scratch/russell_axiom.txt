@@ -1,9 +1,0 @@
-y
-cv A
-cv B
-cv x
-cv R
-cf separation ∀A ∃R ∀x (x ∈ R ⇔ (x ∈ A ∧ ¬(x ∈ x)))
-cf univ ¬∃A ∀B (B ∈ A)
-mission univ
-backward_search univ

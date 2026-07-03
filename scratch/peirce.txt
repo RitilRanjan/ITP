@@ -1,4 +1,0 @@
-y
-cp peirce ((p ⇒ q) ⇒ p) ⇒ p
-mission peirce
-backward_search peirce

@@ -1,6 +1,0 @@
-y
-cv A
-cv B
-cf univ ¬∃A ∀B (B ∈ A)
-mission univ
-backward_search univ

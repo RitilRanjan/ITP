@@ -1,4 +1,0 @@
-N
-load_h
-myhist5.txt.md
-exit

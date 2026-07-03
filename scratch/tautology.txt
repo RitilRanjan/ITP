@@ -1,4 +1,0 @@
-y
-cp f1 p ⇒ (q ⇒ p)
-mission f1
-backward_search f1

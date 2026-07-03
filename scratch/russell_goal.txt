@@ -1,8 +1,0 @@
-y
-cv A
-cv B
-cv x
-cv R
-cf goal (∀A ∃R ∀x (x ∈ R ⇔ (x ∈ A ∧ ¬(x ∈ x)))) ⇒ (¬∃A ∀B (B ∈ A))
-mission goal
-backward_search goal

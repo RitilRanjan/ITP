@@ -1,5 +1,0 @@
-cv a b c t
-ct my_term a
-cf P1 c = b
-rw my_term 1 P1 P2
-show
