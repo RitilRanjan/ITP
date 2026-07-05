@@ -1,0 +1,55 @@
+{
+  "id": "level3",
+  "name": "Zero is Not One",
+  "guide_hints": [
+    "# Level 3: Zero is Not One\n\nWelcome to Level 3! Here we will prove that `0 ≠ 1`. We will use the `0_pred` axiom, which states that `¬∃x S x = 0` (zero is not the successor of any number).",
+    "First, we will define the binary relation `≠` and the function `1`.",
+    "### Instructions:\nStep 1: Create dummy variables `u` and `v` by typing `cv u v`.",
+    "Step 2: Define the inequality relation. Type `def_r 2 u ≠ v ¬ u = v`.",
+    "Step 3: Define the constant `1`. Type `ct 1 S 0`.",
+    "Step 4: Create the goal statement. Type `cf goal 0 ≠ 1`, and enter the mission by typing `mission goal`.",
+    "Step 5: Unfold the definition of inequality in the goal. Type `fold ≠ (1)` to get `¬(0 = 1)`.",
+    "Step 6: Unfold the definition of 1 in the goal. Type `rw 1 (1)` to get `¬(0 = S 0)`.",
+    "Step 7: Create a fresh standard variable `x` by typing `cv x`. Then create a formula representing the `0_pred` axiom: type `cf f1 ¬∃x S x = 0`.",
+    "Step 8: Prove `f1` using the axiom by typing `apply f1 0_pred`.",
+    "Step 9: Unfold the existential quantifier in `f1`. Type `fold ∃ (1) f1 f1_unfolded` to get `¬¬∀x ¬(S x = 0)`.",
+    "Step 10: Eliminate the double negation using the `neg-` command. Type `neg- f1_unfolded f2` to get `∀x ¬(S x = 0)`.",
+    "Step 11: Substitute `0` for `x`. Type `intro f2 0` to get `¬(S 0 = 0)`.",
+    "Step 12: Finally, swap the equality inside `f2` to match the goal exactly. Type `swap_eq (1) f2`. Since `f2` now exactly matches the goal formula, the goal is automatically proven! Good luck!"
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "mission",
+    "swap_eq",
+    "apply",
+    "show",
+    "help",
+    "ct",
+    "def_r",
+    "intro",
+    "fold",
+    "neg-",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "S_injective",
+    "0_pred"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "0 ≠ 1",
+  "start_env": null,
+  "theory": "NT"
+}

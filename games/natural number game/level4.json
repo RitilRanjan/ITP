@@ -1,0 +1,62 @@
+{
+  "id": "level4",
+  "name": "One Plus One is Two",
+  "guide_hints": [
+    "# Level 4: One Plus One is Two\n\nWelcome to Level 4! Here we will prove that `1 + 1 = 2`.",
+    "To do this, we will introduce the two fundamental axioms of addition:\n- **`add_base`**: `x + 0 = x` (Adding zero leaves a number unchanged).\n- **`add_induction`**: `x + S y = S(x + y)` (Adding a successor is the successor of the sum).",
+    "Both of these axioms can be instantiated with any exact terms by writing the structural formula and using the `apply` command.",
+    "### Instructions:\nStep 1: First, we must create dummy variables for relations. Type `cv u v`.",
+    "Step 2: Define the inequality relation just to set up standard state. Type `def_r 2 u ≠ v ¬ u = v`.",
+    "Step 3: Define our numbers! Define `1` by typing `ct 1 S 0`, and then define `2` by typing `ct 2 S 1`.",
+    "Step 4: Now, create our goal formula. Type `cf goal 1 + 1 = 2`, and enter the mission by typing `mission goal`.",
+    "Step 5: Let's unfold the definition of `2`. Type `rw 2 (1)` to get `1 + 1 = S 1`.",
+    "Step 6: Let's unfold the second `1`. Type `rw 1 (2)` to get `1 + S 0 = S 1`.",
+    "Step 7: Now we apply our addition logic. Create the `add_induction` instance for our specific numbers. Type `cf f1 1 + S 0 = S( 1 + 0 )`.",
+    "Step 8: Prove `f1` by typing `apply f1 add_induction`.",
+    "Step 9: Substitute this equality into our goal. Type `simp_l_eq f1 (1)`. The goal will become `S( 1 + 0 ) = S 1`.",
+    "Step 10: Next, let's solve `1 + 0`. Create the `add_base` instance: type `cf f2 1 + 0 = 1`.",
+    "Step 11: Prove `f2` by typing `apply f2 add_base`.",
+    "Step 12: Substitute this into our goal. Type `simp_l_eq f2 (1)`. The goal will reduce to `S 1 = S 1`.",
+    "Step 13: This is trivially true by reflexivity! Create the equality formula: `cf f3 S 1 = S 1`.",
+    "Step 14: Prove it using the `E1` axiom by typing `apply f3 E1`. Congratulations!\n\n*(Note: You can similarly try to prove `2 + 2 = 4` using these exact same principles!)*"
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "mission",
+    "swap_eq",
+    "apply",
+    "show",
+    "help",
+    "ct",
+    "def_r",
+    "intro",
+    "fold",
+    "neg-",
+    "rw",
+    "simp_l_eq",
+    "simp_r_eq"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "S_injective",
+    "0_pred",
+    "add_base",
+    "add_induction"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "1 + 1 = 2",
+  "start_env": null,
+  "theory": "NT"
+}

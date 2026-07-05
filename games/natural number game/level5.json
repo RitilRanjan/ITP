@@ -1,0 +1,56 @@
+{
+  "id": "level5",
+  "name": "Additive Identity",
+  "guide_hints": [
+    "The `add_base` axiom already shows that `∀x x + 0 = x`. In order to show that 0 is the additive identity for natural numbers, we also have to show that `∀x 0 + x = x`. For this we will use the principle of mathematical induction.",
+    "The `induction` axiom schema in this system is `(ψ(0) ∧ ∀x (ψ(x) ⇒ ψ(S x))) ⇒ ∀x ψ(x)`. You can define this formula for your specific `ψ(x)` and prove it directly using `apply <name> induction`.",
+    "First, prove the base case which is `0 + 0 = 0` which is straightforward using the `add_base` axiom.",
+    "Next, create a formula `∀x ( 0 + x = x ⇒ 0 + S x = S x )` and make it a mission goal using `mission <name>`.",
+    "Use `intro n n_goal` to introduce a fresh variable. This converts the goal into `0 + n = n ⇒ 0 + S n = S n` named `n_goal`.",
+    "Then use the `imply n_hyp` command. This reduces the goal to `0 + S n = S n` and gives you a proven assumption theorem `0 + n = n` named `n_hyp`.",
+    "Create the formula `0 + S n = S ( 0 + n )` and prove it using `add_induction`.",
+    "Then use `simp_l_eq n_hyp (1) <formula> <out>` to substitute `0 + n` with `n`, which proves `0 + S n = S n`! Since this exactly matches your goal formula, the mission will automatically close and prove your inductive step in the main environment.",
+    "Finally, create the full induction formula `( 0 + 0 = 0 ∧ ∀x ( 0 + x = x ⇒ 0 + S x = S x ) ) ⇒ ∀x 0 + x = x`, prove it with `apply <name> induction`, and then use propositional calculus (`PC1`) along with your base case, inductive step, and induction theorem to prove the final goal `∀x 0 + x = x`!"
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "mission",
+    "swap_eq",
+    "apply",
+    "show",
+    "help",
+    "ct",
+    "def_r",
+    "intro",
+    "fold",
+    "neg-",
+    "rw",
+    "simp_l_eq",
+    "simp_r_eq",
+    "imply"
+  ],
+  "allowed_axioms": [
+    "add_base",
+    "add_induction",
+    "induction",
+    "E1",
+    "E2",
+    "E3",
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "0_pred",
+    "S_injective"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "∀x 0 + x = x",
+  "start_env": null,
+  "theory": "NT"
+}

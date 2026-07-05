@@ -10,9 +10,28 @@
     "Since our current goal uses the macro `1`, we must rewrite it to its definition `S 0` before we can use our axioms.\n\nType `rw 1` to substitute `1` with `S 0`. Your sub-goal will become `S 0 = S 0`.",
     "Now that the equation is identical on both sides (`S 0 = S 0`), you can finish the proof!\n\nType `apply E1`."
   ],
-  "allowed_commands": ["ct", "cf", "mission", "rw", "apply", "show", "help"],
-  "allowed_axioms": ["E1", "E2", "E3", "E4", "P1", "P2", "P3", "P4"],
-  "allowed_rules": ["MP", "Gen"],
+  "allowed_commands": [
+    "ct",
+    "cf",
+    "mission",
+    "rw",
+    "apply",
+    "show",
+    "help"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "P1",
+    "P2",
+    "P3",
+    "P4"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2"
+  ],
   "goal_statement": "1 = S 0",
   "start_env": null,
   "theory": "NT"
