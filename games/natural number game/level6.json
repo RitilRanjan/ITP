@@ -1,0 +1,16 @@
+{
+  "id": "level6",
+  "name": "Level 6: Addition is Commutative",
+  "goal_statement": "x + y = y + x",
+  "theory": "NT",
+  "start_env": "level6_start_env.md",
+  "allowed_rules": ["QR1", "QR2", "PC1", "PC2"],
+  "allowed_axioms": ["add_base", "add_induction", "induction", "E1", "E2", "E3", "E4", "P1", "P2", "P3", "P4"],
+  "hints": [
+    "This proof requires double induction! Start by proving x + 0 = 0 + x (the outer base case).",
+    "Use the theorem from Level 5 (add_id_left) which states ∀x (0 + x = x).",
+    "After the outer base case, create the outer inductive step: ∀y x + y = y + x ⇒ x + S y = S y + x and prove it using a mission.",
+    "Inside that mission, you'll need another mission to prove S(n + x) = S n + x by induction on x.",
+    "Finally, combine the outer base case and inductive step with the induction axiom!"
+  ]
+}
