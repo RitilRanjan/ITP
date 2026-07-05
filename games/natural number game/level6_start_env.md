@@ -20,10 +20,10 @@ Original Goal: None
 And Right: None
 Target Proven: None
 Theory: NT
-Variables: 
-Dummy Variables: 
-Meta Variables: 
-Propositional Variables: 
+Variables: x, y
+Dummy Variables: x, y
+Meta Variables: x, y
+Propositional Variables: x, y
 User Functions:
 User Relations:
 Terms:
