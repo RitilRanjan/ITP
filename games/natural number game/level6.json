@@ -1,6 +1,6 @@
 {
   "id": "level6",
-  "name": "Level 6: Addition is Commutative",
+  "name": "Addition is Commutative",
   "goal_statement": "x + y = y + x",
   "theory": "NT",
   "start_env": "level6_start_env.md",
@@ -16,11 +16,7 @@
     "induction",
     "E1",
     "E2",
-    "E3",
-    "P1",
-    "P2",
-    "P3",
-    "P4"
+    "E3"
   ],
   "hints": [
     "This proof requires double induction! Start by proving x + 0 = 0 + x (the outer base case).",
