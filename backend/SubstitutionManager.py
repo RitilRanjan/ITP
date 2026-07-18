@@ -63,9 +63,10 @@ def clone_ast(node: Node) -> Node:
             definition_name=node.definition_name,
             term_placeholders={k: [clone_ast(i) for i in v] if isinstance(v, list) else clone_ast(v) for k, v in node.term_placeholders.items()},
             var_placeholders={k: [clone_ast(i) for i in v] if isinstance(v, list) else clone_ast(v) for k, v in node.var_placeholders.items()},
-            formula_placeholders={k: [clone_ast(i) for i in v] if isinstance(v, list) else clone_ast(v) for k, v in node.formula_placeholders.items()},
+            formula_placeholders={k: [clone_ast(i) for i in v] if isinstance(v, list) else clone_ast(v) for k, v in getattr(node, 'formula_placeholders', {}).items()},
             repetition_counts=dict(node.repetition_counts)
         )
+        c.pattern = list(node.pattern) if hasattr(node, 'pattern') else []
     elif isinstance(node, LongFormula):
         c = LongFormula(
             definition_name=node.definition_name,
@@ -74,6 +75,7 @@ def clone_ast(node: Node) -> Node:
             formula_placeholders={k: [clone_ast(i) for i in v] if isinstance(v, list) else clone_ast(v) for k, v in node.formula_placeholders.items()},
             repetition_counts=dict(node.repetition_counts)
         )
+        c.pattern = list(node.pattern) if hasattr(node, 'pattern') else []
     else:
         raise ValueError(f"Unknown AST node type: {type(node)}")
         

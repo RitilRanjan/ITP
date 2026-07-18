@@ -1,7 +1,7 @@
 from typing import List, Dict, Set, Optional
 from backend.AST import (
     Node, FormulaNode, Connective, Relation, Function, Variable,
-    PropositionalVariable, Quantifier, is_structurally_equal
+    PropositionalVariable, Quantifier, is_structurally_equal, LongFormula
 )
 from backend.SubstitutionManager import is_substitutable_free, clone_ast, find_substituted
 from backend.PropAbstraction import abstract_to_propositional
@@ -18,15 +18,24 @@ def get_conjuncts(node: FormulaNode) -> List[FormulaNode]:
         return get_conjuncts(node.arguments[0]) + get_conjuncts(node.arguments[1])
     return [node]
 
+def check_equality(node: FormulaNode):
+    """Returns (True, left, right) if node is an equality, else (False, None, None)."""
+    if isinstance(node, Relation) and node.name == "=" and len(node.arguments) == 2:
+        return True, node.arguments[0], node.arguments[1]
+    if isinstance(node, LongFormula) and node.definition_name == "=":
+        return True, node.term_placeholders.get("?t1"), node.term_placeholders.get("?t2")
+    return False, None, None
+
 # ==========================================
 # Logical Axioms
 # ==========================================
 
 def axiom_E1(formula: FormulaNode) -> bool:
     """E1: reflexivity of equality. t = t for any term t."""
-    if not isinstance(formula, Relation) or formula.name != "=" or len(formula.arguments) != 2:
+    is_eq, left, right = check_equality(formula)
+    if not is_eq:
         return False
-    return is_structurally_equal(formula.arguments[0], formula.arguments[1])
+    return is_structurally_equal(left, right)
 
 def axiom_E2(formula: FormulaNode) -> bool:
     """E2: variable replacement in function. (x1 = y1 ∧ ... ∧ xn = yn) ⇒ f(x1, ... xn) = f(y1, ... yn)."""
@@ -34,9 +43,9 @@ def axiom_E2(formula: FormulaNode) -> bool:
         return False
     ant, cons = formula.arguments[0], formula.arguments[1]
     
-    if not isinstance(cons, Relation) or cons.name != "=" or len(cons.arguments) != 2:
+    is_eq, f_left, f_right = check_equality(cons)
+    if not is_eq:
         return False
-    f_left, f_right = cons.arguments[0], cons.arguments[1]
     if not isinstance(f_left, Function) or not isinstance(f_right, Function):
         return False
     if f_left.name != f_right.name or len(f_left.arguments) != len(f_right.arguments):
@@ -52,11 +61,12 @@ def axiom_E2(formula: FormulaNode) -> bool:
         
     for i in range(n):
         c = conjuncts[i]
-        if not isinstance(c, Relation) or c.name != "=" or len(c.arguments) != 2:
+        is_eq, c_left, c_right = check_equality(c)
+        if not is_eq:
             return False
-        if not is_structurally_equal(c.arguments[0], f_left.arguments[i]):
+        if not is_structurally_equal(c_left, f_left.arguments[i]):
             return False
-        if not is_structurally_equal(c.arguments[1], f_right.arguments[i]):
+        if not is_structurally_equal(c_right, f_right.arguments[i]):
             return False
             
     return True
@@ -70,12 +80,17 @@ def axiom_E3(formula: FormulaNode) -> bool:
     if not isinstance(cons, Connective) or cons.name != "⇒" or len(cons.arguments) != 2:
         return False
     r_left, r_right = cons.arguments[0], cons.arguments[1]
-    if not isinstance(r_left, Relation) or not isinstance(r_right, Relation):
+    if (not isinstance(r_left, Relation) and not isinstance(r_left, LongFormula)) or \
+       (not isinstance(r_right, Relation) and not isinstance(r_right, LongFormula)):
         return False
-    if r_left.name != r_right.name or len(r_left.arguments) != len(r_right.arguments):
-        return False
-        
-    n = len(r_left.arguments)
+    if isinstance(r_left, LongFormula):
+        if r_left.definition_name != r_right.definition_name or len(r_left.term_placeholders) != len(r_right.term_placeholders):
+            return False
+        n = len(r_left.term_placeholders)
+    else:
+        if r_left.name != r_right.name or len(r_left.arguments) != len(r_right.arguments):
+            return False
+        n = len(r_left.arguments)
     if n < 1:
         return False
         
@@ -85,11 +100,23 @@ def axiom_E3(formula: FormulaNode) -> bool:
         
     for i in range(n):
         c = conjuncts[i]
-        if not isinstance(c, Relation) or c.name != "=" or len(c.arguments) != 2:
+        is_eq, c_left, c_right = check_equality(c)
+        if not is_eq:
             return False
-        if not is_structurally_equal(c.arguments[0], r_left.arguments[i]):
+        
+        # r_left/r_right could be Relation or LongFormula. If they are LongFormula, 
+        # their arguments are in term_placeholders. But wait, E3 specifically says R(x) => R(y).
+        # We need to extract the arguments generically.
+        if isinstance(r_left, LongFormula):
+            l_args = list(r_left.term_placeholders.values())
+            r_args = list(r_right.term_placeholders.values())
+        else:
+            l_args = r_left.arguments
+            r_args = r_right.arguments
+
+        if not is_structurally_equal(c_left, l_args[i]):
             return False
-        if not is_structurally_equal(c.arguments[1], r_right.arguments[i]):
+        if not is_structurally_equal(c_right, r_args[i]):
             return False
             
     return True

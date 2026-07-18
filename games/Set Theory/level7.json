@@ -1,0 +1,46 @@
+{
+  "id": "level7",
+  "name": "Empty Set",
+  "guide_hints": [
+    "# Level 7: Empty Set",
+    "In this level, we will prove the existence of the empty set. We will prove that there exists a set A that contains no elements: `∃A ∀x (x∉A)`.",
+    "We can prove this by using the Axiom of Specification to construct a set of all elements that are not equal to themselves.",
+    "First, we define a set B (the set from which we will construct our empty set) and our variables. Type `cv B A x`.",
+    "Now we write our specification formula: `cf thm1 ∃A ∀x (x∈A ⇔ (x∈B ∧ x≠x))`.",
+    "Apply the specification axiom to prove this: `apply thm1 specification`.",
+    "Now we can introduce the existential variable `S` from `thm1`. Type `intro thm1 S`. This yields `∀x (x∈S ⇔ (x∈B ∧ x≠x))`.",
+    "Now start a mission to prove our goal: `mission goal`.",
+    "Since our goal is an existential statement, we must introduce a specific set that satisfies it. Let's introduce our specific set `S`. Type `intro S g2` (this makes the new goal `g2: ∀x (x∉S)`).",
+    "Now we need to prove this property for an arbitrary element. Let's introduce a fresh variable `y`. Type `intro y g3` (this introduces `y` and makes the new goal `g3: y∉S`).",
+    "Expand our goal so it uses standard notation: `rw \"notin\" g3`. The goal is now `¬(y∈S)`.",
+    "Now let's use our arbitrary element `y` in our proven theorem. Type `intro thm1 y thm1_y`. This yields `y∈S ⇔ (y∈B ∧ y≠y)`.",
+    "Expand `neq` in our theorem to see the standard notation: `rw \"neq\" thm1_y`. This yields `y∈S ⇔ (y∈B ∧ ¬(y=y))`.",
+    "We know from Axiom E1 that every element is equal to itself. Claim this: `cf E1y y=y` and prove it: `apply E1y E1`.",
+    "Now we have `thm1_y: y∈S ⇔ (y∈B ∧ ¬(y=y))` and `E1y: y=y`. These imply `¬(y∈S)` (which is `g3`).",
+    "Apply propositional logic to close the mission: `apply g3 PC1 thm1_y E1y`.",
+    "Congratulations! You have proven the existence of the empty set.",
+    "To define the empty set notation for future use, you can write: `ct \"∅\" ε ?v1 ∀?v2 (?v2 ∉ ?v1)`."
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "ct",
+    "rw",
+    "mission",
+    "apply",
+    "intro"
+  ],
+  "allowed_axioms": [
+    "specification",
+    "E1"
+  ],
+  "allowed_rules": [
+    "PC1"
+  ],
+  "goal_statement": "∃A ∀x (x∉A)",
+  "start_env_commands": [
+    "cf notin \"?t1 ∉ ?t2\" ¬(?t1 ∈ ?t2)",
+    "cf neq \"?t1 ≠ ?t2\" ¬(?t1 = ?t2)"
+  ],
+  "theory": "ZFC"
+}

@@ -708,8 +708,6 @@ def handle_rw(env: Environment, args_str: str, command_queue: list = None, input
     find_and_remove_marker(f_clone)
     
     try:
-        from backend.Parser import parse_term, parse_fol_formula
-        from backend.AST import is_structurally_equal, reconstruct_string
         f_clone_str = reconstruct_string(f_clone)
         if is_formula_target:
             re_parsed = parse_fol_formula(f_clone_str, env)

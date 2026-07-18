@@ -4,7 +4,7 @@ from backend.AST import (
     Node, TermNode, FormulaNode, Variable, DummyVariable, 
     PropositionalVariable,  Connective, Quantifier, MetaVariable,
     Bracket, Whitespace, Iota, Epsilon, Constant, LongTerm, LongFormula,
-    TermPlaceholder, VariablePlaceholder, FormulaPlaceholder
+    TermPlaceholder, VariablePlaceholder, FormulaPlaceholder, FormulaConstant
 )
 from backend.Environment import Environment
 
@@ -285,7 +285,6 @@ class Parser:
         final_pos, final_term, final_var, final_form, final_counts = res
         self.pos = final_pos
         
-        from backend.AST import LongTerm, LongFormula, Constant, Variable, DummyVariable, FormulaConstant, PropositionalVariable
         if expected_target == "term":
             return LongTerm(definition_name=name, term_placeholders=final_term, var_placeholders=final_var, formula_placeholders=final_form, repetition_counts=final_counts, pattern=pattern)
         elif expected_target == "term_short":
@@ -664,10 +663,14 @@ def reconstruct_string_raw(node: Node) -> str:
         res += ")"
     elif isinstance(node, (LongTerm, LongFormula)):
         res_str = node.definition_name
+        print("RECONSTRUCTING LONG:", repr(res_str))
         for p_name, p_val in node.term_placeholders.items():
             res_str = res_str.replace(p_name, reconstruct_string_raw(p_val))
         for p_name, p_val in node.var_placeholders.items():
             res_str = res_str.replace(p_name, reconstruct_string_raw(p_val))
+        if isinstance(node, LongFormula):
+            for p_name, p_val in node.formula_placeholders.items():
+                res_str = res_str.replace(p_name, reconstruct_string_raw(p_val))
         res += res_str
     elif isinstance(node, Connective):
         if node.arity == 1:
