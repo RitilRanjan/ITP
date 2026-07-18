@@ -8,10 +8,11 @@
     "Type `mission goal`.",
     "Type `imply f1 f2 f3` to change the mission goal to *f1: A=B* and you get proven theorems *A⊆B* and *B⊆A*.",
     "Type `rw subset f2` then `rw subset f3`. For each one of them, it will ask you to enter a variable. You can type x.",
-    
-    
-    "Now type `intro u` then `intro u f2` and `intro u f3`. The goal formula becomes u∈A ⇒ u∈C.",
-    "Type `apply PC1 f2 f3` to close the mission goal."
+    "Type `cv x` then `cf lemma ∀x x∈A ⇔ x∈B` then `mission lemma`",
+    "Now type `intro u` then `intro u f2` and `intro u f3`. The goal formula becomes u∈A ⇔ u∈B.",
+    "Type `apply PC1 f2 f3` to close the sub-mission goal.",
+    "Now type `cf f4 (∀x x∈A ⇔ x∈B) ⇒ A=B` then `apply extension f4`.",
+    "Finally close the mission goal by typing `apply PC1 lemma f4."
   ],
   "allowed_commands": [
     "mission",

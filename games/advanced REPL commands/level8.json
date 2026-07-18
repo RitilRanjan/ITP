@@ -9,9 +9,19 @@
     "You have premise `p ⇔ q`. Your goal is `p ∨ r ⇔ q ∨ r`.\nType `rw <name of premise>`. It will rewrite `p` to `q` in the goal, changing the goal to `q ∨ r ⇔ q ∨ r`!",
     "Now prove this new goal by applying `PC1` or `auto`, and the mission will close!"
   ],
-  "allowed_commands": ["cV", "cf", "apply", "mission", "rw", "auto", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "mission",
+    "rw",
+    "auto",
+    "exit"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
-  "goal_statement": "(p ⇔ q) ⇒ (p ∨ r ⇔ q ∨ r)",
-  "start_env": null
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "(p ⇔ q) ⇒ (p ∨ r ⇔ q ∨ r)"
 }

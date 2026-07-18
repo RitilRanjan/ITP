@@ -31,6 +31,5 @@
     "QR2"
   ],
   "goal_statement": "1 = S 0",
-  "start_env": null,
   "theory": "NT"
 }

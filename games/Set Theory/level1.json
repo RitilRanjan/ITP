@@ -39,6 +39,5 @@
     "PC3"
   ],
   "goal_statement": "∀x(x∈A ⇔ x∈B) ⇒ A=B",
-  "start_env": null,
   "theory": "ZFC"
 }

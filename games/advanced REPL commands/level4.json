@@ -25,6 +25,5 @@
     "PC1",
     "PC2"
   ],
-  "goal_statement": "(¬p ⇒ p) ⇒ p",
-  "start_env": null
+  "goal_statement": "(¬p ⇒ p) ⇒ p"
 }

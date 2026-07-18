@@ -54,6 +54,5 @@
     "PC2"
   ],
   "goal_statement": "1 + 1 = 2",
-  "start_env": null,
   "theory": "NT"
 }

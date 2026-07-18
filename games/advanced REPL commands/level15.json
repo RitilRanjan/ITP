@@ -28,6 +28,5 @@
     "PC1",
     "PC2"
   ],
-  "goal_statement": "((p ⇒ q) ∧ (q ⇒ r)) ⇒ (p ⇒ r)",
-  "start_env": null
+  "goal_statement": "((p ⇒ q) ∧ (q ⇒ r)) ⇒ (p ⇒ r)"
 }

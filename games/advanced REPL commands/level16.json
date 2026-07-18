@@ -28,6 +28,5 @@
     "PC1",
     "PC2"
   ],
-  "goal_statement": "(∀x x=x) ⇒ (∀y y=y)",
-  "start_env": null
+  "goal_statement": "(∀x x=x) ⇒ (∀y y=y)"
 }

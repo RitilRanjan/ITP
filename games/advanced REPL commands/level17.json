@@ -24,6 +24,5 @@
     "PC1",
     "PC2"
   ],
-  "goal_statement": "x=y ⇒ x=y",
-  "start_env": null
+  "goal_statement": "x=y ⇒ x=y"
 }

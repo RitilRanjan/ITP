@@ -47,6 +47,5 @@
     "PC2"
   ],
   "goal_statement": "∀x P S x = x",
-  "start_env": null,
   "theory": "NT"
 }

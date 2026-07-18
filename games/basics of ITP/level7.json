@@ -31,6 +31,5 @@
       "arity": 1
     }
   ],
-  "default_relations": [],
-  "start_env": null
+  "default_relations": []
 }

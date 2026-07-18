@@ -21,6 +21,5 @@
   "allowed_rules": [],
   "goal_statement": "(∀x x = x) ⇒ y = y",
   "default_functions": [],
-  "default_relations": [],
-  "start_env": null
+  "default_relations": []
 }

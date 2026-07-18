@@ -26,6 +26,5 @@
   ],
   "goal_statement": "(x = y ∧ y = z) ⇒ x = z",
   "default_functions": [],
-  "default_relations": [],
-  "start_env": null
+  "default_relations": []
 }

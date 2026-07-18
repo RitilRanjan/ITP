@@ -37,6 +37,5 @@
     "PC3"
   ],
   "goal_statement": "A⊆A",
-  "start_env": null,
   "theory": "ZFC"
 }

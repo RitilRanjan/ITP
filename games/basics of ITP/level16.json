@@ -36,5 +36,9 @@
       "arity": 2
     }
   ],
-  "start_env": "level16_env.md"
+  "start_env_commands": [
+    "cv x y",
+    "cf theorem_1 ∃y ∀x x ∈ y",
+    "force theorem_1"
+  ]
 }

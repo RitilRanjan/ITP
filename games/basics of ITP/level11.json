@@ -23,6 +23,5 @@
   ],
   "goal_statement": "x = x ⇒ (∀y y = y)",
   "default_functions": [],
-  "default_relations": [],
-  "start_env": null
+  "default_relations": []
 }

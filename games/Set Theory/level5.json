@@ -38,6 +38,8 @@
     "PC3"
   ],
   "goal_statement": "∃B ∀x x∈B ⇔ (x∈A ∧ x∈C)",
-  "start_env": null,
+  "start_env_commands":[
+    "cv "
+  ],
   "theory": "ZFC"
 }
