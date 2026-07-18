@@ -1,0 +1,39 @@
+{
+  "id": "level3",
+  "name": "Subset Relation is Transitive",
+  "guide_hints": [
+    "# Level 3: Subset relation is transitive.",
+    "We want to prove that if A ⊆ B and B ⊆ C, then A ⊆ C.",
+    "The goal formula has already been provided to you in the environment.",
+    "You can use advanced REPL commands like `imply`, `and`, `left`, `right`, `intro`, `apply`, etc. to make the proof easier."
+  ],
+  "allowed_commands": [
+    "mission",
+    "rw",
+    "apply",
+    "fold",
+    "intro",
+    "imply",
+    "and",
+    "left",
+    "right"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "Q1",
+    "Q2",
+    "extension"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3"
+  ],
+  "goal_statement": "(A⊆B ∧ B⊆C) ⇒ A⊆C",
+  "start_env": "level3_start_env.json",
+  "theory": "ZFC"
+}

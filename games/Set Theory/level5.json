@@ -1,0 +1,43 @@
+{
+  "id": "level5",
+  "name": "Axiom of Specification",
+  "guide_hints": [
+    "# Level 5: The **axiom of specification** or **axiom of restricted comprehension** states that given a set A and a formula Ψ(x), you can construct a set B which contains exactly those elements x of A which satisfy the formula Ψ(x).",
+    "So basically it can be used to prove formulas of the form `∃B ∀x x∈B ⇔ (x∈A ∧ Ψ(x))`. I hope you are able to comprehend this formal statement.",
+    "We will define a long term to define the **Set Builder Form** which of the type {<variable> ∈ <term> | <formula>}",
+    "Type `ct set_builder \"\"`",
+    "Type `cv x A B C`.",
+    "Type `cf goal ∃B ∀x x∈B ⇔ (x∈A ∧ x∈C)`.",
+    "Type `apply goal specification`.",
+    ""
+  ],
+  "allowed_commands": [
+    "cv",
+    "ct",
+    "cf",
+    "mission",
+    "rw",
+    "apply",
+    "fold",
+    "intro"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "Q1",
+    "Q2",
+    "extension",
+    "specification"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3"
+  ],
+  "goal_statement": "∃B ∀x x∈B ⇔ (x∈A ∧ x∈C)",
+  "start_env": null,
+  "theory": "ZFC"
+}

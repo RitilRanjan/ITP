@@ -1,0 +1,42 @@
+{
+  "id": "level2",
+  "name": "Subset Relation is Reflexive",
+  "guide_hints": [
+    "# Level 2: First we will define the subset relation then prove that it is reflexive.",
+    "In ZFC, every object is basically set(literally every). By object I mean any term(which also includes constants and variables)",
+    "We say a set A is subset of B if every element of A is also an element of B. You can type *option + 2286* to type ⊆ in Macbook.",
+    "Type `cf subset \"?t1 ⊆ ?t2\" ∀?v3 ?v3 ∈ ?t1 ⇒ ?v3 ∈ ?t2` to define the binary subset relation. I hope you can see how the logic is working.",
+    "Type `cv A`, then `cf goal A⊆A` then `mission goal` as it is the formula which we want to prove.",
+    "Type `rw subset` which should ask you for a new variable to enter. You can type `x` to change the goal formula to `∀x x∈A ⇒ x∈A`",
+    "Type `intro y` to change the goal formula to `y∈A ⇒ y∈A`.",
+    "Type `apply PC1` to close the mission goal."
+  ],
+  "allowed_commands": [
+    "cv",
+    "ct",
+    "cf",
+    "mission",
+    "rw",
+    "apply",
+    "fold",
+    "intro"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "Q1",
+    "Q2",
+    "extension"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3"
+  ],
+  "goal_statement": "A⊆A",
+  "start_env": null,
+  "theory": "ZFC"
+}

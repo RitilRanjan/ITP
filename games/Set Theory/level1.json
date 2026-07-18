@@ -1,0 +1,44 @@
+{
+  "id": "level1",
+  "name": "Axiom of Extension",
+  "guide_hints": [
+    "# Level 1: This game has been mostly inspired from the book *Naive Set Theory* by *Paul R Halmos*. You can basically think of this as the foundation of the almost all the mathematics.",
+    "It is highly advised that you complete 'basics of ITP' and 'advanced REPL commands' game before this. If you felt that advanced REPL commands look unnecessarily complicated, you will understand here how useful they are.",
+    "We will be dealing with the axioms of **Zermelo-Fraenkel-Choice Set Theory**. There are just 9 axioms but it is amazing that nearly all of mathematics can be described from it. You will see how complicated will things become with time.",
+    "### Instructions:\nThe first non-logical axiom of *ZFC* is **Axiom of Extension** which basically states that *2 sets are equal iff both of them contain the exact same elements.*",
+    "When I studied this statement for the 1st time, I felt that it is very obvious. How can it not be true? Why do we even need to state it? We actually never know when we invoke this axiom while proving statements in pure mathematics.",
+    "Formally, the axiom of extension can be used to prove any formula of the form `( ∀ z ( z ∈ x ⇔ z ∈ y ) ) ⇒ x = y` or `( ∀ z ( z ∈ x ⇔ z ∈ y ) ) ⇒ x = y`.",
+    "Type `cv x A B`.",
+    "Type `cf goal ∀x(x∈A ⇔ x∈B) ⇒ A=B`.",
+    "Type `apply goal extension`.",
+    "*Tip:* The correct way to study pure mathematics is to maintain a good balance of intuition and rigor. Rigor is what you follow blindly, what you always seek, then intuition is something which come naturally to you once you just open the doors.",
+    "So basically, don't try to apply much(any) of your brain trying to understand what does it actually mean. Just take it as some axiom which can prove statements of a certain. Why it has been designed like this will become automatically clear with time."
+  ],
+  "allowed_commands": [
+    "cv",
+    "ct",
+    "cf",
+    "mission",
+    "rw",
+    "apply",
+    "fold"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "Q1",
+    "Q2",
+    "extension"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3"
+  ],
+  "goal_statement": "∀x(x∈A ⇔ x∈B) ⇒ A=B",
+  "start_env": null,
+  "theory": "ZFC"
+}

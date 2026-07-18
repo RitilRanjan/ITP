@@ -1,0 +1,40 @@
+{
+  "id": "level4",
+  "name": "Subset Relation is Antisymmetric",
+  "guide_hints": [
+    "# Level 4: Subset relation is antisymmetric.",
+    "We want to prove that if A ⊆ B and B ⊆ A, then A = B.",
+    "This means that two sets are equal if and only if they are subsets of each other. You will need to use the Axiom of Extension here.",
+    "The goal formula has already been provided to you in the environment.",
+    "Use advanced REPL commands to complete this proof quickly."
+  ],
+  "allowed_commands": [
+    "mission",
+    "rw",
+    "apply",
+    "fold",
+    "intro",
+    "imply",
+    "and",
+    "left",
+    "right"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E2",
+    "E3",
+    "Q1",
+    "Q2",
+    "extension"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3"
+  ],
+  "goal_statement": "(A⊆B ∧ B⊆A) ⇒ A=B",
+  "start_env": "level4_start_env.json",
+  "theory": "ZFC"
+}
