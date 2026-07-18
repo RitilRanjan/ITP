@@ -1,8 +1,8 @@
 import pytest
-from AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
-from Environment import Environment
-from Frontend import parse_term, parse_fol_formula, parse_prop_formula
-from SubstitutionManager import (
+from backend.AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
+from backend.Environment import Environment
+from backend.Parser import parse_term, parse_fol_formula, parse_prop_formula
+from backend.SubstitutionManager import (
     get_free, get_bound, check_free, check_bound,
     is_substitutable_free, is_substitutable_bound,
     substitute_free, substitute_bound, substitute_all, substitute_term, substitute_proposition,
@@ -82,7 +82,7 @@ def test_substitutions():
     assert get_term_vars(t_cloned2) == {"x", "y"}
 
 def get_term_vars(node):
-    from SubstitutionManager import get_term_vars as gtv
+    from backend.SubstitutionManager import get_term_vars as gtv
     return gtv(node)
 
 def test_find_substituted():
@@ -104,8 +104,8 @@ def test_find_substituted():
 
 def test_replace_structurally():
     env = get_test_env()
-    from SubstitutionManager import replace_structurally
-    from Frontend import reconstruct_string
+    from backend.SubstitutionManager import replace_structurally
+    from backend.Parser import reconstruct_string
     
     t1 = parse_term("x + y + x", env)
     
@@ -128,8 +128,8 @@ def test_replace_structurally():
 
 def test_remove_double_neg():
     env = get_test_env()
-    from SubstitutionManager import remove_double_neg
-    from Frontend import reconstruct_string
+    from backend.SubstitutionManager import remove_double_neg
+    from backend.Parser import reconstruct_string
 
     # Build ¬¬(x=y) ∨ ¬¬(x=y)
     f1 = parse_fol_formula("x = y", env)
@@ -158,8 +158,8 @@ def test_remove_double_neg():
 
 def test_add_double_neg():
     env = get_test_env()
-    from SubstitutionManager import add_double_neg
-    from Frontend import reconstruct_string, parse_fol_formula
+    from backend.SubstitutionManager import add_double_neg
+    from backend.Parser import reconstruct_string, parse_fol_formula
 
     f1 = parse_fol_formula("x = y", env)
 

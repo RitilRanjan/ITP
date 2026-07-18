@@ -1,8 +1,8 @@
 import pytest
-from AST import Variable, Relation, RelationType
-from Environment import Environment
-from Frontend import parse_fol_formula, reconstruct_string
-from PropAbstraction import abstract_to_propositional, abstract_to_propositional_with_mapping
+from backend.AST import Variable, Relation, RelationType
+from backend.Environment import Environment
+from backend.Parser import parse_fol_formula, reconstruct_string
+from backend.PropAbstraction import abstract_to_propositional, abstract_to_propositional_with_mapping
 
 def get_test_env():
     env = Environment()

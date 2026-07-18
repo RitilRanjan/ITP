@@ -1,5 +1,0 @@
-N
-cf f1, ∃x x=x
-show
-exit
-exit

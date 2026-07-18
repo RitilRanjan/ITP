@@ -1,8 +1,0 @@
-N
-cf f1 ∃x ∃x x=x
-fold ∃ 1, 2 f1 OUT_A
-cf f2 ∃y ∃y y=y
-fold ∃ f2 OUT_B
-show
-exit
-exit

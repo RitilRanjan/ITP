@@ -10,9 +10,21 @@
     "Use `apply goal PC1 p` to prove `p`. The REPL will then automatically switch your goal to `q`.",
     "Use `apply goal PC1 q` to prove `q`.\nOnce both are proven, the `and` command finishes and your `p ∧ q` goal is proven! Use `auto` or `apply` to close out the remaining missions."
   ],
-  "allowed_commands": ["cV", "cf", "apply", "mission", "and", "auto", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "mission",
+    "and",
+    "auto",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "p ⇒ (q ⇒ (p ∧ q))",
   "start_env": null
 }

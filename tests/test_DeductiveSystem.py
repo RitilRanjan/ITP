@@ -1,8 +1,8 @@
 import pytest
-from AST import Variable, Relation, RelationType, Function, FunctionType
-from Environment import Environment
-from Frontend import parse_fol_formula
-from DeductiveSystem import (
+from backend.AST import Variable, Relation, RelationType, Function, FunctionType
+from backend.Environment import Environment
+from backend.Parser import parse_fol_formula
+from backend.DeductiveSystem import (
     axiom_E1, axiom_E2, axiom_E3, axiom_Q1, axiom_Q2,
     rule_QR1, rule_QR2, rule_PC1, rule_PC2
 )
@@ -132,7 +132,7 @@ def test_environment_remove_theorem():
     assert "f1" not in env.theorems
 
 def test_main_repl_logic_simulation():
-    from Registry import AXIOMS, RULES
+    from backend.Registry import AXIOMS, RULES
     env = get_test_env()
     
     f1 = parse_fol_formula("x = x", env)

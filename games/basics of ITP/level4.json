@@ -9,8 +9,15 @@
     "Finally, apply the `E3` axiom. Type `apply goal E3` to complete the level!",
     "Similarly you can try proving `(x=y ∧ y=x) ⇒ (x∈y ⇒ y∈x)` using `E3` axiom."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E3"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E3"
+  ],
   "allowed_rules": [],
   "goal_statement": "(x = y ∧ x = z) ⇒ (x ∈ x ⇒ y ∈ z)",
   "default_functions": [],

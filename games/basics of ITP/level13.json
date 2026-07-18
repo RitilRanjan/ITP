@@ -9,9 +9,20 @@
     "### Step 4:\nNext, let's use the Existential Generalization axiom (`Q2`). If the statement is true for `x`, it must be true for *some* element. Let's create this formula: `cf f2 (x∈H ⇒ x∈L) ⇒ (∃x x∈H ⇒ x∈L)`.\nProve it by typing: `apply f2 Q2`.",
     "### Step 5:\nNotice that `f1` is essentially `A ⇒ B` and `f2` is `B ⇒ C`. By combining them, we logically deduce `A ⇒ C`, which is exactly our `goal`! Use Propositional Calculus (`PC1`) to finish the proof:\nType: `apply goal PC1 f1 f2`."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["Q1", "Q2"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "Q1",
+    "Q2"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "(∀y y ∈ H ⇒ y ∈ L) ⇒ (∃x x ∈ H ⇒ x ∈ L)",
   "default_functions": [],
   "default_relations": [

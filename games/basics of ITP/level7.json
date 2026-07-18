@@ -10,9 +10,20 @@
     "### Step 5:\nFinally, use `PC1` or `PC2` to prove your goal formula using the two proven lemmas `f1` and `f2`! Type: `apply goal PC1 f1 f2`.",
     "Similarly try to prove `S y = S x ⇒ S x = S y`."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1", "E3"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E3"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "x = y ⇒ y = x",
   "default_functions": [
     {

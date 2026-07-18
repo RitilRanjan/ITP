@@ -1,10 +1,10 @@
 import pytest
 import os
-from Environment import Environment
-from AST import Variable, Relation, RelationType, Connective, is_structurally_equal
+from backend.Environment import Environment
+from backend.AST import Variable, Relation, RelationType, Connective, is_structurally_equal
 from main import validate_new_name, clone_ast, get_default_env
-from Frontend import parse_fol_formula, parse_prop_formula, reconstruct_string
-from StorageManager import save_environment_state, load_environment_state
+from backend.Parser import parse_fol_formula, parse_prop_formula, reconstruct_string
+from backend.StorageManager import serialize_environment_state, deserialize_environment_state
 
 def test_contradiction_validation_and_ast_setup():
     parent = get_default_env()
@@ -149,8 +149,8 @@ def test_contradiction_serialization():
 
 
 def test_intro_universal():
-    from SubstitutionManager import substitute_free, clone_ast
-    from AST import Variable
+    from backend.SubstitutionManager import substitute_free, clone_ast
+    from backend.AST import Variable
     
     parent = get_default_env()
     # Goal: ∀ x ( x = x )
@@ -186,8 +186,8 @@ def test_intro_universal():
 
 
 def test_intro_existential():
-    from SubstitutionManager import substitute_free, clone_ast
-    from Frontend import parse_term
+    from backend.SubstitutionManager import substitute_free, clone_ast
+    from backend.Parser import parse_term
     
     parent = get_default_env()
     # Goal: ∃ x ( x = y )
@@ -231,3 +231,12 @@ def test_intro_existential():
     matching_node = parse_fol_formula("S y = y", child)
     child.formulae["f3"] = matching_node
     assert child.formulae["f3"].is_structurally_equal(substituted_node)
+
+
+def save_environment_state(env, filepath):
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(serialize_environment_state(env))
+
+def load_environment_state(filepath, get_default_env):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return deserialize_environment_state(f.read(), get_default_env)

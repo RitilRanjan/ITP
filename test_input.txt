@@ -1,9 +1,0 @@
-N
-cf my_def x=y
-def_r 2 R my_def
-cf my_form ∃x R(x,y)
-mission my_form
-fold R 1 OUT1
-show
-exit
-exit

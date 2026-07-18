@@ -3,9 +3,13 @@
   "name": "Subset Relation is Transitive",
   "guide_hints": [
     "# Level 3: Subset relation is transitive.",
-    "We want to prove that if A ⊆ B and B ⊆ C, then A ⊆ C.",
+    "We want to prove that if A \u2286 B and B \u2286 C, then A \u2286 C.",
     "The goal formula has already been provided to you in the environment.",
-    "You can use advanced REPL commands like `imply`, `and`, `left`, `right`, `intro`, `apply`, etc. to make the proof easier."
+    "Type `mission goal`.",
+    "Type `imply f1 f2 f3` to change the mission goal to *f1: A⊆C* and you get proven theorems *A⊆B* and *B⊆C*.",
+    "Type `rw subset` then `rw subset f2` then `rw subset f3`. For each one of them, it will ask you to enter a variable. You can type x.",
+    "Now type `intro u` then `intro u f2` and `intro u f3`. The goal formula becomes u∈A ⇒ u∈C.",
+    "Type `apply PC1 f2 f3` to close the mission goal."
   ],
   "allowed_commands": [
     "mission",
@@ -33,7 +37,11 @@
     "PC2",
     "PC3"
   ],
-  "goal_statement": "(A⊆B ∧ B⊆C) ⇒ A⊆C",
-  "start_env": "level3_start_env.json",
-  "theory": "ZFC"
+  "goal_statement": "(A\u2286B \u2227 B\u2286C) \u21d2 A\u2286C",
+  "theory": "ZFC",
+  "start_env_commands": [
+    "cv A B C",
+    "cf subset \"?t1 \u2286 ?t2\" \u2200?v3 (?v3 \u2208 ?t1 \u21d2 ?v3 \u2208 ?t2)",
+    "cf goal (A\u2286B \u2227 B\u2286C) \u21d2 A\u2286C"
+  ]
 }

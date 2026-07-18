@@ -8,9 +8,19 @@
     "### Step 3:\nLet's build the premise. Create the formula `cf f1 x=x ⇒ y=y`.\nTo prove this, you can prove `x=x` and `y=y` individually using `E1` (e.g. `cf f2 x=x`, `cf f3 y=y`, then `apply f2 E1` and `apply f3 E1`), and finally use `PC1` on `f1` using those two facts (`apply f1 PC1 f2 f3`).",
     "### Step 4:\nNow apply the `QR1` rule to prove the goal! The `QR1` rule will check that `y` is not free in the left side (`x=x`) and not bound in the right side (`y=y`) of the premise `f1`.\nType: `apply goal QR1 f1`."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1"],
-  "allowed_rules": ["PC1", "QR1"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "QR1"
+  ],
   "goal_statement": "x = x ⇒ (∀y y = y)",
   "default_functions": [],
   "default_relations": [],

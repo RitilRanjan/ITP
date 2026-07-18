@@ -1,8 +1,8 @@
 import pytest
-from AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
-from Environment import Environment
-from Frontend import parse_fol_formula
-from ZFC_Rules import (
+from backend.AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
+from backend.Environment import Environment
+from backend.Parser import parse_fol_formula
+from backend.ZFC_Rules import (
     axiom_extension, axiom_regularity, axiom_union, axiom_pairing,
     axiom_power_set, axiom_infinity, axiom_choice, axiom_specification, axiom_replacement
 )

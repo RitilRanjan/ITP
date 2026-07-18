@@ -20,18 +20,65 @@ def get_desktop_zip():
     return zip_buffer.getvalue()
 
 # Set page config for wider layout
-st.set_page_config(page_title="Interactive Theorem Prover", layout="wide")
+st.set_page_config(page_title="Interactive Theorem Prover", layout="wide", initial_sidebar_state="collapsed")
 
-from Environment import Environment
-from CommandHandlers.CommandRegistry import registry
-from Frontend import reconstruct_string
-from AST import Variable, PropositionalVariable, DummyVariable, Function, Relation, Constant
+from backend.Environment import Environment
+from backend.CommandHandlers.CommandRegistry import registry
+from backend.Parser import reconstruct_string
+from backend.AST import Variable, PropositionalVariable, DummyVariable, Function, Relation, Constant
 from main import get_default_env
-from ProofLogger import proof_logger
-from StorageManager import serialize_environment_state, deserialize_environment_state, serialize_history, deserialize_history
+from backend.ProofLogger import proof_logger
+from backend.StorageManager import serialize_environment_state, deserialize_environment_state, serialize_history, deserialize_history
 from streamlit_javascript import st_javascript
 import streamlit.components.v1 as components
-from Autocomplete import autocomplete_engine
+
+# Inject JS for scroll preservation
+components.html("""
+<script>
+    const saveScroll = () => {
+        const main = window.parent.document.querySelector('.main') || window.parent.document.querySelector('section[data-testid="stMain"]');
+        if (main && main.scrollHeight > main.clientHeight + 10) {
+            sessionStorage.setItem('mainScrollPos', main.scrollTop);
+        }
+        // Fallback for full page scrolling if not using stMain scroll
+        if (window.parent.document.body.scrollHeight > window.parent.innerHeight + 10) {
+            sessionStorage.setItem('scrollPos', window.parent.scrollY);
+        }
+    };
+    
+    // Save precisely upon user interaction before Streamlit begins DOM teardown
+    window.parent.addEventListener('mousedown', saveScroll, true);
+    window.parent.addEventListener('keydown', saveScroll, true);
+    
+    // Debounce scroll events to prevent saving tear-down artifact scrolls
+    let scrollTimer;
+    window.parent.addEventListener('scroll', (e) => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+            saveScroll();
+        }, 150);
+    }, true);
+    
+    const restoreScroll = () => {
+        const y = sessionStorage.getItem('scrollPos');
+        if (y !== null) {
+            window.parent.scrollTo(0, parseInt(y));
+        }
+        const mainY = sessionStorage.getItem('mainScrollPos');
+        if (mainY !== null) {
+            const main = window.parent.document.querySelector('.main') || window.parent.document.querySelector('section[data-testid="stMain"]');
+            if (main) main.scrollTop = parseInt(mainY);
+        }
+    };
+    
+    restoreScroll();
+    setTimeout(restoreScroll, 100);
+    setTimeout(restoreScroll, 300);
+    setTimeout(restoreScroll, 800);
+</script>
+""", height=0, width=0)
+
+from backend.Autocomplete import autocomplete_engine
 
 try:
     from st_keyup import st_keyup
@@ -39,23 +86,29 @@ except ImportError:
     st_keyup = None
 
 # Import all handlers to register them
-import CommandHandlers.env_handlers
-import CommandHandlers.logic_handlers
-import CommandHandlers.mission_handlers
-import CommandHandlers.state_handlers
-import CommandHandlers.transformation_handlers
-import CommandHandlers.definition_handlers
+import backend.CommandHandlers.env_handlers
+import backend.CommandHandlers.logic_handlers
+import backend.CommandHandlers.mission_handlers
+import backend.CommandHandlers.state_handlers
+import backend.CommandHandlers.transformation_handlers
+import backend.CommandHandlers.definition_handlers
 
 # Patch get_user_input to prevent hanging in Streamlit
-import CommandHandlers.utils
+import backend.CommandHandlers.utils
+class InteractiveInputRequired(Exception):
+    def __init__(self, prompt):
+        super().__init__(prompt)
+        self.prompt = prompt
+
 def mock_get_user_input(prompt: str, command_queue: list = None, inputs_collected: list = None) -> str:
     if command_queue:
         ans = command_queue.pop(0)
         if inputs_collected is not None:
             inputs_collected.append(ans)
         return ans
-    raise NotImplementedError("Interactive prompts (e.g., for saving, loading, or variable disambiguation) are not supported in the web UI.")
-CommandHandlers.utils.get_user_input = mock_get_user_input
+    raise InteractiveInputRequired(prompt)
+import backend.CommandHandlers.utils
+backend.CommandHandlers.utils.get_user_input = mock_get_user_input
 
 # --- UTILS ---
 def ansi_to_html(text: str) -> str:
@@ -174,7 +227,7 @@ def init_session():
         st.session_state.session_id = uuid.uuid4().hex
         
     if "rb_manager" not in st.session_state:
-        from RecycleBinManager import RecycleBinManager
+        from backend.RecycleBinManager import RecycleBinManager
         st.session_state.rb_manager = RecycleBinManager(swap_dir=f"/tmp/swap_files_{st.session_state.session_id}")
 init_session()
 
@@ -344,7 +397,8 @@ def render_prover_interface(is_game_mode=False):
                     if i > 0 and env.target_goal:
                         goal_name = env.goal_formula_name
                         goal_html = reconstruct_string(env.target_goal, color_mode="html", target_name=goal_name, target_type="fol")
-                        st.markdown(f'**Goal**: <span class="interactive-name itp-tooltip" data-obj-type="goal" data-target="{goal_name}" data-tooltip="Goal Formula" style="color: #FFA500; font-weight: bold;">{goal_name}</span> : {goal_html}', unsafe_allow_html=True)
+                        outer_sym = getattr(env.target_goal, "name", "") if env.target_goal else ""
+                        st.markdown(f'**Goal**: <span class="interactive-name itp-tooltip" data-obj-type="goal" data-outer-symbol="{outer_sym}" data-target="{goal_name}" data-tooltip="Goal Formula" style="color: #FFA500; font-weight: bold;">{goal_name}</span> : {goal_html}', unsafe_allow_html=True)
                         
                     st.markdown("**Terms**")
                     has_terms = False
@@ -355,6 +409,15 @@ def render_prover_interface(is_game_mode=False):
                             continue
                         term_html = reconstruct_string(term, color_mode="html", target_name=name, target_type="term")
                         st.markdown(f'<span class="itp-tooltip" data-tooltip="Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
+                        has_terms = True
+                    for name, long_term in env.local_long_terms.items():
+                        pattern_str = " ".join(long_term.pattern)
+                        if long_term.definition_tokens:
+                            def_str = " ".join(long_term.definition_tokens)
+                            term_html = f'<span style="color: #FFB6C1">{pattern_str}</span> ≡ <span style="color: #FFB6C1">{def_str}</span>'
+                        else:
+                            term_html = f'<span style="color: #FFB6C1">{pattern_str}</span>'
+                        st.markdown(f'<span class="itp-tooltip" data-tooltip="Long Term Definition"><span style="color: #6495ED">{name}</span></span> : {term_html}', unsafe_allow_html=True)
                         has_terms = True
                     if not has_terms:
                         st.markdown("*(None)*")
@@ -381,10 +444,23 @@ def render_prover_interface(is_game_mode=False):
                         prefix = "<strong>[Proven]</strong> " if is_proven else ""
                         
                         form_html = reconstruct_string(formula, color_mode="html", target_name=name, target_type="fol")
-                        name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="{obj_type}" data-target="{name}" data-tooltip="Formula Definition" style="color: {color}">{name}</span>'
+                        outer_sym = getattr(formula, "name", "")
+                        name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="{obj_type}" data-outer-symbol="{outer_sym}" data-target="{name}" data-tooltip="Formula Definition" style="color: {color}">{name}</span>'
                         
                         st.markdown(f'{prefix}{name_span} : {form_html}', unsafe_allow_html=True)
                         has_formulae = True
+                        
+                    for name, long_form in env.local_long_formulae.items():
+                        pattern_str = " ".join(long_form.pattern)
+                        if long_form.definition_tokens:
+                            def_str = " ".join(long_form.definition_tokens)
+                            form_html = f'<span style="color: #FFB6C1">{pattern_str}</span> ≡ <span style="color: #FFB6C1">{def_str}</span>'
+                        else:
+                            form_html = f'<span style="color: #FFB6C1">{pattern_str}</span>'
+                        name_span = f'<span class="interactive-name itp-tooltip" data-obj-type="unproven" data-outer-symbol="" data-target="{name}" data-tooltip="Long Formula Definition" style="color: #6495ED">{name}</span>'
+                        st.markdown(f'{name_span} : {form_html}', unsafe_allow_html=True)
+                        has_formulae = True
+                        
                     if not has_formulae:
                         st.markdown("*(None)*")
 
@@ -500,7 +576,7 @@ def render_prover_interface(is_game_mode=False):
                     parts = [selected_cmd, target]
                     if len(args) > 0: parts.append(args[0])
                     if len(args) > 1: parts.append(args[1])
-                elif selected_cmd in ["dt", "and", "imply"]:
+                elif selected_cmd in ["dt", "and", "imply", "iff"]:
                     parts = [selected_cmd, target]
                     if len(args) > 0: parts.append(args[0])
                     if len(args) > 1: parts.append(args[1])
@@ -578,16 +654,25 @@ def render_prover_interface(is_game_mode=False):
                             cmds.push('fold');
                             cmds.push('rw');
                         }
+                        if (symbol === '=') {
+                            cmds.push('swap_eq');
+                        } else if (symbol === '⇔') {
+                            cmds.push('swap_bi');
+                        }
                     } else {
                         let obj_type = targetElement.getAttribute('data-obj-type');
+                        let outer_symbol = targetElement.getAttribute('data-outer-symbol');
                         if (obj_type === 'unproven') {
                             cmds = ["mission", "contra", "apply", "auto", "search", "backward_search", "advanced_search", "fold all"];
                         } else if (obj_type === 'goal') {
-                            cmds = ["intro2", "apply", "apply2", "apply3", "auto", "search", "backward_search", "advanced_search", "fold all", 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw'];
+                            cmds = ["intro2", "apply", "apply2", "apply3", "auto", "search", "backward_search", "advanced_search", "fold all", 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'swap_eq', 'swap_bi'];
                         } else if (obj_type === 'proven') {
-                            cmds = ['intro', 'apply', 'apply2', 'apply3', 'dt', 'and', 'left', 'right', 'imply', 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'fold all'];
+                            cmds = ['intro', 'apply', 'apply2', 'apply3', 'dt', 'and', 'left', 'right', 'imply', 'neg-', 'neg+', 'simp_l_eq', 'simp_r_eq', 'simp_l_bi', 'simp_r_bi', 'rw', 'fold all', 'swap_eq', 'swap_bi'];
                         } else {
                             cmds = ['fold all'];
+                        }
+                        if (outer_symbol === '⇔') {
+                            cmds.push('iff');
                         }
                     }
                     
@@ -637,11 +722,12 @@ def render_prover_interface(is_game_mode=False):
                             } else if (["neg-", "neg+", "left", "right"].includes(cmd)) {
                                 needsArgs = 1;
                                 arg1Label = "New Formula Name";
-                            } else if (["dt", "and", "imply"].includes(cmd)) {
+                            } else if (["dt", "and", "imply", "iff"].includes(cmd)) {
                                 needsArgs = 2;
                                 arg1Label = "New Formula Name(s)";
                                 arg2Label = "Variables/Theorems";
                                 if (cmd === "and") { arg1Label = "Left Formula"; arg2Label = "Right Formula"; }
+                                if (cmd === "iff") { arg1Label = "Left Implication"; arg2Label = "Right Implication"; }
                             } else if (cmd === "rw") {
                                 if (targetElement.classList.contains('interactive-symbol')) {
                                     needsArgs = 0;
@@ -649,6 +735,17 @@ def render_prover_interface(is_game_mode=False):
                                     needsArgs = 3;
                                     arg1Label = "New Formula";
                                     arg2Label = "Rewrite Theorem";
+                                }
+                            } else if (["swap_eq", "swap_bi"].includes(cmd)) {
+                                if (targetElement.classList.contains('interactive-symbol')) {
+                                    needsArgs = 2;
+                                    arg1Label = "New Name (optional)";
+                                    arg2Label = "Equiv Name (optional)";
+                                } else {
+                                    needsArgs = 3;
+                                    arg1Label = "Occurrences (optional)";
+                                    arg2Label = "New Name (optional)";
+                                    arg3Label = "Equiv Name (optional)";
                                 }
                             }
                             
@@ -716,7 +813,7 @@ def render_prover_interface(is_game_mode=False):
                             if (needsArgs >= 3) {
                                 input3 = window.document.createElement('input');
                                 input3.type = 'text';
-                                input3.placeholder = "Occurrences (optional)";
+                                input3.placeholder = (typeof arg3Label !== 'undefined') ? arg3Label : "Occurrences (optional)";
                                 input3.className = 'itp-popover-input';
                                 popover.appendChild(input3);
                             }
@@ -856,6 +953,23 @@ def render_prover_interface(is_game_mode=False):
 
     prompt_str = f"ITP {len(st.session_state.env_chain)-1}> "
     
+    if "pending_interactive" in st.session_state:
+        pending = st.session_state.pending_interactive
+        st.warning(pending["prompt"])
+        with st.form("interactive_input_form", clear_on_submit=True):
+            user_val = st.text_input("Enter value:", key="interactive_val")
+            submitted = st.form_submit_button("Submit")
+            if submitted:
+                # Append the new value using a newline so it splits correctly
+                command = "\\n".join(pending["command_lines"] + [user_val])
+                del st.session_state.pending_interactive
+                interactive_submit = True
+            else:
+                command = None
+                interactive_submit = False
+                st.stop() # Wait for input
+
+    
     # Real-time Autocomplete UI
     if st_keyup is not None:
         # We need a clear button or form to submit, but st_keyup doesn't natively submit on enter unless we use a button
@@ -920,6 +1034,13 @@ def render_prover_interface(is_game_mode=False):
         if submit_clicked:
             st.session_state.current_cmd = ""
             st.session_state.keyup_key += 1
+            st.components.v1.html(
+                """<script>
+                setTimeout(() => {
+                    window.parent.scrollTo(0, window.parent.document.body.scrollHeight);
+                }, 100);
+                </script>""", height=0, width=0)
+            
             
         # Disable native browser autocomplete and add button CSS
         st.components.v1.html(
@@ -1032,6 +1153,28 @@ def render_prover_interface(is_game_mode=False):
                         hideClickInput();
                         setInterval(hideClickInput, 100);
                         
+                        if (!window.parent.scrollEnforcerStarted) {
+                            window.parent.scrollEnforcerStarted = true;
+                            
+                            // Catch all Enter presses
+                            window.parent.addEventListener('keydown', function(e) {
+                                if (e.key === 'Enter') {
+                                    window.parent.itpShouldScroll = Date.now() + 1500;
+                                }
+                            }, true);
+                            
+                            function enforceScroll() {
+                                if (window.parent.itpShouldScroll && Date.now() < window.parent.itpShouldScroll) {
+                                    const mainArea = window.parent.document.querySelector('.main') || window.parent.document.querySelector('section[data-testid="stMain"]');
+                                    if (mainArea) mainArea.scrollTop = mainArea.scrollHeight;
+                                    const bc = window.parent.document.querySelector('.block-container');
+                                    if (bc) bc.scrollIntoView({ behavior: 'auto', block: 'end' });
+                                }
+                                requestAnimationFrame(enforceScroll);
+                            }
+                            enforceScroll();
+                        }
+                        
                         setInterval(() => {
                             const iframes = document.querySelectorAll('iframe');
                             iframes.forEach(iframe => {
@@ -1097,8 +1240,6 @@ def render_prover_interface(is_game_mode=False):
         args_str = parts[1] if len(parts) > 1 else ""
         
         st.session_state.chat_history.append(f'<strong>{prompt_str}{command}</strong>')
-        st.session_state.command_history.append(command)
-        
         f = io.StringIO()
         with contextlib.redirect_stdout(f):
             if cmd == "exit":
@@ -1157,9 +1298,9 @@ def render_prover_interface(is_game_mode=False):
                     st.session_state.rb_manager.truncate_history_if_needed(cmd)
                     mission_entered = False
                     mission_resolved = False
-                    from RecycleBinManager import snapshot_env_keys
+                    from backend.RecycleBinManager import snapshot_env_state
                     old_env_ref = current_env
-                    before_snapshot = snapshot_env_keys(current_env)
+                    before_snapshot = snapshot_env_state(current_env)
                     
                     if is_game_mode:
                         level = st.session_state.active_game_state["level"]
@@ -1189,26 +1330,41 @@ def render_prover_interface(is_game_mode=False):
                         
                     current_env = st.session_state.env_chain[-1]
                     
-                    if cmd not in {"save", "save_h", "load", "load_h", "help", "guide", "clear", "rb_stat", "rb_empty", "rb_swap"}:
+                    has_error = any(line.startswith("Error:") or line.startswith("Parser Error:") or line.startswith("Warning:") for line in f.getvalue().splitlines())
+                    if not has_error and cmd not in {"save", "save_h", "load", "load_h", "help", "guide", "clear", "rb_stat", "rb_empty", "rb_swap"}:
                         st.session_state.rb_manager.record_command(first_line, before_snapshot, old_env_ref, current_env, mission_entered, mission_resolved)
                         
                     # Goal checking for game mode
                     if is_game_mode and not st.session_state.active_game_state["completed"]:
                         goal_str = st.session_state.active_game_state["level"]["goal_statement"]
-                        from Frontend import Parser
+                        from backend.Parser import Parser, UnrecognizedSymbolError, ParserError
                         parser = Parser(current_env)
-                        goal_node = parser.parse(goal_str, "goal")
+                        goal_node = None
+                        try:
+                            goal_node = parser.parse(goal_str, "goal")
+                        except Exception:
+                            pass
                         
                         # Check if any theorem matches goal_node
-                        for thm_name in current_env.theorems:
-                            if current_env.formulae[thm_name].is_structurally_equal(goal_node):
-                                st.session_state.active_game_state["completed"] = True
-                                level_id = st.session_state.active_game_state["level_id"]
-                                st.session_state.games_progress[level_id] = True
-                                st.session_state.itp_data["games_progress"] = st.session_state.games_progress
-                                st.session_state.needs_save = True
-                                break
+                        if goal_node is not None:
+                            for thm_name in current_env.theorems:
+                                if current_env.formulae[thm_name].is_structurally_equal(goal_node):
+                                    st.session_state.active_game_state["completed"] = True
+                                    level_id = st.session_state.active_game_state["level_id"]
+                                    st.session_state.games_progress[level_id] = True
+                                    st.session_state.itp_data["games_progress"] = st.session_state.games_progress
+                                    st.session_state.needs_save = True
+                                    break
+                except InteractiveInputRequired as e:
+                    st.session_state.pending_interactive = {
+                        "command_lines": command_lines,
+                        "prompt": e.prompt
+                    }
+                    st.session_state.chat_history.pop()
+                    st.rerun()
                 except Exception as e:
+                    import traceback
+                    traceback.print_exc()
                     print(f"Error: {e}")
             elif cmd == "clear":
                 st.session_state.chat_history.clear()
@@ -1216,6 +1372,11 @@ def render_prover_interface(is_game_mode=False):
                 print(f"Unknown command '{cmd}'.")
                 
         output = f.getvalue()
+        
+        has_error = any(line.startswith("Error:") or line.startswith("Parser Error:") or line.startswith("Warning:") or line.startswith("Unknown command") for line in output.splitlines())
+        if not has_error:
+            st.session_state.command_history.append(command)
+            
         if output:
             # Add CSS styling for errors if output contains "Error:"
             formatted_output = []
@@ -1228,12 +1389,27 @@ def render_prover_interface(is_game_mode=False):
             output_str = "<br>".join(formatted_output)
             st.session_state.chat_history.append(f"<div style='font-family: monospace; white-space: pre-wrap;'>{output_str}</div>")
             
+        st.components.v1.html(
+            """<script>
+            setTimeout(() => {
+                const mainArea = window.parent.document.querySelector('.main') || window.parent.document.querySelector('section[data-testid="stMain"]');
+                if (mainArea) {
+                    mainArea.scrollTop = mainArea.scrollHeight;
+                }
+                const blockContainer = window.parent.document.querySelector('.block-container');
+                if (blockContainer) {
+                    blockContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            }, 100);
+            </script>""",
+            height=0, width=0
+        )
         st.rerun()
 
 st.title("Interactive Theorem Prover")
 
 st.sidebar.title("Navigation")
-active_page = st.sidebar.radio("Go to", ["🏠 Home", "💻 Programs", "🎮 Games", "❓ Help", "ℹ️ About", "📧 Contact Us"])
+active_page = st.sidebar.radio("Go to", ["🏠 Home", "💻 Programs", "🎮 Games", "🛠️ Game Creator", "📁 Environment States", "❓ Help", "ℹ️ About", "📧 Contact Us"])
 
 if active_page == "🏠 Home":
     st.markdown("""
@@ -1343,22 +1519,26 @@ elif active_page == "🎮 Games":
             with col_guide:
                 level_data = st.session_state.active_game_state["level"]
                 
-                if "guide_hints" in level_data:
-                    if "hint_index" not in st.session_state.active_game_state:
-                        st.session_state.active_game_state["hint_index"] = 0
+                @st.fragment
+                def render_level_hints(lvl_data):
+                    if "guide_hints" in lvl_data:
+                        if "hint_index" not in st.session_state.active_game_state:
+                            st.session_state.active_game_state["hint_index"] = 0
+                            
+                        hint_idx = st.session_state.active_game_state["hint_index"]
+                        hints = lvl_data["guide_hints"]
                         
-                    hint_idx = st.session_state.active_game_state["hint_index"]
-                    hints = level_data["guide_hints"]
-                    
-                    for i in range(min(hint_idx + 1, len(hints))):
-                        st.markdown(hints[i])
+                        for i in range(min(hint_idx + 1, len(hints))):
+                            st.markdown(hints[i])
+                            
+                        if hint_idx < len(hints) - 1:
+                            if st.button("Next Hint"):
+                                st.session_state.active_game_state["hint_index"] += 1
+                                st.rerun()
+                    else:
+                        st.markdown(lvl_data.get("guide_markdown", ""))
                         
-                    if hint_idx < len(hints) - 1:
-                        if st.button("Next Hint"):
-                            st.session_state.active_game_state["hint_index"] += 1
-                            st.rerun()
-                else:
-                    st.markdown(level_data.get("guide_markdown", ""))
+                render_level_hints(level_data)
                 
                 if st.session_state.active_game_state["completed"]:
                     st.success("🎉 **LEVEL COMPLETE!** 🎉")
@@ -1421,6 +1601,9 @@ elif active_page == "🎮 Games":
                         with open(level_path, "r") as f:
                             level_data = json.load(f)
                         
+                        if not isinstance(level_data, dict):
+                            continue
+                            
                         level_id = f"{selected_game}/{level}"
                         is_completed = st.session_state.games_progress.get(level_id, False)
                         
@@ -1446,7 +1629,7 @@ elif active_page == "🎮 Games":
                                 # Clear existing environment to load fresh
                                 game_theory = level_data.get("theory", "ZFC")
                                 env = Environment(theory=game_theory)
-                                from AST import RelationType, FunctionType, DummyVariable, Relation, Function
+                                from backend.AST import RelationType, FunctionType, DummyVariable, Relation, Function
                                 dummy = DummyVariable("x")
                                 env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
                                 
@@ -1454,19 +1637,98 @@ elif active_page == "🎮 Games":
                                     env.add_term(Function(name=f_def["name"], arity=f_def["arity"], func_type=FunctionType.PRE_DEFINED, arguments=[dummy]*f_def["arity"]))
                                 for r_def in level_data.get("default_relations", []):
                                     env.add_formula(Relation(name=r_def["name"], arity=r_def["arity"], rel_type=RelationType.PRE_DEFINED, arguments=[dummy]*r_def["arity"]))
-                                if level_data.get("start_env"):
-                                    # load the start env from the game directory
-                                    start_env_path = os.path.join(game_path, level_data["start_env"])
-                                    if os.path.exists(start_env_path):
-                                        with open(start_env_path, "r", encoding="utf-8") as f:
-                                            start_env_content = f.read()
-                                        env = deserialize_environment_state(start_env_content, get_default_env)
+                                if level_data.get("start_env_commands"):
+                                    for cmd_str in level_data["start_env_commands"]:
+                                        if not cmd_str.strip():
+                                            continue
+                                        parts = cmd_str.strip().split(maxsplit=1)
+                                        c_cmd = parts[0]
+                                        c_args = parts[1] if len(parts) > 1 else ""
+                                        new_env = registry.dispatch(c_cmd, env, c_args, get_default_env=get_default_env, command_queue=[])
+                                        if new_env is not None and new_env is not env:
+                                            env = new_env
                                 st.session_state.env_chain = [env]
                                 st.session_state.chat_history = []
                                 st.session_state.command_history = []
                                 
                                 st.rerun()
                         st.divider()
+
+elif active_page == "📁 Environment States":
+    st.header("📁 Environment States")
+    st.markdown("Here you can view the environment states that have been saved using the `save` command.")
+    
+    save_dir = "save_files"
+    if not os.path.exists(save_dir):
+        st.info("No save_files directory found.")
+    else:
+        import datetime
+        files = [f for f in os.listdir(save_dir) if f.endswith(".json")]
+        if not files:
+            st.info("No saved states found.")
+        else:
+            file_options = {}
+            for f in files:
+                filepath = os.path.join(save_dir, f)
+                mtime = os.path.getmtime(filepath)
+                dt = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+                file_options[f] = f"{f} (Last modified: {dt})"
+            
+            selected_file = st.selectbox("Select a saved environment state:", list(file_options.keys()), format_func=lambda x: file_options[x])
+            
+            if selected_file:
+                filepath = os.path.join(save_dir, selected_file)
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        state_content = f.read()
+                    from backend.StorageManager import deserialize_environment_state
+                    from main import get_default_env
+                    temp_env = deserialize_environment_state(state_content, get_default_env)
+                    
+                    if temp_env:
+                        # Render it visually using the same style as in render_prover_interface
+                        st.subheader(f"Viewing: {selected_file}")
+                        
+                        chain = []
+                        curr = temp_env
+                        while curr is not None:
+                            chain.append(curr)
+                            curr = curr.parent
+                        chain.reverse()
+                        
+                        from backend.Parser import reconstruct_string
+                        
+                        for idx, e in enumerate(chain):
+                            if e.parent is None:
+                                header = "Ground Environment"
+                            else:
+                                orig = getattr(e, "original_goal_formula_name", e.goal_formula_name)
+                                ar = getattr(e, "and_right_formula_name", None)
+                                if orig != e.goal_formula_name and ar:
+                                    header = f"Child Environment (Original: {orig} &rarr; &Psi;: {e.goal_formula_name}, &Phi;: {ar})"
+                                elif orig != e.goal_formula_name:
+                                    header = f"Child Environment (Original: {orig} &rarr; Current: {e.goal_formula_name})"
+                                else:
+                                    header = f"Child Environment (Goal: {e.goal_formula_name})"
+                                    
+                            st.markdown(f"### {header}")
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown(f"**Variables**: {', '.join(e.local_variables.keys()) or 'None'}")
+                            with col2:
+                                st.markdown(f"**Theorems**: {len(e.local_theorems)}")
+                                
+                            if e.local_theorems:
+                                st.markdown("#### Proven Theorems")
+                                for k in e.local_theorems:
+                                    v = e.local_formulae[k]
+                                    st.markdown(f"- **{k}**: {reconstruct_string(v, color_mode='html')}", unsafe_allow_html=True)
+                            st.markdown("---")
+                    else:
+                        st.error("Failed to parse environment state.")
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
 
 elif active_page == "❓ Help":
     st.header("Command Reference")
@@ -1484,10 +1746,6 @@ elif active_page == "❓ Help":
           *Example*: `cf f1 ∀x (x = x)`
         - **`cp <name> <formula>`**: Create a new propositional logic formula and assign it to `<name>`.
           *Example*: `cp p1 P ∨ ¬P`
-        - **`def_f <name> <arity> <definition>`**: Define a new user function.
-          *Example*: `def_f id 1 _1`
-        - **`def_r <name> <arity> <definition>`**: Define a new user relation.
-          *Example*: `def_r LessEq 2 (_1 < _2) ∨ (_1 = _2)`
         - **`dt <name>`**: Delete a proven theorem.
         """)
 
@@ -1518,6 +1776,7 @@ elif active_page == "❓ Help":
         - **`and [<target>] [<out1>] <out2>`**: Split `Ψ ∧ Φ` into two goals.
         - **`imply [<target>] [<out1>] <out2>`**: Resolve implication `Ψ ⇒ Φ`.
         - **`contra [<f1>] f2 f3`**: Complete a proof by contradiction `f2 = ¬f1` leading to `⊥`.
+        - **`force <target>`**: Directly prove a formula. This serves as a shortcut for proving assumed lemmas, skipping the step-by-step derivation. (Not allowed in games).
         """)
 
     with st.expander("Resolution & Automation"):
@@ -1589,6 +1848,10 @@ elif active_page == "📧 Contact Us":
                         st.error(f"Failed to submit. Server returned status code: {response.status_code}")
                 except Exception as e:
                     st.error(f"Failed to submit: {e}")
+
+elif active_page == "🛠️ Game Creator":
+    from backend.game_creator_ui import render_game_creator
+    render_game_creator()
 
 if st.session_state.get("needs_save", False):
     val_str = json.dumps(st.session_state.itp_data).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"')

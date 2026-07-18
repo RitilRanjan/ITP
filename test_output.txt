@@ -1,0 +1,52 @@
+Interactive Theorem Prover REPL
+Available formal theories: ZFC, NT (Number Theory)
+Choose theory (default ZFC): Started session in ZFC theory.
+Enter a command or 'exit' to quit. Use 'show' to view the environment.
+Enable foundational proof logging to proofs.html? [y/N]: Proof logging disabled.
+
+ITP 0> Created standard variable 'x'
+
+ITP 0> Created standard variable 'y'
+
+ITP 0> Created long term notation '| ?t1 |' = '[31mx[0m'
+
+ITP 0> 
+[36m========== > GROUND ==========[0m
+[34m[1mConstants:[0m[0m [33m0, ∅, U[0m
+[34m[1mVariables:[0m[0m [33mx, y[0m
+[34m[1mPropositional Variables:[0m[0m [33mp, q[0m
+[34m[1mFunctions:[0m[0m [33mS 1, + 2, * 2, ^ 2[0m
+[34m[1mRelations:[0m[0m [33m= 2, ∈ 2[0m
+
+ITP 0> Created term 'abs' = '[31m| x  |[0m'
+
+ITP 0> 
+[36m========== > GROUND ==========[0m
+[34m[1mConstants:[0m[0m [33m0, ∅, U[0m
+[34m[1mVariables:[0m[0m [33mx, y[0m
+[34m[1mPropositional Variables:[0m[0m [33mp, q[0m
+[34m[1mFunctions:[0m[0m [33mS 1, + 2, * 2, ^ 2[0m
+[34m[1mRelations:[0m[0m [33m= 2, ∈ 2[0m
+
+[34m[1mDepth 0:[0m[0m
+[32m[1mTerms:[0m[0m
+  [90mabs[0m: [31m| x  |[0m
+
+ITP 0> Created long term notation '?t1 +_+ ?t2' = '[31mx[0m'
+
+ITP 0> Created term 'plus' = '[31mx +_+ y[0m'
+
+ITP 0> 
+[36m========== > GROUND ==========[0m
+[34m[1mConstants:[0m[0m [33m0, ∅, U[0m
+[34m[1mVariables:[0m[0m [33mx, y[0m
+[34m[1mPropositional Variables:[0m[0m [33mp, q[0m
+[34m[1mFunctions:[0m[0m [33mS 1, + 2, * 2, ^ 2[0m
+[34m[1mRelations:[0m[0m [33m= 2, ∈ 2[0m
+
+[34m[1mDepth 0:[0m[0m
+[32m[1mTerms:[0m[0m
+  [90mabs[0m: [31m| x  |[0m
+  [90mplus[0m: [31mx +_+ y[0m
+
+ITP 0> Goodbye!

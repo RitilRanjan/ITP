@@ -2,8 +2,8 @@ import sys
 import os
 
 from main import get_default_env
-from AST import Variable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
-from BackwardSearch import backward_search, advanced_search
+from backend.AST import Variable, Function, FunctionType, Relation, RelationType, Connective, Quantifier
+from backend.BackwardSearch import backward_search, advanced_search
 
 def main():
     env = get_default_env()

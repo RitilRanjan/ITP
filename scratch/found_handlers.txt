@@ -1,0 +1,59 @@
+Created At: 2026-07-17T16:57:08Z
+Completed At: 2026-07-17T16:57:08Z
+File Path: `file:///Users/ritilranjan/ITP/backend/CommandHandlers/transformation_handlers.py`
+Total Lines: 852
+Total Bytes: 40313
+Showing lines 450 to 500
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+450:                         cloned_f1 = substitute_all(cloned_f1, fresh, clone_ast(t_arg))
+451:                         
+452:                     # 2. Check if the remaining free variables of f1 get captured by enclosing_quants
+453:                     unmapped_vars = set(f1_free_vars) - set(arg_map)
+454:                     enclosing_bound = {q.variable.name for q in enclosing_quants}
+455:                     capture_intersection = unmapped_vars.intersection(enclosing_bound)
+456:                     if capture_intersection:
+457:                         raise Exception(f"Variable capture detected: free variables {capture_intersection} of '{f1_name}' get captured by enclosing quantifiers in '{target_name}'.")
+458:                         
+459:                     cloned_f1.prefix_formatting = [clone_ast(f) for f in node.prefix_formatting]
+460:                     cloned_f1.postfix_formatting = [clone_ast(f) for f in node.postfix_formatting]
+461:                     return cloned_f1
+462:                     
+463:         # Recursion
+464:         if isinstance(node, Variable):
+465:             c = Variable(name=node.name)
+466:         elif isinstance(node, DummyVariable):
+467:             c = DummyVariable(name=node.name)
+468:         elif isinstance(node, PropositionalVariable):
+469:             c = PropositionalVariable(name=node.name)
+470:         elif isinstance(node, MetaVariable):
+471:             c = MetaVariable(name=node.name)
+472:         elif isinstance(node, Bracket):
+473:             c = Bracket(name=node.name)
+474:         elif isinstance(node, Whitespace):
+475:             c = Whitespace(name=node.name)
+476:         elif isinstance(node, Function):
+477:             c = Function(
+478:                 name=node.name,
+479:                 arity=node.arity,
+480:                 func_type=node.func_type,
+481:                 arguments=[replace_schema_recursive(arg, occurrence_idx, current_count, enclosing_quants) for arg in node.arguments]
+482:             )
+483:         elif isinstance(node, Relation):
+484:             c = Relation(
+485:                 name=node.name,
+486:                 arity=node.arity,
+487:                 rel_type=node.rel_type,
+488:                 arguments=[replace_schema_recursive(arg, occurrence_idx, current_count, enclosing_quants) for arg in node.arguments]
+489:             )
+490:         elif isinstance(node, Connective):
+491:             c = Connective(
+492:                 name=node.name,
+493:                 arity=node.arity,
+494:                 arguments=[replace_schema_recursive(arg, occurrence_idx, current_count, enclosing_quants) for arg in node.arguments]
+495:             )
+496:         elif isinstance(node, Quantifier):
+497:             c = Quantifier(
+498:                 name=node.name,
+499:                 variable=clone_ast(node.variable),
+500:                 formula=replace_schema_recursive(node.formula, occurrence_idx, current_count, enclosing_quants + [node])
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

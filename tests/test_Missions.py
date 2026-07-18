@@ -1,6 +1,6 @@
 import pytest
-from Environment import Environment
-from AST import Variable, Relation, RelationType
+from backend.Environment import Environment
+from backend.AST import Variable, Relation, RelationType
 from main import validate_new_name, clone_ast
 
 def test_environment_scoping():

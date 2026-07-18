@@ -1,0 +1,7 @@
+ZFC
+N
+cv A B
+cf goal A = B
+cf f1 A = B
+auto f1 goal
+exit

@@ -1,0 +1,89 @@
+NT
+N
+cv x y
+cf add_id_left ∀x (0 + x = x)
+force add_id_left
+
+cf t1 x + 0 = x
+mission t1
+apply add_base
+cf base x + 0 = 0 + x
+mission base
+intro add_id_left x out2
+simp_r_eq out2 ( 2 ) t1 out3
+
+cf ind_step ∀y (x+y = y+x ⇒ x+S y = S y + x)
+mission ind_step
+intro n ind_step_1
+imply ind_step_2 IH
+cf t2 x + S n = S(x + n)
+mission t2
+apply add_induction
+
+simp_l_eq t2 ind_step_2 ind_step_3
+simp_l_eq IH ind_step_3 ind_step_4
+
+# Now we need ∀x S(n+x) = S n + x to prove ind_step_4 !
+cf t3 n + 0 = n
+mission t3
+apply add_base
+
+cf t4 S n + 0 = S n
+mission t4
+apply add_base
+
+cf inner_base S(n+0) = S n + 0
+mission inner_base
+simp_l_eq t3 inner_base inner_base_1
+simp_l_eq t4 inner_base_1 inner_base_2
+apply E1
+
+cf inner_ind ∀x (S(n+x) = S n + x ⇒ S(n+ S x) = S n + S x)
+mission inner_ind
+intro m inner_ind_1
+imply inner_ind_2 inner_IH
+cf t5 n + S m = S(n+m)
+mission t5
+apply add_induction
+simp_l_eq t5 inner_ind_2 inner_ind_3
+
+cf t6 S n + S m = S(S n + m)
+mission t6
+apply add_induction
+simp_l_eq t6 inner_ind_3 inner_ind_4
+
+simp_l_eq inner_IH inner_ind_4 inner_ind_5
+apply E1
+
+cf t7 (S(n+0) = S n + 0 ∧ ∀x (S(n+x) = S n + x ⇒ S(n+ S x) = S n + S x)) ⇒ ∀x S(n+x) = S n + x
+mission t7
+apply induction
+
+cf t8 S(n+0) = S n + 0 ∧ ∀x (S(n+x) = S n + x ⇒ S(n+ S x) = S n + S x)
+mission t8
+apply PC1 inner_base inner_ind
+
+cf inner_goal ∀x S(n+x) = S n + x
+mission inner_goal
+apply PC2 t7 t8
+
+# Now we have inner_goal: ∀x S(n+x) = S n + x
+intro inner_goal x ind_step_5
+simp_l_eq ind_step_5 ind_step_4 ind_step_6
+apply E1
+
+cf t9 (x + 0 = 0 + x ∧ ∀y (x+y = y+x ⇒ x+S y = S y + x)) ⇒ ∀y x+y = y+x
+mission t9
+apply induction
+
+cf t10 x + 0 = 0 + x ∧ ∀y (x+y = y+x ⇒ x+S y = S y + x)
+mission t10
+apply PC1 base ind_step
+
+cf goal ∀y x+y = y+x
+mission goal
+apply PC2 t9 t10
+
+intro goal y final_goal
+show
+exit

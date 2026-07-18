@@ -2,16 +2,26 @@
   "id": "level20",
   "name": "User defined relations",
   "guide_hints": [
-    "# Level 20: User defined relations\n\nJust like functions, defining your own relations is crucial for setting up custom mathematical constraints (such as 'is greater than' or 'is a subset of'). The prover allows you to define your own relations using the `def_r` command!\n\nWe are going to define a new unary relation `is_zero(x)` that simply checks if `x` equals itself (a trivial relation for the sake of practice!).",
-    "The syntax to define a new relation is:\n`def_r <arity> <name> <v1> <v2> ... <vn> <definition>`\n\nFor example, to define a completely new binary relation `R(x, y) ⇔ x=y`, you would type: `def_r 2 R x y x=y`.\nTo define our required unary relation `is_zero(x) ⇔ x=x`, simply type: `def_r 1 is_zero x x=x`.",
-    "Now that you have defined `is_zero`, you can use the `fold` command to logically unfold its definition in any formula!\n\nThe syntax is exactly the same: `fold is_zero [<occurrences>] <target> [<out>] [<equiv>]`.\nLet's prove a simple identity demonstrating this unfolding: `is_zero x ⇔ x = x`.",
-    "Step 1: First, create the variable `x` using `cv x`.\nStep 2: Define the `is_zero` relation using `def_r 1 is_zero x x=x`.\nStep 3: Create the goal formula exactly as mentioned above: `cf goal is_zero x ⇔ x=x`.",
+    "# Level 20: User defined relations\n\nJust like functions, defining your own relations is crucial for setting up custom mathematical constraints (such as 'is greater than' or 'is a subset of'). The prover allows you to define your own relations using the `cf` command!\n\nWe are going to define a new unary relation `is_zero(x)` that simply checks if `x` equals itself (a trivial relation for the sake of practice!).",
+    "The syntax to define a new relation is:\n`cf <name> \"<pattern>\" <definition>`\n\nFor example, to define a completely new binary relation `R(x, y) ⇔ x=y`, you would type: `cf R \"R ?t1 ?t2\" ?t1= ?t2`.\nTo define our required unary relation `is_zero(x) ⇔ x=x`, simply type: `cf is_zero \"is_zero ?t1\" ?t1= ?t1`.",
+    "Now that you have defined `is_zero`, you can use the `fold` command to logically unfold its definition in any formula!\n\nThe syntax is exactly the same: `rw is_zero [<occurrences>] <target> [<out>] [<equiv>]`.\nLet's prove a simple identity demonstrating this unfolding: `is_zero x ⇔ x = x`.",
+    "Step 1: First, create the variable `x` using `cv x`.\nStep 2: Define the `is_zero` relation using `cf is_zero \"is_zero ?t1\" ?t1= ?t1`.\nStep 3: Create the goal formula exactly as mentioned above: `cf goal is_zero x ⇔ x=x`.",
     "Step 4: Create the left side of the equivalence as our starting formula. Type `cf f1 is_zero x`.",
-    "Step 5: Finally, unfold `is_zero` in `f1` and output the equivalence theorem directly into `goal`!\n\nType: `fold is_zero f1 f2 goal`\nAnd you are done! The definition expands perfectly and proves your goal."
+    "Step 5: Finally, unfold `is_zero` in `f1` and output the equivalence theorem directly into `goal`!\n\nType: `rw is_zero f1 f2 goal`\nAnd you are done! The definition expands perfectly and proves your goal."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "fold", "def_r"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "fold",
+    "ct",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "is_zero x ⇔ x = x",
   "default_functions": [],
   "default_relations": [

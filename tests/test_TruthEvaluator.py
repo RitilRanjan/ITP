@@ -1,8 +1,8 @@
 import pytest
-from AST import PropositionalVariable, Connective
-from Environment import Environment
-from Frontend import parse_prop_formula
-from TruthEvaluator import get_prop_variables, evaluate_prop, is_tautology
+from backend.AST import PropositionalVariable, Connective
+from backend.Environment import Environment
+from backend.Parser import parse_prop_formula
+from backend.TruthEvaluator import get_prop_variables, evaluate_prop, is_tautology
 
 def get_test_env():
     env = Environment()

@@ -1,9 +1,9 @@
 import os
 import sys
 
-from Environment import Environment
-from CommandHandlers.CommandRegistry import registry
-from Frontend import show_environment
+from backend.Environment import Environment
+from backend.CommandHandlers.CommandRegistry import registry
+from backend.Parser import show_environment
 from main import get_default_env
 
 env = get_default_env("NT")
@@ -43,7 +43,7 @@ class MockInput:
     def __call__(self, prompt):
         return self.inputs.pop(0)
 
-import CommandHandlers.utils
+import backend.CommandHandlers.utils
 CommandHandlers.utils.input = MockInput(["u", "v"])
 
 registry.dispatch("fold", env, "ι (1)")

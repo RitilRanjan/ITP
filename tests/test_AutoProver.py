@@ -1,8 +1,8 @@
 import pytest
-from Environment import Environment
-from AST import Variable, DummyVariable, Relation, RelationType, Quantifier, Connective, PropositionalVariable
-from Frontend import parse_fol_formula, parse_prop_formula
-from AutoProver import auto_prove, collect_leaf_sequents, make_sequent_formula, decode_propositional_to_fol
+from backend.Environment import Environment
+from backend.AST import Variable, DummyVariable, Relation, RelationType, Quantifier, Connective, PropositionalVariable
+from backend.Parser import parse_fol_formula, parse_prop_formula
+from backend.AutoProver import auto_prove, collect_leaf_sequents, make_sequent_formula, decode_propositional_to_fol
 from main import get_default_env
 
 def test_auto_prove_axioms():

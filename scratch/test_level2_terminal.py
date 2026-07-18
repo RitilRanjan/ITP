@@ -1,0 +1,46 @@
+import pexpect
+import sys
+
+child = pexpect.spawn("python main.py", encoding="utf-8")
+child.logfile = sys.stdout
+
+child.expect("Choose theory.*:")
+child.sendline("NT")
+child.expect("Enable foundational proof logging.*:")
+child.sendline("N")
+child.expect("ITP.*> ")
+child.sendline("cv x y")
+child.expect("ITP.*> ")
+child.sendline("def_f 1 P x ι y S y = x")
+child.expect("ITP.*> ")
+child.sendline("cf goal ∀x P S x = x")
+child.expect("ITP.*> ")
+child.sendline("mission goal")
+child.expect("ITP.*> ")
+child.sendline("intro u g1")
+child.expect("ITP.*> ")
+child.sendline("fold all g1 g2")
+child.expect("Enter replacement variable for 'iota \\(first variable\\)':")
+child.sendline("v")
+child.expect("Enter replacement variable for 'iota \\(second variable\\)':")
+child.sendline("w")
+child.expect("ITP.*> ")
+child.sendline("cv u")
+child.expect("ITP.*> ")
+
+# We need to prove `(ι y S y = S u) = u`
+# E2 gives `∀u ∀v (S u = S v ⇔ u = v)`
+child.sendline("apply E2")
+child.expect("ITP.*> ")
+child.sendline("intro u e2_u")
+child.expect("ITP.*> ")
+child.sendline("intro w e2_w")
+child.expect("ITP.*> ")
+child.sendline("mission e2_w")
+child.expect("ITP.*> ")
+child.sendline("left e2_w_left")
+child.expect("ITP.*> ")
+child.sendline("exit")
+child.expect("ITP.*> ")
+child.sendline("exit")
+child.close()

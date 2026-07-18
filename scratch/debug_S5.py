@@ -1,0 +1,23 @@
+from backend.Environment import Environment
+from backend.CommandHandlers.env_handlers import handle_ct
+from backend.Parser import Parser
+
+env = Environment()
+handle_ct(env, 'S "S ?t1" S ?t1')
+handle_ct(env, "1 add_2 S S ?t1")
+
+from backend.MacroExpander import compute_macro_free_variables
+
+old_try = Parser.try_match_pattern
+def wrapped_try(self, *args, **kwargs):
+    print("try_match:", args, "pos:", self.pos, "tokens:", self.tokens[self.pos:])
+    res = old_try(self, *args, **kwargs)
+    print("res:", res)
+    return res
+
+Parser.try_match_pattern = wrapped_try
+
+try:
+    compute_macro_free_variables(["add_3", "?t1"], ["S", "add_2", "?t1"], env, "term")
+except Exception as e:
+    import traceback; traceback.print_exc()

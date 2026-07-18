@@ -1,7 +1,7 @@
-from AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
-from Environment import Environment
-from Frontend import parse_term, parse_fol_formula, reconstruct_string, lex
-from SubstitutionManager import clone_ast, substitute_term, substitute_free
+from backend.AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
+from backend.Environment import Environment
+from backend.Parser import parse_term, parse_fol_formula, reconstruct_string, lex
+from backend.SubstitutionManager import clone_ast, substitute_term, substitute_free
 
 def get_test_env():
     env = Environment()

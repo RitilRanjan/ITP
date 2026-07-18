@@ -9,9 +9,18 @@
     "Step 4: Now, use the fold command! Remember that it will prompt you for the TWO fresh variables, so use `Shift+Enter` to provide `y` and then `z` on the subsequent lines:\n```text\nfold ι f1 f2 goal\ny\nz\n```\n\nThis completely unfolds the iota operator and generates your equivalence theorem!",
     "Congratulations on completing the *Basics of ITP* game! Technically you have enough knowledge to be able to prove anything which is provable but you must have experienced that the proving experience is a bit cumbersome, requiring to type a lot even for simple proofs like this one. For such purposes, you need to use more advanced REPL commands which are covered in the next game."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "fold"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "fold",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "Q(ιx P x) ⇔ ∃y (∀z (P z ⇔ y = z) ∧ Q y)",
   "default_functions": [],
   "default_relations": [

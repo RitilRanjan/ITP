@@ -12,7 +12,8 @@
   "allowed_commands": [
     "cv",
     "cf",
-    "apply"
+    "apply",
+    "rw"
   ],
   "allowed_axioms": [
     "Q1"

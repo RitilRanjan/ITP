@@ -9,9 +9,19 @@
     "### Step 4:\nApply the `QR2` rule to prove the goal! The prover will verify the free/bounded variable conditions before applying it.\nType: `apply goal QR2 f1`.",
     "All the axioms and inference rules we have developed so far are called *logical axioms and logical inference rules* respectively. Together, they comprise the *deductive system*. You can safely assume that the deductive system which we are currently using will be fixed from now onwards since it used in almost entire of maths, computer science, every day life and infact anywhere logic is used. There may be other equivalent versions, for example instead of PC inference rules, there will be modus ponens, modus tolens, excluded middle etc."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1"],
-  "allowed_rules": ["PC1", "QR2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "QR2"
+  ],
   "goal_statement": "(∃y y = y) ⇒ x = x",
   "default_functions": [],
   "default_relations": [],

@@ -5,10 +5,10 @@
     "# Level 2: Predecessor using Iota\n\nWelcome to Level 2! Here we introduce the axiom of injectivity for the successor function `S`, available as `S_injective`. It states that `S x = S y ⇒ x = y`.",
     "Your goal is to define the predecessor function `P` and prove that `∀x P S x = x`.\n\nThe theoretically correct way to define this is using the `ι` (iota) operator for definite descriptions ('THE unique y'), because otherwise `P` behaves like a multivalued function. To use `ι` effectively, we will need the `S_injective` axiom.",
     "### Instructions:\nStep 1: First, create standard variables `x, y` by typing `cv x y`.",
-    "Step 2: Now define the predecessor function `P`. The predecessor of `x` is the UNIQUE `y` such that `S y = x`. Type `def_f 1 P x ι y S y = x`.",
+    "Step 2: Now define the predecessor function `P`. The predecessor of `x` is the UNIQUE `y` such that `S y = x`. Type `ct P \"P ?t1\" ι ?v1 S ?v1 = ?t1`.",
     "Step 3: Create the goal formula and start the mission. Type `cf goal ∀x P S x = x` followed by `mission goal`.",
     "Step 4: Strip the universal quantifier from the goal using `intro u`. (This creates fresh variable `u`).",
-    "Step 5: Unfold `P` by typing `fold P (1)`. Notice that your goal now contains the iota operator `ι`.",
+    "Step 5: Unfold `P` by typing `rw P (1)`. Notice that your goal now contains the iota operator `ι`.",
     "Step 6: Unfold the `ι` operator by clicking on it and selecting `fold` or typing `fold ι (1)`. It will prompt you for two fresh variables; use `v` and `w` (type them in the popup input boxes or use `v w` in terminal).",
     "Step 7: The unfolded goal is `∃v (∀w (S w = S u ⇔ v = w) ∧ v = u)`. To prove an existential statement, you construct the statement for a specific witness. Here, the witness for `v` is `u`. Use `intro u`.",
     "Step 8: The goal becomes `∀w (S w = S u ⇔ u = w) ∧ u = u`. Break it into two goals by typing `and g1 g2`.",
@@ -25,17 +25,20 @@
     "apply",
     "show",
     "help",
-    "def_f",
     "intro",
     "fold",
     "and",
-    "iff"
+    "iff",
+    "ct",
+    "rw"
   ],
   "allowed_axioms": [
     "E1",
     "E2",
     "E3",
-    "S_injective"
+    "S_injective",
+    "Q1",
+    "Q2"
   ],
   "allowed_rules": [
     "QR1",

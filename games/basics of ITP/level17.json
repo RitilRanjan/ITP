@@ -13,7 +13,8 @@
     "cv",
     "cf",
     "apply",
-    "fold"
+    "fold",
+    "rw"
   ],
   "allowed_axioms": [],
   "allowed_rules": [

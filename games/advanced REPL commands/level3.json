@@ -12,9 +12,21 @@
     "Use the `fold` command without providing the target or out arguments. Just type: `fold ∃` and provide a dummy variable name when prompted.",
     "Notice how it unrolls the goal formula in-place! Finally, prove the unrolled goal by applying `E1` and using `PC1` / `Q2`."
   ],
-  "allowed_commands": ["cv", "cf", "fold", "apply"],
-  "allowed_axioms": ["E1", "Q2"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "fold",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "Q2"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "∃x x=x",
   "start_env": null
 }

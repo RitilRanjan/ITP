@@ -1,5 +1,5 @@
 import pytest
-from AST import (
+from backend.AST import (
     Variable, Function, DummyVariable, FunctionType, RelationType,
     PropositionalVariable, Relation, Connective, Quantifier, MetaVariable,
     Bracket, Whitespace

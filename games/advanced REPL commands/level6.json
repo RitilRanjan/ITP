@@ -10,9 +10,22 @@
     "You have premise `p` and goal `¬¬p`.\nType `neg+ p` (here we provide `p` as the target). Notice it creates a new formula `¬¬p` (or you can specify `neg+ p f2` to name it `f2`).",
     "Once you've created `¬¬p` as a proven formula, the goal is achieved! Use `PC1` or `auto` to close."
   ],
-  "allowed_commands": ["cV", "cf", "apply", "mission", "neg+", "neg-", "auto", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "mission",
+    "neg+",
+    "neg-",
+    "auto",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "p ⇒ ¬¬p",
   "start_env": null
 }

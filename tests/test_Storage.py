@@ -1,13 +1,14 @@
 import os
 import pytest
-from Environment import Environment
-from AST import (
+from backend.Environment import Environment
+from backend.AST import (
     Variable, DummyVariable, MetaVariable, PropositionalVariable,
     Function, FunctionType, Relation, RelationType, Node
 )
-from Frontend import parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string
-from StorageManager import (
-    save_environment_state, load_environment_state, save_history, load_history
+from backend.Parser import parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string
+from backend.StorageManager import (
+    serialize_environment_state, deserialize_environment_state,
+    serialize_history, deserialize_history
 )
 from main import get_default_env
 
@@ -119,3 +120,21 @@ def test_history_save_and_load():
     # Clean up
     if os.path.exists(filepath):
         os.remove(filepath)
+
+
+def save_environment_state(env, filepath):
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(serialize_environment_state(env))
+
+def load_environment_state(filepath, get_default_env):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return deserialize_environment_state(f.read(), get_default_env)
+
+
+def save_history(cmds, filepath):
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(serialize_history(cmds))
+
+def load_history(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return deserialize_history(f.read())

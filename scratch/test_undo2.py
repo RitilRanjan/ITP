@@ -1,10 +1,10 @@
 import os
 import sys
 
-from Environment import Environment
-from CommandHandlers.env_handlers import handle_cf
-from RecycleBinManager import RecycleBinManager
-from Frontend import show_environment
+from backend.Environment import Environment
+from backend.CommandHandlers.env_handlers import handle_cf
+from backend.RecycleBinManager import RecycleBinManager
+from backend.Parser import show_environment
 
 env = Environment()
 rb = RecycleBinManager()

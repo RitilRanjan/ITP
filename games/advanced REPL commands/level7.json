@@ -11,9 +11,22 @@
     "Since the goal is `p`, which is already a proven premise, just type `apply goal PC1 p` (or `auto`) to prove it and close the sub-mission.",
     "Now your goal is `q ⇒ p`. Use `apply goal PC1 p` (or `auto`) to close the main mission!"
   ],
-  "allowed_commands": ["cV", "cf", "apply", "mission", "apply2", "apply3", "auto", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "mission",
+    "apply2",
+    "apply3",
+    "auto",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "p ⇒ (q ⇒ p)",
   "start_env": null
 }

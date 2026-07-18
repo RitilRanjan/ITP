@@ -10,8 +10,15 @@
     "In the input box that appears, type `E1` and click Run.\n\n*(Note: `E1` is our first fundamental axiom, which states exactly what we're trying to prove: `∀A (A = A)`)*\n\nAlternatively, you can just type `apply goal E1` in the console to prove the formula.",
     "Similarly, you can create a variable `y`, then create a formula `y=y` with some other name, and prove it using the `E1` axiom. However, if you create the formula `x=y` and try to prove it using `E1`, it will give an error (you can try that!)"
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
   "allowed_rules": [],
   "goal_statement": "x = x",
   "start_env": null

@@ -1,8 +1,8 @@
 import unittest
-from AST import Variable, Bracket, Whitespace, Connective, Relation, Quantifier, SetBuilder
-from Frontend import parse_term, reconstruct_string, ParserError
-from Environment import Environment
-from DefinitionExpander import expand_set_builder_in_formula
+from backend.AST import Variable, Bracket, Whitespace, Connective, Relation, Quantifier, SetBuilder
+from backend.Parser import parse_term, reconstruct_string, ParserError
+from backend.Environment import Environment
+from backend.DefinitionExpander import expand_set_builder_in_formula
 
 class TestSetBuilder(unittest.TestCase):
     def setUp(self):
@@ -12,7 +12,7 @@ class TestSetBuilder(unittest.TestCase):
         self.env.add_variable(Variable("A"))
         self.env.add_variable(Variable("B"))
         # Add basic symbols
-        from AST import Relation, RelationType, Function, FunctionType
+        from backend.AST import Relation, RelationType, Function, FunctionType
         dummy = Variable("x")
         self.env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
         self.env.add_formula(Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
@@ -50,7 +50,7 @@ class TestSetBuilder(unittest.TestCase):
 
     def test_expand_set_builder(self):
         # Φ: {x ∈ A | x = x} = B
-        from Frontend import parse_fol_formula
+        from backend.Parser import parse_fol_formula
         formula = parse_fol_formula("{x ∈ A | x = x} = B", self.env)
         
         expanded = expand_set_builder_in_formula(self.env, formula, 1, "u")

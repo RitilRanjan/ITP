@@ -1,0 +1,15 @@
+{
+  "name": "Level 19",
+  "description": "# Level 19: Swap Commands\n\nWelcome to Level 19! Here we introduce two new convenient transformation commands: `swap_eq` and `swap_bi`.\n\nThese commands allow you to cleanly swap the left-hand and right-hand sides of an equality (`=`) or an equivalence (`⇔`).\n\n- `swap_eq (occ) <target> <out> <equiv>`\n- `swap_bi (occ) <target> <out> <equiv>`\n\nAll arguments are optional. If you don't specify occurrences, it swaps **all** occurrences in the target.\n\nYour goal is to prove `z = y ⇔ y = x` given the hypothesis `H1: x = y ⇔ y = z`.",
+  "theory": "ZFC",
+  "environment": {
+    "variables": ["x", "y", "z"],
+    "formulae": {
+      "H1": "(x = y) ⇔ (y = z)",
+      "goal": "(z = y) ⇔ (y = x)"
+    },
+    "theorems": ["H1"]
+  },
+  "allowed_axioms": ["H1", "E1", "E2", "E3", "PC1"],
+  "goal_name": "goal"
+}

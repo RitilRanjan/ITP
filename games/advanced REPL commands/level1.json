@@ -8,8 +8,16 @@
     "Now let's prove a formula using this term. Create the goal: `cf goal S x = S x`.",
     "Prove it using `apply goal E1`. Since `E1` says any term equals itself, it works!"
   ],
-  "allowed_commands": ["cv", "ct", "cf", "apply"],
-  "allowed_axioms": ["E1"],
+  "allowed_commands": [
+    "cv",
+    "ct",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
   "allowed_rules": [],
   "goal_statement": "S x = S x",
   "default_functions": [

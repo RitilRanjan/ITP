@@ -6,7 +6,7 @@
     "To do this, we will introduce the two fundamental axioms of addition:\n- **`add_base`**: `x + 0 = x` (Adding zero leaves a number unchanged).\n- **`add_induction`**: `x + S y = S(x + y)` (Adding a successor is the successor of the sum).",
     "Both of these axioms can be instantiated with any exact terms by writing the structural formula and using the `apply` command.",
     "### Instructions:\nStep 1: First, we must create dummy variables for relations. Type `cv u v`.",
-    "Step 2: Define the inequality relation just to set up standard state. Type `def_r 2 u ≠ v ¬ u = v`.",
+    "Step 2: Define the inequality relation just to set up standard state. Type `cf neq \"?t1 ≠ ?t2\" ¬ ?t1 = ?t2`.",
     "Step 3: Define our numbers! Define `1` by typing `ct 1 S 0`, and then define `2` by typing `ct 2 S 1`.",
     "Step 4: Now, create our goal formula. Type `cf goal 1 + 1 = 2`, and enter the mission by typing `mission goal`.",
     "Step 5: Let's unfold the definition of `2`. Type `rw 2 (1)` to get `1 + 1 = S 1`.",
@@ -29,7 +29,6 @@
     "show",
     "help",
     "ct",
-    "def_r",
     "intro",
     "fold",
     "neg-",
@@ -44,7 +43,9 @@
     "S_injective",
     "0_pred",
     "add_base",
-    "add_induction"
+    "add_induction",
+    "Q1",
+    "Q2"
   ],
   "allowed_rules": [
     "QR1",

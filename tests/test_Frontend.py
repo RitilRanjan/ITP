@@ -1,7 +1,7 @@
 import pytest
-from AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType
-from Environment import Environment
-from Frontend import parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string, UnrecognizedSymbolError, ParserError
+from backend.AST import Variable, PropositionalVariable, Function, FunctionType, Relation, RelationType
+from backend.Environment import Environment
+from backend.Parser import parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string, UnrecognizedSymbolError, ParserError
 
 def get_test_env():
     env = Environment()

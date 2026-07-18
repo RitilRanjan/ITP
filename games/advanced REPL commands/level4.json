@@ -11,9 +11,20 @@
     "Type `contra goal` (or just `contra`). Your premise is now `¬p` and your new goal is `⊥`!",
     "From `¬p` and `¬p ⇒ p`, use `apply` with `PC1` to prove `p`. Then type `contra p <name of ¬p formula>` to finish the proof by pointing out the contradiction!"
   ],
-  "allowed_commands": ["cV", "cf", "apply", "mission", "contra", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "mission",
+    "contra",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "(¬p ⇒ p) ⇒ p",
   "start_env": null
 }

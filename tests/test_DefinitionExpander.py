@@ -1,15 +1,15 @@
 import pytest
-from AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier, Connective
-from Environment import Environment
-from Frontend import parse_term, parse_fol_formula, reconstruct_string
-from SubstitutionManager import clone_ast, substitute_term
-from DefinitionExpander import (
+from backend.AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier, Connective
+from backend.Environment import Environment
+from backend.Parser import parse_term, parse_fol_formula, reconstruct_string
+from backend.SubstitutionManager import clone_ast, substitute_term
+from backend.DefinitionExpander import (
     expand_user_defined_function_in_term,
     expand_user_defined_function_in_formula,
     expand_user_defined_relation_in_formula,
     expand_existential_in_formula,
     expand_unique_existential_in_formula,
-    expand_iota_function_in_formula,
+    expand_iota_in_formula,
     substitute_dummy_in_formula
 )
 
@@ -60,7 +60,7 @@ def test_expand_user_defined_relation():
     d2 = DummyVariable("_2")
     env.add_dummy_variable(d1)
     env.add_dummy_variable(d2)
-    from SubstitutionManager import substitute_free
+    from backend.SubstitutionManager import substitute_free
     f_def = substitute_free(f_def, "x", d1)
     f_def = substitute_free(f_def, "y", d2)
     env.user_relations["R"] = (2, f_def)
@@ -107,7 +107,7 @@ def test_expand_iota_function():
     definition = clone_ast(th.formula) # (x = y)
     d1 = DummyVariable("_1")
     env.add_dummy_variable(d1)
-    from SubstitutionManager import substitute_free
+    from backend.SubstitutionManager import substitute_free
     definition = substitute_free(definition, "y", d1)
     
     env.user_functions["F1"] = (1, definition)
@@ -117,25 +117,25 @@ def test_expand_iota_function():
     )
     
     f1 = parse_fol_formula("F1(z) = w", env)
-    expanded = expand_iota_function_in_formula(env, f1, "F1", 1, "u", "v")
+    expanded = expand_iota_in_formula(env, f1, "F1", 1, "u", "v")
     assert reconstruct_string(expanded) == "∃u( ∀v(  ( v=(z) )⇔u=v ) )∧u= w"
     
     # Semantic violations
     # 1. u and v must be distinct
     with pytest.raises(ValueError):
-        expand_iota_function_in_formula(env, f1, "F1", 1, "u", "u")
+        expand_iota_in_formula(env, f1, "F1", 1, "u", "u")
         
     # 2. u must not be free in Φ (which contains w)
     with pytest.raises(ValueError):
-        expand_iota_function_in_formula(env, f1, "F1", 1, "w", "v")
+        expand_iota_in_formula(env, f1, "F1", 1, "w", "v")
         
     # 3. v must not be free in Ψ_instantiated (z is free)
     with pytest.raises(ValueError):
-        expand_iota_function_in_formula(env, f1, "F1", 1, "u", "z")
+        expand_iota_in_formula(env, f1, "F1", 1, "u", "z")
         
     # 4. u/v captured by enclosing quantifiers in Φ
     env.add_variable(Variable("u"))
     env.add_variable(Variable("v"))
     f2 = parse_fol_formula("∀ u ( F1(z) = u )", env)
     with pytest.raises(ValueError):
-        expand_iota_function_in_formula(env, f2, "F1", 1, "u", "v")
+        expand_iota_in_formula(env, f2, "F1", 1, "u", "v")

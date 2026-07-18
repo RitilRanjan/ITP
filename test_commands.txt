@@ -1,0 +1,12 @@
+
+n
+cv x
+cv y
+ct "| ?t1 |" x
+show
+ct abs | x |
+show
+ct "?t1 +_+ ?t2" x
+ct plus x +_+ y
+show
+exit

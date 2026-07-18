@@ -37,11 +37,13 @@
     - [apply3 — modus ponens backwards](#123-apply3--modus-ponens-backwards)
     - [left / right — disjunction tactics](#124-left--right--disjunction-tactics)
     - [and — conjunction tactic](#125-and--conjunction-tactic)
-    - [and2 — destructure a conjunction formula](#126-and2--destructure-a-conjunction-formula)
-    - [imply — implication tactic](#127-imply--implication-tactic)
-    - [intro — universal and existential introduction](#128-intro--universal-and-existential-introduction)
+    - [iff — equivalence tactic](#126-iff--equivalence-tactic)
+    - [and2 — destructure a conjunction formula](#127-and2--destructure-a-conjunction-formula)
+    - [imply — implication tactic](#128-imply--implication-tactic)
+    - [intro — universal and existential introduction](#129-intro--universal-and-existential-introduction)
     - [intro2 — universal instantiation](#129-intro2--universal-instantiation)
     - [contra — proof by contradiction](#1210-contra--proof-by-contradiction)
+    - [force — shortcut direct proof](#1211-force--shortcut-direct-proof)
 13. [Saving and loading state](#13-saving-and-loading-state)
 14. [The show command](#14-the-show-command)
 15. [Reference: all axioms and inference rules](#15-reference-all-axioms-and-inference-rules)
@@ -815,7 +817,23 @@ You are first placed inside the nested child to prove **Φ**. Once that is done,
 
 ---
 
-### 12.6 `and2` — Destructure a conjunction formula
+### 12.6 `iff` — Equivalence tactic
+
+```
+iff f1 f2
+```
+
+Use when the current goal is of the form **Ψ ⇔ Φ**. To prove an equivalence, you must prove both implications.
+
+This command:
+1. Sets the current goal name to `f1` and changes it to **Ψ ⇒ Φ** (the left implication)
+2. Opens a **nested child environment** with goal `f2` representing **Φ ⇒ Ψ** (the right implication)
+
+You are first placed inside the nested child to prove **Φ ⇒ Ψ**. Once that is done, control returns and you prove **Ψ ⇒ Φ** in the outer child. When both are proven, the original equivalence is proven.
+
+---
+
+### 12.7 `and2` — Destructure a conjunction formula
 
 ```
 and2 f1 f2
@@ -840,7 +858,7 @@ and2 f1 f2
 
 ---
 
-### 12.7 `imply` — Implication tactic
+### 12.8 `imply` — Implication tactic
 
 ```
 imply f1 f2
@@ -865,7 +883,7 @@ mission g
 
 ---
 
-### 12.8 `intro` — Universal and existential introduction
+### 12.9 `intro` — Universal and existential introduction
 
 ```
 intro f1 v     ← for goal ∀x Ψ(x)
@@ -942,11 +960,26 @@ Once you prove `f4` (showing a contradiction follows from `¬f1`), the mission c
 ```
 cf f1 x = x
 cf f3 x = y
-contra f1 neg_f1 f3 falsum
-[Child: goal=falsum = (¬(x=y) ∧ (x=y))]
-[neg_f1 = ¬(x=x) is a proven assumption]
+ITP> contra f1 neg_f1 f3 falsum
 ...derive the contradiction...
 ```
+
+---
+
+### 12.11 `force` — Shortcut direct proof
+
+**Syntax:**
+```
+force <target>
+```
+**Example:**
+```
+force lemma_1
+```
+**Mathematical idea:** Sometimes, you want to assume a lemma or theorem is true without spending the time to manually prove it, perhaps because you are more interested in proving a larger goal that depends on it. 
+
+The `force` command allows you to instantly bypass the proof process. It will take an existing formula `<target>` and immediately register it as a proven theorem in the environment. If you force the active mission goal, the mission will close and succeed. 
+*(Note: Because this bypasses the rules of logic, this command is strictly disabled in all Game levels to prevent cheating!)*
 
 ---
 
@@ -1105,6 +1138,7 @@ Use this frequently to keep track of what you have.
 | `intro f1 v` | Goal ∀x Ψ(x) → introduce fresh var v |
 | `intro f1 t1` | Goal ∃x Ψ(x) → provide witness t1 |
 | `contra f1 f2 f3 f4` | Proof by contradiction |
+| `force <target>` | Shortcut direct proof (not for games) |
 
 ### General-Purpose Destructuring
 | Command | Description |
@@ -1264,11 +1298,37 @@ intro2 f1 t1 f2
 
 ---
 
-## 18. Project Structure and Guidelines
+## 18. Game Mode (Interactive Tutorials)
+
+The ITP includes an interactive **Game Mode** designed to teach users how to use the prover and understand mathematical foundations step-by-step. 
+You can access the Game Mode by launching the Streamlit Web UI (`streamlit run app.py`) and navigating to the **Games** section.
+
+Available games include:
+- **Advanced REPL Commands**: Learn the basics of the prover, object creation, substitutions, and tactics.
+- **Natural Number Game**: Build the foundations of arithmetic (addition, commutativity, additive identity) from scratch using Peano-style axioms and induction.
+
+In Game Mode, certain commands (like `force`) are disabled, and you must strictly follow the level's objective to progress.
+
+---
+
+## 19. Project Structure and Guidelines
 
 To keep the repository clean and manageable:
 
-- **Root Directory (`/`)**: Contains only the core production source code files of the Interactive Theorem Prover (e.g., `main.py`, `AST.py`, `BackwardSearch.py`, `ZFC_Rules.py`, etc.).
-- **`tests/`**: Contains all unit tests (`test_*.py`), execution/debugging scripts (`run_tests.py`, `run_proofs.py`), and any other non-production testing scripts.
+- **Root Directory (`/`)**: Contains the entry points for the Streamlit web app (`app.py`) and the terminal REPL (`main.py`), as well as configuration files.
+- **`backend/`**: Contains all the core logic and engine source code of the Interactive Theorem Prover (e.g., `AST.py`, `Environment.py`, `Parser.py`, `BackwardSearch.py`, `ZFC_Rules.py`).
+- **`games/`**: Stores the JSON configuration files for the interactive Game Mode levels.
+- **`history_files/` & `logs/`**: Logs user REPL command history and runtime application logs.
+- **`save_files/` & `saved_programs/`**: Stores serialized environments and user saves.
+- **`scratch/`**: Contains temporary developer scripts, patches, and exploratory UI tests.
+- **`tests/`**: Contains all unit tests (`test_*.py`), execution/debugging scripts (`run_tests.py`), and formal test suites.
 
-When writing new tests or debugging scripts, **always** place them in the `tests/` folder. Ensure any test runners modify `sys.path` to include the root directory so they can successfully locate and import the production modules.
+When writing new tests or debugging scripts, **always** place them in the `tests/` or `scratch/` folder. Ensure any test runners modify `sys.path` to include the root directory so they can successfully locate and import the production modules.
+
+
+### `swap_eq` and `swap_bi`
+- **Syntax:** `swap_eq (occ) <target> <out> <equiv>`
+- **Description:** Searches for occurrences of `=` (or `⇔` for `swap_bi`) inside the target term or formula and swaps the LHS with the RHS. If `occ` is provided, only those specific occurrences are swapped.
+- **Example:**
+  - `swap_eq goal` - Swaps all `=` in the goal formula.
+  - `swap_eq (1,2) f1 f2 equiv1` - Swaps the 1st and 2nd occurrence of `=` in formula `f1`, saves the result as `f2`, and creates the equivalence `equiv1` (which is `f1 ⇔ f2`).

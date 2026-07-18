@@ -2,16 +2,25 @@
   "id": "level19",
   "name": "User defined functions",
   "guide_hints": [
-    "# Level 19: User defined functions\n\nIn mathematics, defining your own functions is essential for building complex structures. The prover allows you to define your own functions using the `def_f` command!\n\nThe environment currently has a pre-defined unary function `S` (the successor function, which you can mathematically think of as `+ 1`). We are going to define a new function `add_2` that adds 2 to a number.",
-    "The syntax to define a new function is:\n`def_f <arity> <name> <v1> <v2> ... <vn> <definition>`\n\nFor example, to define a completely new binary function `f(x, y) = S x`, you would type: `def_f 2 f x y S x`.\nTo define our required unary function `add_2(x) = S(S(x))`, simply type: `def_f 1 add_2 x S S x`.",
-    "Now that you have defined `add_2`, you can use the `fold` command to logically unfold its definition in any formula, exactly like how we unfolded quantifiers!\n\nThe syntax is exactly the same: `fold add_2 [<occurrences>] <target> [<out>] [<equiv>]`.\nLet's prove a simple identity demonstrating this unfolding: `add_2 x = S S x ⇔ S S x = S S x`.",
-    "Step 1: First, create the variable `x` using `cv x`.\nStep 2: Define the `add_2` function using `def_f 1 add_2 x S S x`.\nStep 3: Create the goal formula exactly as mentioned above: `cf goal add_2 x = S S x ⇔ S S x = S S x`.",
+    "# Level 19: User defined functions\n\nIn mathematics, defining your own functions is essential for building complex structures. The prover allows you to define your own functions using the `ct` command!\n\nThe environment currently has a pre-defined unary function `S` (the successor function, which you can mathematically think of as `+ 1`). We are going to define a new function `add_2` that adds 2 to a number.",
+    "The syntax to define a new function is:\n`ct <name> \"<pattern>\" <definition>`\n\nFor example, to define a completely new binary function `f(x, y) = S x`, you would type: `ct f \"f ?t1 ?t2\" S ?t1`.\nTo define our required unary function `add_2(x) = S(S(x))`, simply type: `ct add_2 \"add_2 ?t1\" S S ?t1`.",
+    "Now that you have defined `add_2`, you can use the `rw` command to logically unfold its definition in any formula, exactly like how we unfolded quantifiers!\n\nThe syntax is exactly the same: `rw add_2 [<occurrences>] <target> [<out>] [<equiv>]`.\nLet's prove a simple identity demonstrating this unfolding: `add_2 x = S S x ⇔ S S x = S S x`.",
+    "Step 1: First, create the variable `x` using `cv x`.\nStep 2: Define the `add_2` function using `ct add_2 \"add_2 ?t1\" S S ?t1`.\nStep 3: Create the goal formula exactly as mentioned above: `cf goal add_2 x = S S x ⇔ S S x = S S x`.",
     "Step 4: Create the left side of the equivalence as our starting formula. Type `cf f1 add_2 x = S S x`.",
-    "Step 5: Finally, unfold `add_2` in `f1` and output the equivalence theorem directly into `goal`!\n\nType: `fold add_2 f1 f2 goal`\nAnd you are done! The definition expands perfectly and proves your goal."
+    "Step 5: Finally, unfold `add_2` in `f1` and output the equivalence theorem directly into `goal`!\n\nType: `rw add_2 f1 f2 goal`\nAnd you are done! The definition expands perfectly and proves your goal."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "fold", "def_f"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "ct",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "add_2 x = S S x ⇔ S S x = S S x",
   "default_functions": [
     {

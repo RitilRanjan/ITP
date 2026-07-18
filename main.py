@@ -1,27 +1,24 @@
 import sys
 import os
 import builtins
-from CommandHandlers.mission_handlers import handle_mission, handle_contra
-from CommandHandlers.logic_handlers import (
+from backend.CommandHandlers.mission_handlers import handle_mission, handle_contra
+from backend.CommandHandlers.logic_handlers import (
     handle_left_right, handle_and, handle_imply, handle_intro,
     handle_apply
 )
-from CommandHandlers.env_handlers import (
+from backend.CommandHandlers.env_handlers import (
     handle_cv, handle_cV, handle_ct, handle_cf, handle_cp,
     handle_st, handle_sf, handle_sb, handle_sa, handle_sp
 )
-from CommandHandlers.definition_handlers import (
-    handle_def_f, handle_def_r
-)
-from CommandHandlers.state_handlers import (
+from backend.CommandHandlers.state_handlers import (
     handle_save, handle_load, handle_save_h, handle_load_h,
     handle_auto, handle_search, handle_backward_search, handle_advanced_search, handle_dt
 )
-from CommandHandlers.transformation_handlers import (
+from backend.CommandHandlers.transformation_handlers import (
     handle_fold, handle_simp, handle_neg
 )
-import CommandHandlers.terminal_handlers
-from CommandHandlers.utils import validate_new_name, get_target_resolutions, handle_variable_capture_interactive
+import backend.CommandHandlers.terminal_handlers
+from backend.CommandHandlers.utils import validate_new_name, get_target_resolutions, handle_variable_capture_interactive
 
 from typing import Optional, Tuple
 import re
@@ -59,26 +56,26 @@ def custom_print(*args, **kwargs):
     colored_text = f"\033[36m{subbed}\033[0m"
     original_print(colored_text, **kwargs)
 
-builtins.print = custom_print
+# builtins.print = custom_print
 
-from Environment import Environment
-from AST import (
-    Node, SetBuilder, Variable, DummyVariable, PropositionalVariable, Function, FunctionType,
+from backend.Environment import Environment
+from backend.AST import (
+    Node, Variable, DummyVariable, PropositionalVariable, Function, FunctionType,
     Relation, RelationType, Quantifier, Connective, MetaVariable, Constant
 )
-from Frontend import (
+from backend.Parser import (
     parse_term, parse_fol_formula, parse_prop_formula, reconstruct_string,
     UnrecognizedSymbolError, ParserError, lex
 )
-from SubstitutionManager import (
+from backend.SubstitutionManager import (
     substitute_free, substitute_bound, substitute_all, substitute_term, substitute_proposition,
     is_substitutable_free, is_substitutable_bound, clone_ast, get_term_vars
 )
 
-from AutoProver import auto_prove
-from GraphSearch import forward_search
-from BackwardSearch import backward_search, advanced_search
-from ProofLogger import proof_logger
+from backend.AutoProver import auto_prove
+from backend.GraphSearch import forward_search
+from backend.BackwardSearch import backward_search, advanced_search
+from backend.ProofLogger import proof_logger
 # Global flag to track if the current command resulted in an error or warning
 has_error = False
 _original_print = builtins.print
@@ -86,35 +83,18 @@ _original_print = builtins.print
 def print(*args, **kwargs):
     global has_error
     msg = " ".join(str(x) for x in args)
-    if msg.startswith("Error:") or msg.startswith("Parser Error:") or msg.startswith("Warning:"):
+    if msg.startswith("Error:") or msg.startswith("Parser Error:") or msg.startswith("Warning:") or msg.startswith("Unknown command"):
         has_error = True
     _original_print(*args, **kwargs)
 
-from DefinitionExpander import (
-    expand_user_defined_function_in_term, expand_user_defined_function_in_formula,
-    expand_user_defined_relation_in_formula, expand_existential_in_formula,
-    expand_unique_existential_in_formula, expand_set_builder_in_formula,
-    expand_epsilon_in_formula, expand_iota_in_formula,
+from backend.DefinitionExpander import (
     VariableCaptureError
 )
 
 def get_default_env(theory: str = "ZFC") -> Environment:
     env = Environment(theory=theory)
     
-    dummy = Variable("x")
-    # Pre-defined relation symbol = (equality, arity 2)
-    env.add_formula(Relation(name="=", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
-    
-    if theory == "ZFC":
-        env.add_term(Constant("∅"))
-        env.add_term(Constant("U"))
-        env.add_formula(Relation(name="∈", arity=2, rel_type=RelationType.PRE_DEFINED, arguments=[dummy, dummy]))
-    elif theory == "NT":
-        env.add_term(Constant("0"))
-        env.add_term(Function(name="S", arity=1, func_type=FunctionType.PRE_DEFINED, arguments=[dummy]))
-        env.add_term(Function(name="+", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
-        env.add_term(Function(name="*", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
-        env.add_term(Function(name="^", arity=2, func_type=FunctionType.PRE_DEFINED, arguments=[dummy, dummy]))
+    pass
     
     # Pre-defined propositional variables
     env.add_propositional_variable(PropositionalVariable("p"))
@@ -122,21 +102,8 @@ def get_default_env(theory: str = "ZFC") -> Environment:
     
     return env
     
-def snapshot_env_keys(env: Environment) -> dict:
-    return {
-        "id": id(env),
-        "variables": set(env.local_variables.keys()),
-        "dummies": set(env.local_dummy_variables.keys()),
-        "metas": set(env.local_meta_variables.keys()),
-        "props": set(env.local_propositional_variables.keys()),
-        "terms": set(env.local_terms.keys()),
-        "formulae": set(env.local_formulae.keys()),
-        "theorems": set(env.local_theorems),
-        "user_functions": set(env.local_user_functions.keys()),
-        "user_relations": set(env.local_user_relations.keys())
-    }
 
-from RecycleBinManager import RecycleBinManager
+from backend.RecycleBinManager import RecycleBinManager
 
 def main():
     # Ensure directories exist
@@ -246,25 +213,25 @@ def main():
             
         rb.truncate_history_if_needed(cmd)
         
-        from RecycleBinManager import snapshot_env_keys
+        from backend.RecycleBinManager import snapshot_env_state
         old_env_ref = env
-        before_snapshot = snapshot_env_keys(env)
+        before_snapshot = snapshot_env_state(env)
         mission_entered = False
         mission_resolved = False
         
         # Dispatch the command via registry
-        from CommandHandlers.CommandRegistry import registry
+        from backend.CommandHandlers.CommandRegistry import registry
         
         # Check if the command is registered
+        inputs_collected = []
         if registry.is_registered(cmd):
             # Command arguments passed to the handlers are just the remainder string
             # Handlers will lex() it internally.
-            inputs_collected = []
             kwargs = {
                 "command_queue": command_queue,
                 "inputs_collected": inputs_collected
             }
-            if cmd in {"load", "load_h"}:
+            if cmd in {"load", "load_h", "show_s"}:
                 kwargs["get_default_env"] = get_default_env
             if cmd in {"save_h", "load_h"}:
                 kwargs["history_commands"] = rb.history_commands
@@ -290,13 +257,27 @@ def main():
                 rb.record_command(line, before_snapshot, old_env_ref, env, mission_entered, mission_resolved)
 
         # Check if the goal in the current child environment is proven
+        if env.goal_formula_name is not None and env.goal_formula_name not in env.theorems:
+            goal_node = env.formulae[env.goal_formula_name]
+            from backend.AST import is_structurally_equal
+            for th_name, th_node in env.theorems.items():
+                if is_structurally_equal(goal_node, th_node):
+                    env.add_theorem(env.goal_formula_name)
+                    print(f"Goal '{env.goal_formula_name}' is automatically proven because it matches theorem '{th_name}'.")
+                    if hasattr(env, "proof_logger") and env.proof_logger:
+                        pass # Could log an exact match step
+                    break
+
         while env.goal_formula_name is not None and env.goal_formula_name in env.theorems:
             # Guard for 'and' environments: BOTH Ψ (goal_formula_name) AND Φ (and_right) must
             # be proven before closing the conjunction. This prevents premature closure if the
             # user exits the grandchild (abandoning Φ) and then proves Ψ directly.
             and_right = getattr(env, "and_right_formula_name", None)
+            iff_right = getattr(env, "iff_right_formula_name", None)
             if and_right is not None and and_right not in env.theorems:
                 break  # Φ not yet proven; cannot close the conjunction
+            if iff_right is not None and iff_right not in env.theorems:
+                break  # Φ⇒Ψ not yet proven; cannot close the equivalence
 
             goal_name = env.goal_formula_name
             original_goal_name = getattr(env, "original_goal_formula_name", goal_name)
@@ -325,6 +306,25 @@ def main():
                     )
                 else:
                     proof_logger.log_summary(target_name, parent.formulae[target_name], "contradiction-elim")
+            elif iff_right is not None:
+                print(f"Both parts proven (Ψ⇒Φ='{goal_name}', Φ⇒Ψ='{iff_right}'). "
+                      f"Equivalence goal '{original_goal_name}' is proven!")
+                if original_goal_name in parent.formulae:
+                    parent.theorems[original_goal_name] = clone_ast(parent.formulae[original_goal_name])
+                else:
+                    parent.theorems[original_goal_name] = clone_ast(env.formulae[original_goal_name])
+                iff_node = parent.theorems[original_goal_name]
+                if pa and pa.get("method") == "⇔-intro":
+                    proof_logger.log(
+                        [
+                            (pa["left_name"], env.theorems.get(pa["left_name"], pa["left_node"])),
+                            (pa["right_name"], env.theorems.get(pa["right_name"], pa["right_node"])),
+                        ],
+                        original_goal_name, iff_node,
+                        "rule: PC1 (⇔-intro)"
+                    )
+                else:
+                    proof_logger.log_summary(original_goal_name, iff_node, "⇔-intro")
             elif and_right is not None:
                 # 'and' environment: both Ψ and Φ proven → register the original conjunction in parent
                 print(f"Both parts proven (Ψ='{goal_name}', Φ='{and_right}'). "

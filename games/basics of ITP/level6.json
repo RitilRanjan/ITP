@@ -12,9 +12,20 @@
     "### Step 5:\nNow you can create the appropriate formulas using the `E3` axiom and apply `PC1` again to deduce the final goal!",
     "**Operator Precedence:**\nSince there are a lot of operators, it is necessary to keep operator precedence in mind. It is unary function > binary function > higher arity functions > unary relation > binary relation > higher arity relations > negation symbol > binary connectives. Within the same precedence, order goes from left to right(eg:- x=x ∧ y=y ∨ z=z will mean ((x=x ∧ y=y) ∨ z=z). You can write this precedence order in some copy. This is what we usually follow in mathematics."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1", "E3"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E3"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "(x = y ∧ y = z) ⇒ ((x = x ∨ y = z) ⇒ (x = y ∨ z = z))",
   "default_functions": [],
   "default_relations": [

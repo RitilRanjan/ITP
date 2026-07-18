@@ -9,8 +9,15 @@
     "Finally, apply the `E2` axiom to prove it. Notice how `E2` substitutes `x` with `y` inside the function `S`! Type `apply goal E2` in the console.",
     "Similarly you can try proving `(y=x) ⇒ (S S y = S S x)` or `(x=x) ⇒ (S x = S x)` using `E2` axiom."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E2"
+  ],
   "allowed_rules": [],
   "goal_statement": "x = y ⇒ S x = S y",
   "default_functions": [

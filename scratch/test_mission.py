@@ -1,9 +1,9 @@
 import os
 import sys
 
-from Environment import Environment
-from CommandHandlers.env_handlers import handle_cv
-from RecycleBinManager import RecycleBinManager, snapshot_env_keys
+from backend.Environment import Environment
+from backend.CommandHandlers.env_handlers import handle_cv
+from backend.RecycleBinManager import RecycleBinManager, snapshot_env_keys
 
 env = Environment()
 rb = RecycleBinManager()

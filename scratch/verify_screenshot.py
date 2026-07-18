@@ -1,22 +1,16 @@
-import asyncio
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
+import time
 
-async def main():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            await page.goto("http://localhost:8501", timeout=10000)
-            await page.wait_for_selector("text=Games", timeout=10000)
-            await page.screenshot(path="/Users/ritilranjan/ITP/scratch/verify_screenshot.png")
-            print("Screenshot saved to /Users/ritilranjan/ITP/scratch/verify_screenshot.png")
-            await browser.close()
-            return 0
-        except Exception as e:
-            print(f"Error: {e}")
-            await browser.close()
-            return 1
+def test_scroll():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto("http://localhost:8501")
+        time.sleep(5)
+        
+        page.screenshot(path="scratch/screenshot.png")
+        print("Screenshot saved.")
+        browser.close()
 
 if __name__ == "__main__":
-    import sys
-    sys.exit(asyncio.run(main()))
+    test_scroll()

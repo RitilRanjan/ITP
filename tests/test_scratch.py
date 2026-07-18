@@ -1,7 +1,7 @@
-from Environment import Environment
-from AST import Variable, Function, FunctionType
-from Frontend import parse_fol_formula, reconstruct_string
-from SubstitutionManager import replace_structurally
+from backend.Environment import Environment
+from backend.AST import Variable, Function, FunctionType
+from backend.Parser import parse_fol_formula, reconstruct_string
+from backend.SubstitutionManager import replace_structurally
 
 env = Environment()
 env.add_variable(Variable("x"))

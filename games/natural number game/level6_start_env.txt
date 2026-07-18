@@ -1,0 +1,31 @@
+# Environment State
+
+This file contains the saved state of the theorem prover.
+
+## Ground Environment
+
+- **Variables**: None
+- **Theorems**: 0
+
+---
+
+## Data Payload
+```itp
+[Environment 0]
+Goal: None
+Original Goal: None
+And Right: None
+Target Proven: None
+Theory: NT
+Variables: 
+Dummy Variables: 
+Meta Variables: 
+Propositional Variables: 
+User Functions:
+User Relations:
+Terms:
+  0 | 0
+Formulae:
+Theorems:
+
+```

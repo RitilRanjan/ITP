@@ -21,7 +21,6 @@
     "show",
     "help",
     "ct",
-    "def_r",
     "intro",
     "fold",
     "neg-",
@@ -38,7 +37,9 @@
     "E2",
     "E3",
     "0_pred",
-    "S_injective"
+    "S_injective",
+    "Q1",
+    "Q2"
   ],
   "allowed_rules": [
     "QR1",

@@ -1,18 +1,33 @@
 {
-  "id": "level15",
-  "name": "Explicit Substitutions",
+  "id": "level14",
+  "name": "Search Commands",
   "guide_hints": [
-    "# Level 15: Explicit Substitutions (`st`, `sf`, `sb`, `sa`)\n\nSometimes you want to explicitly substitute variables inside a formula or term without relying on axioms like `Q1`.",
-    "- **`st`**: Substitute variable in a Term. Syntax: `st <term> <var_to_replace> <new_term> [<out>]`\n- **`sf`**: Substitute a *Free* variable in a Formula. Syntax: `sf <formula> <var_to_replace> <new_term> [<out>]`",
-    "- **`sb`**: Substitute a *Bound* variable in a Formula (renaming a quantifier variable). Syntax: `sb <formula> <old_bound_var> <new_var> [<out>]`\n- **`sa`**: Substitute *All* (both Free and Bound) variables in a Formula.",
-    "**Note:** `sf` automatically checks for *variable capture*. If substituting a term would cause one of its free variables to accidentally become bound by a quantifier in the formula, the command will fail safely.",
-    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal (∀x x=x) ⇒ (∀y y=y)`.\nStart a mission: `mission goal`.",
-    "You have premise `f1: ∀x x=x`. Since `x` is a bound variable, you can rename it using `sb`. Type `sb f1 x y`.",
-    "The prover creates the proven formula `∀y y=y`! Now just use `auto goal` to finish."
+    "# Level 14: Search Commands\n\nWhile `auto` is great for single-step deductions, sometimes a proof requires chaining multiple theorems together. This is where `search`, `backward_search`, and `advanced_search` come in.",
+    "These commands perform a Graph Search through the space of possible logical deductions, trying to find a path from your proven premises to your goal.",
+    "**Disclaimer:** It is highly recommended NOT to use these commands for learning purposes, as they defeat the point of practicing logical deduction. Furthermore, these search algorithms are currently quite basic and can be slow for complex proofs.",
+    "There is a massive amount of scope for improvement in these algorithms! If you are interested in Graph Theory or AI, you can contribute by submitting Pull Requests to the open-source repository.",
+    "### Instructions:\nCreate prop variables `p`, `q`, `r`.\nCreate the Syllogism goal: `cf goal ((p ⇒ q) ∧ (q ⇒ r)) ⇒ (p ⇒ r)`.",
+    "Start a mission: `mission goal`.\nType `left <premise>` and `right <premise>` to extract `p ⇒ q` and `q ⇒ r`.",
+    "Then type `search goal`. The prover will explore the graph and find the proof chaining them together!"
   ],
-  "allowed_commands": ["cv", "cf", "apply", "st", "sf", "sb", "sa", "auto", "mission", "exit"],
+  "allowed_commands": [
+    "cV",
+    "cf",
+    "apply",
+    "search",
+    "backward_search",
+    "advanced_search",
+    "mission",
+    "left",
+    "right",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
-  "goal_statement": "(∀x x=x) ⇒ (∀y y=y)",
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "((p ⇒ q) ∧ (q ⇒ r)) ⇒ (p ⇒ r)",
   "start_env": null
 }

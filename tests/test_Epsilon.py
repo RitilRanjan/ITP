@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import patch
-from AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
-from Environment import Environment
-from Frontend import parse_fol_formula, reconstruct_string, parse_term
-from SubstitutionManager import clone_ast, substitute_free
+from backend.AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
+from backend.Environment import Environment
+from backend.Parser import parse_fol_formula, reconstruct_string, parse_term
+from backend.SubstitutionManager import clone_ast, substitute_free
 from main import validate_new_name
-from DefinitionExpander import expand_epsilon_function_in_formula
+from backend.DefinitionExpander import expand_epsilon_in_formula
 
 def get_test_env():
     env = Environment()
@@ -31,7 +31,7 @@ def test_epsilon_arity_0():
     assert isinstance(theorem_node, Quantifier) and theorem_node.name == "∃"
     
     bound_var_name = theorem_node.variable.name
-    from SubstitutionManager import get_free
+    from backend.SubstitutionManager import get_free
     free_vars = get_free(theorem_node.formula)
     free_vars.discard(bound_var_name)
     
@@ -70,7 +70,7 @@ def test_epsilon_arity_1():
     assert isinstance(theorem_node, Quantifier) and theorem_node.name == "∃"
     
     bound_var_name = theorem_node.variable.name
-    from SubstitutionManager import get_free
+    from backend.SubstitutionManager import get_free
     free_vars = get_free(theorem_node.formula)
     free_vars.discard(bound_var_name)
     
@@ -104,7 +104,7 @@ def test_epsilon_arity_1():
     assert env.terms["E1"].func_type == FunctionType.EPSILON_DEFINED
     assert env.terms["E1"].arity == 1
 
-def test_expand_epsilon_function_in_formula():
+def test_expand_epsilon_in_formula():
     env = get_test_env()
     
     # Define an epsilon function E1 of arity 1 from ∃ x ( x = y )
@@ -130,7 +130,7 @@ def test_expand_epsilon_function_in_formula():
     
     formula = parse_fol_formula("E1(y) = z", env)
     
-    expanded = expand_epsilon_function_in_formula(env, formula, "E1", 1, "u")
+    expanded = expand_epsilon_in_formula(env, formula, "E1", 1, "u")
     
     # Expected: ∃u( u=(y) ∧u= z )
     assert reconstruct_string(expanded) == "∃u( u=(y) ∧u= z )"

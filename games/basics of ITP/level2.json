@@ -10,8 +10,15 @@
     "Finally, apply the `E1` axiom to prove it. Type `apply goal E1` in the console.",
     "Similarly you can create a formula `S S y = S S y` where `y` is a variable and prove it using `E1`, but you can't prove `S x = x` using `E1`."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
   "allowed_rules": [],
   "goal_statement": "S x = S x",
   "default_functions": [

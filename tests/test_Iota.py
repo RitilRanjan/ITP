@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import patch
-from AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
-from Environment import Environment
-from Frontend import parse_fol_formula, reconstruct_string, parse_term
-from SubstitutionManager import clone_ast, substitute_free
+from backend.AST import Variable, DummyVariable, Function, FunctionType, Relation, RelationType, Quantifier
+from backend.Environment import Environment
+from backend.Parser import parse_fol_formula, reconstruct_string, parse_term
+from backend.SubstitutionManager import clone_ast, substitute_free
 from main import validate_new_name
 
 def get_test_env():
@@ -64,7 +64,7 @@ def test_iota_arity_0():
     assert isinstance(theorem_node, Quantifier) and theorem_node.name == "∃!"
     
     bound_var_name = theorem_node.variable.name
-    from SubstitutionManager import get_free
+    from backend.SubstitutionManager import get_free
     free_vars = get_free(theorem_node.formula)
     free_vars.discard(bound_var_name)
     
@@ -104,7 +104,7 @@ def test_iota_arity_1():
     assert isinstance(theorem_node, Quantifier) and theorem_node.name == "∃!"
     
     bound_var_name = theorem_node.variable.name
-    from SubstitutionManager import get_free
+    from backend.SubstitutionManager import get_free
     free_vars = get_free(theorem_node.formula)
     free_vars.discard(bound_var_name)
     
@@ -147,7 +147,7 @@ def test_iota_arity_2_prompt():
     
     theorem_node = env.theorems["th2"]
     bound_var_name = theorem_node.variable.name
-    from SubstitutionManager import get_free
+    from backend.SubstitutionManager import get_free
     free_vars = get_free(theorem_node.formula)
     free_vars.discard(bound_var_name)
     

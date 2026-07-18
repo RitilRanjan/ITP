@@ -10,9 +10,20 @@
     "**PC1 vs PC2:** Since `PC1` and `PC2` serve the same purpose, in which scenario is which one more efficient? `PC1` uses a complete Truth Table evaluation, which is fast for a small number of unique atomic formulas. `PC2` uses **Gentzen's Sequent Calculus** instead, making it much more efficient when the formula is large and contains many different atomic subformulas.",
     "**Grammar Rules:** You must have noticed that the syntax of creating terms and formulas is a bit complicated. The rule is that for unary operators (functions, relations, **negation symbol** (which will come later)), the argument is written just after the symbol whereas for binary operators (functions, relations, logical connectives), the 1st operand is written before it and 2nd is written after this. For higher arity operators (functions and relations), all arguments are written after it in sequence. The sequence definitely matters here."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1", "E3"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E3"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "x = y ⇒ (x ∈ x ⇒ y ∈ y)",
   "default_functions": [],
   "default_relations": [

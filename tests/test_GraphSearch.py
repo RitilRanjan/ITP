@@ -1,7 +1,7 @@
-from AST import Variable
+from backend.AST import Variable
 from main import get_default_env
-from Frontend import parse_fol_formula, parse_prop_formula
-from GraphSearch import forward_search
+from backend.Parser import parse_fol_formula, parse_prop_formula
+from backend.GraphSearch import forward_search
 
 def run_tests():
     env = get_default_env()

@@ -12,9 +12,20 @@
     "### Step 6:\nFinally, we know `f1` is true and `f3` is true, so use `PC1` to deduce the goal! Type: `apply goal PC1 f1 f3`.",
     "I hope you remember the precedence order of operands which was mentioned to you before. Quantifier symbols have the **lowest** precedence among all operators! That means their scope extends as far right as possible until bounded by parentheses. That's why `∀x ¬x∈x ∨ x∈x` is parsed with the quantifier covering the entire `∨` statement."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["E1"],
-  "allowed_rules": ["PC1", "PC2", "QR1"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2",
+    "QR1"
+  ],
   "goal_statement": "∀x ¬x ∈ x ∨ x ∈ x",
   "default_functions": [],
   "default_relations": [

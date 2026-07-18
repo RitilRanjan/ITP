@@ -1,0 +1,39 @@
+{
+  "id": "level17",
+  "name": "Equational Rewriting",
+  "guide_hints": [
+    "# Level 17: Equational Rewriting\n\nEquational Rewriting allows you to replace equals with equals directly inside complex formulas. This is extremely powerful and mimics how you solve algebra equations in real life by substituting values.\n- **`simp_l_eq`**: Replaces the Left-Hand Side (LHS) of an equality with its Right-Hand Side (RHS).\n- **`simp_r_eq`**: Replaces the RHS of an equality with its LHS.\n- **`simp_l_bi`** & **`simp_r_bi`**: Same thing, but for bi-implications (`⇔`) instead of equalities (`=`).",
+    "### Syntax\n`simp_l_eq <thm> [occ] [<target>] [<out>] [<equiv>]`\n- `<thm>`: The proven equality theorem (e.g., `x=y`) you want to use.\n- `[occ]`: (Optional) The specific occurrence number you want to replace. If omitted, defaults to all occurrences.\n- `<target>`: (Optional) The target formula where substitution happens. If omitted, targets the goal.\n- `<out>`: (Optional) The name of the resulting formula.\n- `<equiv>`: (Optional) Sometimes there are naming conflicts for bound variables during rewriting, which can be explicitly resolved. Usually safely ignored.",
+    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal x=y ⇒ (S x = S x ⇒ S x = S y)`.\nStart a mission: `mission goal`.",
+    "You now have premise `f1: x=y` and goal `S x = S x ⇒ S x = S y`.\nLet's rewrite the FIRST occurrence of `x` in the goal with `y`.",
+    "Type `simp_l_eq f1 1`. The `1` specifies the 1st occurrence of `x` (the LHS of `f1`) in the goal formula.",
+    "Your goal changes to `S y = S x ⇒ S x = S y`.",
+    "Alternatively, you could have rewritten the 3rd occurrence: `simp_l_eq f1 3`. Try proving the remaining equality via `E1` and `auto goal`!"
+  ],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "mission",
+    "simp_l_eq",
+    "simp_r_eq",
+    "auto",
+    "exit",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "x=y ⇒ (S x = S x ⇒ S x = S y)",
+  "default_functions": [
+    {
+      "name": "S",
+      "arity": 1
+    }
+  ],
+  "start_env": null
+}

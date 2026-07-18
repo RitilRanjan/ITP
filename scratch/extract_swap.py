@@ -1,0 +1,20 @@
+import json
+
+transcript_file = '/Users/ritilranjan/.gemini/antigravity-ide/brain/c1ebe070-7021-465f-a667-cfb0e82f8429/.system_generated/logs/transcript_full.jsonl'
+lines = []
+
+with open(transcript_file, 'r') as f:
+    for line in f:
+        try:
+            data = json.loads(line)
+            if data.get('source') == 'MODEL' and data.get('type') == 'VIEW_FILE':
+                content = data.get('content', '')
+                if 'Showing lines 741 to 852' in content:
+                    lines.append(content)
+        except:
+            pass
+
+if lines:
+    with open('scratch/found_swap.txt', 'w') as f:
+        f.write(lines[-1])
+    print("Found and wrote to scratch/found_swap.txt")

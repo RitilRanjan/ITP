@@ -9,9 +9,22 @@
     "Prove `x=z` by creating `cf f1 (x=x ∧ y=z) ⇒ (x=y ⇒ x=z)` and applying `E3`. Then prove `x=x` via `E1` and finally use `PC1` on `f1` to prove the sub-goal `x=z`.",
     "Once proven, the mission automatically closes! Note: You can nest missions indefinitely, creating grand-child environments."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "mission", "exit"],
-  "allowed_axioms": ["E1", "E3"],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "mission",
+    "exit",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "E1",
+    "E3"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "(x=y ∧ y=z) ⇒ x=z",
   "start_env": null
 }

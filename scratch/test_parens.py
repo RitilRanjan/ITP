@@ -1,11 +1,11 @@
 import os
 import sys
 
-from Environment import Environment
-from CommandHandlers.CommandRegistry import registry
-from Frontend import show_environment
-import CommandHandlers.transformation_handlers
-import CommandHandlers.env_handlers
+from backend.Environment import Environment
+from backend.CommandHandlers.CommandRegistry import registry
+from backend.Parser import show_environment
+import backend.CommandHandlers.transformation_handlers
+import backend.CommandHandlers.env_handlers
 
 env = Environment()
 

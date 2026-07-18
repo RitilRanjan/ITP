@@ -1,0 +1,120 @@
+Created At: 2026-07-17T16:56:42Z
+Completed At: 2026-07-17T16:56:43Z
+File Path: `file:///Users/ritilranjan/ITP/backend/CommandHandlers/transformation_handlers.py`
+Total Lines: 852
+Total Bytes: 40313
+Showing lines 741 to 852
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+741: 
+742: def _handle_swap_base(env: Environment, args_str: str, target_symbol: str, is_relation: bool, cmd_name: str) -> None:
+743:     cmd_args = [t for t in lex(args_str) if not t.isspace()]
+744:     
+745:     occs, idx = parse_occurrences(cmd_args, 0)
+746:     if occs is not None:
+747:         if 0 in occs: occs = None
+748:         remaining = cmd_args[idx:]
+749:     else:
+750:         remaining = cmd_args
+751:         
+752:     target_name = None
+753:     out_name = None
+754:     equiv_name = None
+755:     
+756:     is_formula_target = False
+757:     is_term_target = False
+758:     
+759:     if len(remaining) == 0:
+760:         if env.goal_formula_name is not None:
+761:             target_name = env.goal_formula_name
+762:             out_name = env.goal_formula_name
+763:             is_formula_target = True
+764:         else:
+765:             print("Error: No target specified and no active goal to default to.")
+766:             return
+767:     else:
+768:         target_name = remaining[0]
+769:         if target_name in env.local_formulae or target_name in env.formulae:
+770:             is_formula_target = True
+771:         elif target_name in env.local_terms or target_name in env.terms:
+772:             is_term_target = True
+773:         else:
+774:             print(f"Error: Target '{target_name}' not found.")
+775:             return
+776:             
+777:         if len(remaining) == 1:
+778:             out_name = target_name
+779:         elif len(remaining) == 2:
+780:             out_name = remaining[1]
+781:         elif len(remaining) >= 3:
+782:             out_name = remaining[1]
+783:             equiv_name = remaining[2]
+784: 
+785:     if out_name != target_name:
+786:         ns = "formula" if is_formula_target else "term"
+787:         if not validate_new_name(env, out_name, ns):
+788:             return
+789:             
+790:     if equiv_name is not None:
+791:         if not validate_new_name(env, equiv_name, "formula"):
+792:             return
+793: 
+794:     target_node = env.formulae[target_name] if is_formula_target else env.terms[target_name]
+795:     
+796:     try:
+797:         new_target = swap_ast_nodes(target_node, target_symbol, is_relation, occurrence_idx=occs)
+798:     except Exception as e:
+799:         print(f"Error swapping: {e}")
+800:         return
+801: 
+802:     if is_formula_target:
+803:         env.formulae[out_name] = new_target
+804:         if out_name not in env.local_formulae:
+805:             env.local_formulae[out_name] = new_target
+806:         print(f"Formula '{out_name}' = '{reconstruct_string(new_target)}'")
+807:         
+808:         if target_name in env.theorems:
+809:             env.add_theorem(out_name)
+810:             print(f"Proven '{out_name}' since '{target_name}' is a theorem!")
+811:             proof_logger.log_rule([(target_name, env.formulae[target_name])], out_name, new_target, cmd_name)
+812:         elif out_name == env.goal_formula_name:
+813:             print(f"Goal updated to '{out_name}': {reconstruct_string(new_target)}")
+814:             env.target_goal = new_target
+815:             
+816:         if equiv_name:
+817:             eq = Connective(name="⇔", arity=2, arguments=[clone_ast(target_node), clone_ast(new_target)])
+818:             env.formulae[equiv_name] = eq
+819:             if equiv_name not in env.local_formulae:
+820:                 env.local_formulae[equiv_name] = eq
+821:             print(f"Created equivalence formula '{equiv_name}' = '{reconstruct_string(eq)}'")
+822:             if target_name in env.theorems:
+823:                 env.add_theorem(equiv_name)
+824:                 print(f"Proven '{equiv_name}' because '{target_name}' is a theorem!")
+825:                 proof_logger.log_rule([(target_name, env.formulae[target_name])], equiv_name, eq, f"{cmd_name}_equiv")
+826:                 
+827:     elif is_term_target:
+828:         env.terms[out_name] = new_target
+829:         if out_name not in env.local_terms:
+830:             env.local_terms[out_name] = new_target
+831:         print(f"Term '{out_name}' = '{reconstruct_string(new_target)}'")
+832:         
+833:         if equiv_name:
+834:             eq = Relation(name="=", arity=2, rel_type=RelationType.EQUALITY, arguments=[clone_ast(target_node), clone_ast(new_target)])
+835:             env.formulae[equiv_name] = eq
+836:             if equiv_name not in env.local_formulae:
+837:                 env.local_formulae[equiv_name] = eq
+838:             print(f"Created equivalence formula '{equiv_name}' = '{reconstruct_string(eq)}'")
+839:             if target_name in env.theorems:
+840:                 env.add_theorem(equiv_name)
+841:                 print(f"Proven '{equiv_name}' because '{target_name}' is a theorem!")
+842:                 proof_logger.log_rule([(target_name, env.terms[target_name])], equiv_name, eq, f"{cmd_name}_equiv")
+843: 
+844: @registry.register("swap_eq", category="Transformations", help_text="Swap LHS and RHS of '=' in target term/formula")
+845: def handle_swap_eq(env: Environment, args_str: str, command_queue: list = None, inputs_collected: list = None) -> None:
+846:     _handle_swap_base(env, args_str, "=", True, "swap_eq")
+847: 
+848: @registry.register("swap_bi", category="Transformations", help_text="Swap LHS and RHS of '⇔' in target formula")
+849: def handle_swap_bi(env: Environment, args_str: str, command_queue: list = None, inputs_collected: list = None) -> None:
+850:     _handle_swap_base(env, args_str, "⇔", False, "swap_bi")
+851: 
+852: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

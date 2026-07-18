@@ -1,24 +1,29 @@
 {
-  "id": "level17",
-  "name": "Equational Rewriting",
+  "id": "level16",
+  "name": "Propositional Logic",
   "guide_hints": [
-    "# Level 17: Equational Rewriting\n\nEquational Rewriting allows you to replace equals with equals directly inside complex formulas. This is extremely powerful and mimics how you solve algebra equations in real life by substituting values.\n- **`simp_l_eq`**: Replaces the Left-Hand Side (LHS) of an equality with its Right-Hand Side (RHS).\n- **`simp_r_eq`**: Replaces the RHS of an equality with its LHS.\n- **`simp_l_bi`** & **`simp_r_bi`**: Same thing, but for bi-implications (`⇔`) instead of equalities (`=`).",
-    "### Syntax\n`simp_l_eq <thm> [occ] [<target>] [<out>] [<equiv>]`\n- `<thm>`: The proven equality theorem (e.g., `x=y`) you want to use.\n- `[occ]`: (Optional) The specific occurrence number you want to replace. If omitted, defaults to all occurrences.\n- `<target>`: (Optional) The target formula where substitution happens. If omitted, targets the goal.\n- `<out>`: (Optional) The name of the resulting formula.\n- `<equiv>`: (Optional) Sometimes there are naming conflicts for bound variables during rewriting, which can be explicitly resolved. Usually safely ignored.",
-    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal x=y ⇒ (S x = S x ⇒ S x = S y)`.\nStart a mission: `mission goal`.",
-    "You now have premise `f1: x=y` and goal `S x = S x ⇒ S x = S y`.\nLet's rewrite the FIRST occurrence of `x` in the goal with `y`.",
-    "Type `simp_l_eq f1 1`. The `1` specifies the 1st occurrence of `x` (the LHS of `f1`) in the goal formula.",
-    "Your goal changes to `S y = S x ⇒ S x = S y`.",
-    "Alternatively, you could have rewritten the 3rd occurrence: `simp_l_eq f1 3`. Try proving the remaining equality via `E1` and `auto goal`!"
+    "# Level 16: Propositional Logic (`cV`, `cp`, `sp`)\n\nWe briefly touched on Propositional Calculus with `PC1`/`PC2`. Sometimes, it's easier to prove a theorem purely in Propositional Logic, and then substitute actual 1st-order formulas into it.",
+    "- **`cV`**: Creates a Propositional Variable (e.g. `p`, `q`). These stand in for entire truth values, unlike regular variables (`x`, `y`) which stand in for objects.\n- **`cp`**: Creates a Propositional Formula using only propositional variables and logical connectives (`∧`, `∨`, `⇒`, `⇔`, `¬`).",
+    "- **`sp`**: Substitutes a Propositional Variable inside a formula with a 1st-order formula. Syntax: `sp <formula> <prop_var> <new_formula> [<out>]`.",
+    "### Instructions:\nCreate a propositional variable `p` with `cV p`.\nCreate a prop formula `cp f1 p ⇒ p`.\nProve it using `apply f1 PC1`.",
+    "Now create 1st order variables `x` and `y`, and a formula `cf f2 x=y`.\nSubstitute `p` with `x=y` in your proven theorem `f1` using `sp f1 p f2`.",
+    "You just proved `x=y ⇒ x=y`! Set it as your goal using `cf goal x=y ⇒ x=y` and use `auto goal` to finish."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "mission", "simp_l_eq", "simp_r_eq", "auto", "exit"],
-  "allowed_axioms": ["E1"],
-  "allowed_rules": ["PC1", "PC2"],
-  "goal_statement": "x=y ⇒ (S x = S x ⇒ S x = S y)",
-  "default_functions": [
-    {
-      "name": "S",
-      "arity": 1
-    }
+  "allowed_commands": [
+    "cv",
+    "cV",
+    "cf",
+    "cp",
+    "sp",
+    "apply",
+    "auto",
+    "rw"
   ],
+  "allowed_axioms": [],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "x=y ⇒ x=y",
   "start_env": null
 }

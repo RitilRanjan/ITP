@@ -12,9 +12,22 @@
     "### Step 6:\nFinally, we want to add `∃y` to the left side of `f4`. `QR2` allows us to deduce `(∃y ∀x x∈y) ⇒ ∀x ∃y x∈y`. Notice that `y` is safely bound on the right side! Create `cf f5 (∃y ∀x x∈y) ⇒ ∀x ∃y x∈y` and prove it using `QR2`: `apply f5 QR2 f4`.",
     "### Step 7:\nNow we have our final implication `f5`, and we were already given the premise `theorem_1`! Apply `PC1` to logically conclude the goal: `apply goal PC1 f5 theorem_1`."
   ],
-  "allowed_commands": ["cv", "cf", "apply"],
-  "allowed_axioms": ["Q1", "Q2"],
-  "allowed_rules": ["PC1", "PC2", "QR1", "QR2"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "Q1",
+    "Q2"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2",
+    "QR1",
+    "QR2"
+  ],
   "goal_statement": "∀x ∃y x ∈ y",
   "default_functions": [],
   "default_relations": [

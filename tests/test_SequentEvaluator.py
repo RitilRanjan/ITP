@@ -1,8 +1,8 @@
 import pytest
-from AST import PropositionalVariable, Connective
-from Environment import Environment
-from Frontend import parse_prop_formula
-from SequentEvaluator import prove_sequent, is_tautology_sequent
+from backend.AST import PropositionalVariable, Connective
+from backend.Environment import Environment
+from backend.Parser import parse_prop_formula
+from backend.SequentEvaluator import prove_sequent, is_tautology_sequent
 
 def get_test_env():
     env = Environment()

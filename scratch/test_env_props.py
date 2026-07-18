@@ -1,6 +1,6 @@
 import traceback
 from main import get_default_env
-from Environment import Function, Relation
+from backend.Environment import Function, Relation
 
 try:
     env = get_default_env("NT")

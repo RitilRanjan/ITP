@@ -1,17 +1,31 @@
 {
-  "id": "level13",
-  "name": "The auto Command",
+  "id": "level12",
+  "name": "Schemas and Instantiation",
   "guide_hints": [
-    "# Level 13: The auto Command\n\nYou've already used `auto` a few times, but how does it actually work? `auto` is the Magic Button of the theorem prover.",
-    "When you type `auto goal`, the prover doesn't just guess. It systematically attempts to prove the formula by combining Propositional Calculus (`PC1`/`PC2`), Quantifier Rules (`QR1`/`QR2`), and the Fundamental Axioms (`E1`, `E2`, `E3`, `Q1`, `Q2`).",
-    "It breaks the goal down into its atomic components and evaluates if any combination of axioms and currently proven premises logically entails the goal.",
-    "### Instructions:\nCreate variables `x`, `y`, `z`.\nCreate the goal: `cf goal (x=y ∧ y=z) ⇒ x=z`.",
-    "In *Basics of ITP*, proving this required manually instantiating `E3`, proving `x=x` with `E1`, and combining them with `PC1`.",
-    "Here, just type `auto goal`. The prover will automatically find this exact path and prove the formula for you instantly!"
+    "# Level 12: Schemas (`cfs`, `crs`, `intro2`)\n\nIn mathematics, we often prove theorems that follow a general pattern. Instead of re-proving them for every specific function or relation, we can prove a **Schema**.\n\nA schema is a placeholder for any arbitrary term/formula. `cfs` creates a Function Schema, and `crs` creates a Relation Schema.",
+    "Once a theorem involving a schema is proven, you can use the `intro2` command to instantiate it! `intro2` takes a schema theorem and replaces the schema symbol with a specific function or relation of your choice.",
+    "### Syntax and Symbols\nTo type the Greek letter `ψ` (psi), use hex code `03C8`. To type `ε` (epsilon), use hex code `03B5`.",
+    "### Instructions:\nCreate a unary Relation Schema `ψ` by typing `crs ψ 1`.\nCreate a variable `x`.\nCreate the goal: `cf goal ∃x ψ(x) ⇒ ψ(ε x ψ(x))`.",
+    "Wait, look familiar? This is exactly the Epsilon axiom (`Epsilon`)! You can prove this schema directly by typing `apply goal Epsilon`.",
+    "If you wanted to instantiate this for a specific relation (e.g. equality), you would use `intro2 goal =`."
   ],
-  "allowed_commands": ["cv", "cf", "apply", "auto", "exit"],
-  "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
-  "goal_statement": "(x=y ∧ y=z) ⇒ x=z",
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "crs",
+    "cfs",
+    "intro2",
+    "apply",
+    "exit",
+    "rw"
+  ],
+  "allowed_axioms": [
+    "Epsilon"
+  ],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "∃x ψ(x) ⇒ ψ(ε x ψ(x))",
   "start_env": null
 }

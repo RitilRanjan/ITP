@@ -8,9 +8,18 @@
     "Step 3: Now let's construct the left side. Create `cf f1 ∃!x x=x`.",
     "Step 4: Finally, let's unfold it! We want to unfold `∃!` in `f1`, store the result in `f2`, and save the equivalence theorem directly into `goal`.\n\nBut wait! We need to provide the fresh variable `y` to the fold command. Type this exactly (use `Shift+Enter` to create the new line):\n```text\nfold ∃! f1 f2 goal\ny\n```\n\nThis will execute the command and answer the prompt with `y` simultaneously! The equivalence theorem will be generated, and your goal will be successfully proven!"
   ],
-  "allowed_commands": ["cv", "cf", "apply", "fold"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "fold",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
   "goal_statement": "(∃!x x = x) ⇔ (∃x ∀y (y = y ⇔ y = x))",
   "default_functions": [],
   "default_relations": [

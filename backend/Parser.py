@@ -373,7 +373,7 @@ class Parser:
                 if not isinstance(right, TermNode):
                     raise ParserError(f"Right operand of relation '{op}' must be a term, got formula.")
                 
-                if op == "∈": op_name = "in"
+                if op == "∈": op_name = "∈"
                 else: op_name = op
                 
                 lf_def = self.env.long_formulae[op_name]

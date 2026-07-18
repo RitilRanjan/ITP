@@ -1,11 +1,11 @@
 import unittest
-from AST import (
+from backend.AST import (
     Variable, DummyVariable, PropositionalVariable, Function, FunctionType,
     Relation, RelationType, Quantifier, Connective
 )
-from Environment import Environment
-from SubstitutionManager import clone_ast
-from BackwardSearch import (
+from backend.Environment import Environment
+from backend.SubstitutionManager import clone_ast
+from backend.BackwardSearch import (
     eliminate_implications, to_nnf, skolemize, distribute_or_over_and,
     process_to_cnf, unify, backward_search, get_literal_core, resolve,
     advanced_search, subsumes, one_way_match, paramodulate, is_term_greater

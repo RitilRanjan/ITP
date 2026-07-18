@@ -1,0 +1,5 @@
+ZFC
+N
+cv A B
+cf goal A = B
+exit

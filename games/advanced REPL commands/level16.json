@@ -1,17 +1,33 @@
 {
-  "id": "level16",
-  "name": "Propositional Logic",
+  "id": "level15",
+  "name": "Explicit Substitutions",
   "guide_hints": [
-    "# Level 16: Propositional Logic (`cV`, `cp`, `sp`)\n\nWe briefly touched on Propositional Calculus with `PC1`/`PC2`. Sometimes, it's easier to prove a theorem purely in Propositional Logic, and then substitute actual 1st-order formulas into it.",
-    "- **`cV`**: Creates a Propositional Variable (e.g. `p`, `q`). These stand in for entire truth values, unlike regular variables (`x`, `y`) which stand in for objects.\n- **`cp`**: Creates a Propositional Formula using only propositional variables and logical connectives (`∧`, `∨`, `⇒`, `⇔`, `¬`).",
-    "- **`sp`**: Substitutes a Propositional Variable inside a formula with a 1st-order formula. Syntax: `sp <formula> <prop_var> <new_formula> [<out>]`.",
-    "### Instructions:\nCreate a propositional variable `p` with `cV p`.\nCreate a prop formula `cp f1 p ⇒ p`.\nProve it using `apply f1 PC1`.",
-    "Now create 1st order variables `x` and `y`, and a formula `cf f2 x=y`.\nSubstitute `p` with `x=y` in your proven theorem `f1` using `sp f1 p f2`.",
-    "You just proved `x=y ⇒ x=y`! Set it as your goal using `cf goal x=y ⇒ x=y` and use `auto goal` to finish."
+    "# Level 15: Explicit Substitutions (`st`, `sf`, `sb`, `sa`)\n\nSometimes you want to explicitly substitute variables inside a formula or term without relying on axioms like `Q1`.",
+    "- **`st`**: Substitute variable in a Term. Syntax: `st <term> <var_to_replace> <new_term> [<out>]`\n- **`sf`**: Substitute a *Free* variable in a Formula. Syntax: `sf <formula> <var_to_replace> <new_term> [<out>]`",
+    "- **`sb`**: Substitute a *Bound* variable in a Formula (renaming a quantifier variable). Syntax: `sb <formula> <old_bound_var> <new_var> [<out>]`\n- **`sa`**: Substitute *All* (both Free and Bound) variables in a Formula.",
+    "**Note:** `sf` automatically checks for *variable capture*. If substituting a term would cause one of its free variables to accidentally become bound by a quantifier in the formula, the command will fail safely.",
+    "### Instructions:\nCreate variables `x` and `y`.\nCreate the goal: `cf goal (∀x x=x) ⇒ (∀y y=y)`.\nStart a mission: `mission goal`.",
+    "You have premise `f1: ∀x x=x`. Since `x` is a bound variable, you can rename it using `sb`. Type `sb f1 x y`.",
+    "The prover creates the proven formula `∀y y=y`! Now just use `auto goal` to finish."
   ],
-  "allowed_commands": ["cv", "cV", "cf", "cp", "sp", "apply", "auto"],
+  "allowed_commands": [
+    "cv",
+    "cf",
+    "apply",
+    "st",
+    "sf",
+    "sb",
+    "sa",
+    "auto",
+    "mission",
+    "exit",
+    "rw"
+  ],
   "allowed_axioms": [],
-  "allowed_rules": ["PC1", "PC2"],
-  "goal_statement": "x=y ⇒ x=y",
+  "allowed_rules": [
+    "PC1",
+    "PC2"
+  ],
+  "goal_statement": "(∀x x=x) ⇒ (∀y y=y)",
   "start_env": null
 }
