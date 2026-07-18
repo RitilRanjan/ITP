@@ -6,9 +6,9 @@
     "So basically it can be used to prove formulas of the form `∃B ∀x x∈B ⇔ (x∈A ∧ Ψ(x))`. I hope you are able to comprehend this formal statement.",
     "We will define a long term to define the **Set Builder Form** which of the type {<variable> ∈ <term> | <formula>}",
     "Type `ct set_builder \"{?v1 ∈ ?t1 | ?f1}\" ε ?v2 ∀?v1 ?v1 ∈ ?v2 ⇔ (?v1 ∈ ?t1 ∧ ?(v1)f1)`. This long expression might look difficult to understand for you. But you can interpret it easily. The set will be referred to as that variable v2 such that a set v1 belongs to v2 iff v1 belongs to the term t1 and the formula f1 which may contain v1 as free variable must be true.",
-    "Type `cv x A B C`.",
-    "Type `cf goal ∃B ∀x x∈B ⇔ (x∈A ∧ x∈C)`.",
-    "Type `apply goal specification`.",
+    "Type `cv x A B`.",
+    "Type `cf goal {x∈A | x∈B} ⊆ A` which is the formula which we want to prove in this level.",
+    "",
     ""
   ],
   "allowed_commands": [
@@ -37,9 +37,9 @@
     "PC2",
     "PC3"
   ],
-  "goal_statement": "∃B ∀x x∈B ⇔ (x∈A ∧ x∈C)",
+  "goal_statement": "{x∈A | x∈B} ⊆ A",
   "start_env_commands":[
-    "cv "
+    "cf subset \"?t1 \u2286 ?t2\" \u2200?v3 (?v3 \u2208 ?t1 \u21d2 ?v3 \u2208 ?t2)"
   ],
   "theory": "ZFC"
 }
