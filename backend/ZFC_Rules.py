@@ -187,9 +187,9 @@ def axiom_specification(formula: FormulaNode) -> bool:
     left, right = scope.arguments[0], scope.arguments[1]
     
     # Check left: z ∈ y
-    if not isinstance(left, LongFormula) or left.definition_name != "∈" or "t1" not in left.term_placeholders:
+    if not isinstance(left, LongFormula) or left.definition_name != "∈" or "?t1" not in left.term_placeholders:
         return False
-    if left.term_placeholders["t1"].name != z or left.term_placeholders["t2"].name != y:
+    if left.term_placeholders["?t1"].name != z or left.term_placeholders["?t2"].name != y:
         return False
         
     # Check right: z ∈ x ∧ phi
@@ -197,11 +197,11 @@ def axiom_specification(formula: FormulaNode) -> bool:
         return False
         
     c1, c2 = right.arguments[0], right.arguments[1]
-    if not isinstance(c1, LongFormula) or c1.definition_name != "∈" or "t1" not in c1.term_placeholders:
+    if not isinstance(c1, LongFormula) or c1.definition_name != "∈" or "?t1" not in c1.term_placeholders:
         return False
-    if c1.term_placeholders["t1"].name != z:
+    if c1.term_placeholders["?t1"].name != z:
         return False
-    x = c1.term_placeholders["t2"].name
+    x = c1.term_placeholders["?t2"].name
     
     if x == y or x == z:
         return False

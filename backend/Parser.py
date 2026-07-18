@@ -517,13 +517,19 @@ class Parser:
         fmt_after_q = self.consume_formatting()
         
         var_str = self.peek()
-        if not var_str or (var_str not in self.env.variables and not (var_str.startswith('?v') and var_str[2:].isdigit())):
-            raise ParserError(f"Quantifier {q_str} must be followed by a defined variable, got '{var_str}'")
-        self.consume()
-        if var_str.startswith('?v') and var_str[2:].isdigit():
-            var_node = VariablePlaceholder(index=int(var_str[2:]))
+        from backend.AST import Node, Variable, VariablePlaceholder
+        if isinstance(var_str, Node):
+            var_node = var_str
+            self.consume()
         else:
-            var_node = Variable(name=var_str)
+            if not var_str or (isinstance(var_str, str) and var_str not in self.env.variables and not (var_str.startswith('?v') and var_str[2:].isdigit())):
+                raise ParserError(f"Quantifier {q_str} must be followed by a defined variable, got '{var_str}'")
+            self.consume()
+            if var_str.startswith('?v') and var_str[2:].isdigit():
+                var_node = VariablePlaceholder(index=int(var_str[2:]))
+            else:
+                var_node = Variable(name=var_str)
+        
         var_node.prefix_formatting = fmt_after_q + var_node.prefix_formatting
         
         fmt_after_var = self.consume_formatting()
@@ -553,13 +559,18 @@ class Parser:
         fmt_after_op = self.consume_formatting()
         
         var_str = self.peek()
-        if not var_str or (var_str not in self.env.variables and not (var_str.startswith('?v') and var_str[2:].isdigit())):
-            raise ParserError(f"Operator {op} must be followed by a defined variable, got '{var_str}'")
-        self.consume()
-        if var_str.startswith('?v') and var_str[2:].isdigit():
-            var_node = VariablePlaceholder(index=int(var_str[2:]))
+        from backend.AST import Node, Variable, VariablePlaceholder
+        if isinstance(var_str, Node):
+            var_node = var_str
+            self.consume()
         else:
-            var_node = Variable(name=var_str)
+            if not var_str or (isinstance(var_str, str) and var_str not in self.env.variables and not (var_str.startswith('?v') and var_str[2:].isdigit())):
+                raise ParserError(f"Operator {op} must be followed by a defined variable, got '{var_str}'")
+            self.consume()
+            if var_str.startswith('?v') and var_str[2:].isdigit():
+                var_node = VariablePlaceholder(index=int(var_str[2:]))
+            else:
+                var_node = Variable(name=var_str)
         var_node.prefix_formatting = fmt_after_op + var_node.prefix_formatting
         
         fmt_after_var = self.consume_formatting()

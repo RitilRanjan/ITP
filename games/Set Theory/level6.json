@@ -1,0 +1,56 @@
+{
+  "id": "level6",
+  "name": "Russell's Paradox",
+  "guide_hints": [
+    "# Level 6: Russell's Paradox",
+    "In this level, we will prove that there is no 'set of all sets', also known as Russell's paradox.",
+    "The goal is to prove that there does not exist a set A such that for all B, B belongs to A. We will write this as `¬(∃A(∀B(B∈A)))`.",
+    "First, we will assume the negation of our goal using the contra rule. Type `mission cons1 contra goal`. This assumes `∃A(∀B(B∈A))` (let's call the premise ant1) and changes our goal to ⊥.",
+    "Next, we want to instantiate this universal set A. However, `ExElim` is not directly provided in this level, so we must rely on other tactics if needed, or we can use `intro ant1 U` which introduces a universal set `U` such that `∀B(B∈U)`.",
+    "Now we use the Axiom of Specification to define a set R of all sets that do not contain themselves.",
+    "Since the set builder notation macro can be tricky with operator precedence in formulas, we will define it explicitly. Type `cf thm1 ∃R ∀x (x∈R ⇔ (x∈U ∧ ¬(x∈x)))`.",
+    "Using the specification axiom, we know such a set exists. Type `apply thm1 specification` to prove it.",
+    "Next, we can instantiate R from thm1 (which is an existential formula). Once instantiated, we can substitute `x` with `R`.",
+    "This leads to `R∈R ⇔ (R∈U ∧ ¬(R∈R))`. Since we know `R∈U` (because `U` contains all sets), this simplifies to `R∈R ⇔ ¬(R∈R)` which is a contradiction (⊥).",
+    "Use your propositional logic tactics (`imply`, `and`, `left`, `right`) and standard rules to derive ⊥ and close the mission!"
+  ],
+  "allowed_commands": [
+    "cv",
+    "ct",
+    "cf",
+    "mission",
+    "rw",
+    "apply",
+    "apply2",
+    "apply3",
+    "fold",
+    "intro",
+    "imply",
+    "and",
+    "left",
+    "right",
+    "iff"
+  ],
+  "allowed_axioms": [
+    "specification"
+  ],
+  "allowed_rules": [
+    "QR1",
+    "QR2",
+    "PC1",
+    "PC2",
+    "PC3",
+    "ExElim",
+    "Gen",
+    "contra",
+    "dne",
+    "EFQ"
+  ],
+  "goal_statement": "¬(∃A(∀B(B∈A)))",
+  "start_env_commands":[
+    "cf nexists \"∄?v1(?f1)\" ¬(∃?v1 ?f1)",
+    "cf notin \"?t1 ∉ ?t2\" ¬(?t1 ∈ ?t2)",
+    "ct set_builder \"{?v1 ∈ ?t1 | ?f1}\" ε ?v2 ∀?v1 (?v1 ∈ ?v2 ⇔ (?v1 ∈ ?t1 ∧ ?(v1)f1))"
+  ],
+  "theory": "ZFC"
+}

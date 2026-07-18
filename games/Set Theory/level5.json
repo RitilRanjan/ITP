@@ -8,7 +8,6 @@
     "Type `ct set_builder \"{?v1 ∈ ?t1 | ?f1}\" ε ?v2 ∀?v1 ?v1 ∈ ?v2 ⇔ (?v1 ∈ ?t1 ∧ ?(v1)f1)`. This long expression might look difficult to understand for you. But you can interpret it easily. The set will be referred to as that variable v2 such that a set v1 belongs to v2 iff v1 belongs to the term t1 and the formula f1 which may contain v1 as free variable must be true.",
     "Type `cv x A B`.",
     "Type `cf goal {x∈A | x∈B} ⊆ A` which is the formula which we want to prove in this level.",
-    "",
     ""
   ],
   "allowed_commands": [
